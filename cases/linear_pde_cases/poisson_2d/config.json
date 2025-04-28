@@ -1,0 +1,87 @@
+{
+  "problem_type": "linear_pde",
+  "method": "hybrid",
+  "eq": [
+    "diff(u,x,2) + diff(u,y,2)"
+  ],
+  "source_term": true,
+  "eq_nonlinear": [],
+  "vars_list": [
+    "u"
+  ],
+  "spatial_vars": [
+    "x",
+    "y"
+  ],
+  "boundary_conditions": [
+    {
+      "region": "left",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": 0.0,
+      "points": 500
+    },
+    {
+      "region": "right",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": 0.0,
+      "points": 500
+    },
+    {
+      "region": "bottom",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": 0.0,
+      "points": 500
+    },
+    {
+      "region": "top",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": 0.0,
+      "points": 500
+    }
+  ],
+  "hidden_dims": [
+    32,
+    64,
+    32
+  ],
+  "training_epochs": 30000,
+  "learning_rate": 0.001,
+  "n_segments": [
+    2,
+    2
+  ],
+  "points_domain": 20000,
+  "points_domain_test": 2500,
+  "points_boundary_test": 500,
+  "poly_degree": [
+    5,
+    5
+  ],
+  "x_domain": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "device": "cuda",
+  "linear_device": "cpu",
+  "n_train": 22000,
+  "n_test": 3000,
+  "seed": 42
+}

@@ -1,0 +1,15 @@
+=== Training Set Errors ===
+MSE: 1.95409722e-05
+RMSE: 4.42051718e-03
+MAE: 3.08170875e-03
+MAX_ERROR: 3.58944036e-02
+
+=== Test Set Errors ===
+MSE: 2.11258266e-05
+RMSE: 4.59628400e-03
+MAE: 3.22433808e-03
+MAX_ERROR: 1.82644285e-02
+
+=== Solution Information ===
+Final Training Loss: 1.99828291e-05
+Total Solution Time: 14.0334 seconds
