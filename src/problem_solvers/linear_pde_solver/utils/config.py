@@ -8,87 +8,87 @@ import json
 
 @dataclass
 class LinearPDEConfig(BaseConfig):
-    # 在dataclass中，需要显式声明继承自父类的属性
-    case_dir: str  # 从BaseConfig继承的属性
+    # In dataclass, attributes inherited from parent class need to be explicitly declared
+    case_dir: str
     
-    # 添加配置文件中的必要字段
-    vars_list: List[str] = field(default_factory=list)  # 变量列表
-    spatial_vars: List[str] = field(default_factory=list)  # 空间变量
-    eq: List[str] = field(default_factory=list)  # 方程
-    eq_nonlinear: List[str] = field(default_factory=list)  # 非线性方程
-    const_list: List[str] = field(default_factory=list)  # 常量列表
-    source_term: bool = field(default=False)  # 是否包含源项
+    # Add necessary fields from the configuration file
+    vars_list: List[str] = field(default_factory=list)  # List of variables
+    spatial_vars: List[str] = field(default_factory=list)  # Spatial variables
+    eq: List[str] = field(default_factory=list)  # Equations
+    eq_nonlinear: List[str] = field(default_factory=list)  # Non-linear equations
+    const_list: List[str] = field(default_factory=list)  # List of constants
+    source_term: bool = field(default=False)  # Whether to include source term
     
-    # 基本参数
-    # n_dim通过init=False字段声明，不要在这里重复声明
-    n_eqs: int = 1  # 方程数量 (通常是 1)
-    n_segments: List[int] = field(default_factory=lambda: [10])  # 分段数量
+    # Basic parameters
+    # n_dim is declared with init=False, do not repeat declaration here
+    n_eqs: int = 1  # Number of equations (usually 1)
+    n_segments: List[int] = field(default_factory=lambda: [10])  # Number of segments
 
-    # 多项式参数
-    poly_degree: List[int] = field(default_factory=lambda: [3])  # 多项式阶数
+    # Polynomial parameters
+    poly_degree: List[int] = field(default_factory=lambda: [3])  # Polynomial degree
 
-    # 神经网络参数
-    method: str = "hybrid"  # 方法选择：'hybrid' 或 'poly'
-    DNN_degree: int = 10  # 神经网络特征维度 (如果 method='hybrid')
-    device: str = "cuda"  # 计算设备
-    linear_device: str = "cpu"  # 线性求解器设备
+    # Neural network parameters
+    method: str = "hybrid"  # Method selection: 'hybrid' or 'poly'
+    DNN_degree: int = 10  # Neural network feature dimension (if method='hybrid')
+    device: str = "cuda"  # Computing device
+    linear_device: str = "cpu"  # Linear solver device
     hidden_dims: List[int] = field(
         default_factory=lambda: [64, 64, 64]
-    )  # 神经网络隐藏层
-    learning_rate: float = 0.001  # 学习率
-    max_retries: int = 1  # 最大重试次数
-    training_epochs: int = 10000  # 训练轮数
+    )  # Neural network hidden layers
+    learning_rate: float = 0.001  # Learning rate
+    max_retries: int = 1  # Maximum number of retries
+    training_epochs: int = 10000  # Number of training epochs
 
-    # 训练/测试数据参数
-    n_train: int = 1000  # 训练点总数
-    n_test: int = 200  # 测试点总数
-    points_domain: int = 1000  # 域内点数
-    points_domain_test: int = 200  # 测试域内点数
-    points_boundary: int = 200  # 边界点数
-    points_boundary_test: int = 50  # 测试边界点数
-    points_initial: int = 0  # 初始点数（时间相关问题）
+    # Training/testing data parameters
+    n_train: int = 1000  # Total number of training points
+    n_test: int = 200  # Total number of test points
+    points_domain: int = 1000  # Number of domain points
+    points_domain_test: int = 200  # Number of test domain points
+    points_boundary: int = 200  # Number of boundary points
+    points_boundary_test: int = 50  # Number of test boundary points
+    points_initial: int = 0  # Number of initial points (for time-dependent problems)
 
-    # 导数参数
+    # Derivative parameters
     deriv_orders: List[List[int]] = field(
         default_factory=lambda: [[0]]
-    )  # 要拟合的导数阶数
+    )  # Derivative orders to fit
     all_derivatives: List[List[int]] = field(
         default_factory=lambda: [[[0]]]
-    )  # 界面连续性条件所需的导数阶数 (每 eq)
+    )  # Derivative orders needed for interface continuity conditions (per equation)
 
-    # 方程参数
-    boundary_conditions: List[dict] = field(default_factory=list)  # 边界条件列表
+    # Equation parameters
+    boundary_conditions: List[dict] = field(default_factory=list)  # List of boundary conditions
     
-    # PDE特有参数
+    # PDE specific parameters
 
-    # 案例特定参数
-    x_domain: List = field(default_factory=list)  # 域边界
-    plot_module_path: Optional[str] = None  # 自定义绘图模块的相对路径
-    seed: int = 42  # 随机种子
+    # Case specific parameters
+    x_domain: List = field(default_factory=list)  # Domain boundaries
+    plot_module_path: Optional[str] = None  # Relative path to custom plotting module
+    seed: int = 42  # Random seed
     
-    # 定义需要从BaseConfig初始化的字段
-    n_dim: int = field(init=False, default=1)  # 问题维度
-    x_min: np.ndarray = field(init=False, default=None)  # 每段的最小坐标
-    x_max: np.ndarray = field(init=False, default=None)  # 每段的最大坐标
+    # Define fields that need to be initialized from BaseConfig
+    n_dim: int = field(init=False, default=1)  # Problem dimension
+    x_min: np.ndarray = field(init=False, default=None)  # Minimum coordinates for each segment
+    x_max: np.ndarray = field(init=False, default=None)  # Maximum coordinates for each segment
     segment_ranges: List[np.ndarray] = field(
         default_factory=list, init=False
-    )  # 每个维度的分段范围
-    x_min_norm: np.ndarray = field(init=False, default=None)  # 归一化后的最小坐标
-    x_max_norm: np.ndarray = field(init=False, default=None)  # 归一化后的最大坐标
+    )  # Segment ranges for each dimension
+    x_min_norm: np.ndarray = field(init=False, default=None)  # Normalized minimum coordinates
+    x_max_norm: np.ndarray = field(init=False, default=None)  # Normalized maximum coordinates
     
     def __post_init__(self):
-        """初始化配置参数"""
+        """Initialize configuration parameters"""
         BaseConfig.__init__(self, self.case_dir)
         
         self.load_config_from_json(self.case_dir)
         
-        # 处理配置文件中的字段映射（例如eq -> Eq）
+        # Process field mappings from the configuration file (e.g., eq -> Eq)
         self._map_config_fields()
         
-        # 验证必要参数
+        # Validate required parameters
         self._validate_required_params()
 
-        # 初始化其他参数
+        # Initialize other parameters
         self.n_dim = len(self.spatial_vars)
         self.n_eqs = len(self.eq)
         self._init_segment_ranges()
@@ -96,7 +96,7 @@ class LinearPDEConfig(BaseConfig):
         self.init_seed()
         self.DNN_degree = self.hidden_dims[-1]
 
-        # 解析方程
+        # Parse equations
         (
             self.eq_linear_list,
             self.deriv_orders,
@@ -112,21 +112,21 @@ class LinearPDEConfig(BaseConfig):
         )
 
     def _map_config_fields(self):
-        """处理配置文件中的字段命名与类属性的映射"""
-        # 检查 eq 字段是否存在，如果存在则映射到 Eq
+        """Handle mapping between field names in the configuration file and class attributes"""
+        # Check if eq field exists, and if so, map it to Eq
         if hasattr(self, 'eq') and not hasattr(self, 'Eq'):
             self.Eq = self.eq
             
-        # 检查 eq_nonlinear 字段是否存在，如果存在则映射到 Eq_nonlinear
+        # Check if eq_nonlinear field exists, and if so, map it to Eq_nonlinear
         if hasattr(self, 'eq_nonlinear') and not hasattr(self, 'Eq_nonlinear'):
             self.Eq_nonlinear = self.eq_nonlinear
             
-        # 如果没有设置 const_list，创建空列表
+        # If const_list is not set, create an empty list
         if not hasattr(self, 'const_list'):
             self.const_list = []
 
     def _validate_required_params(self):
-        """验证必要参数是否已设置"""
+        """Validate that required parameters are set"""
         required_params = [
             "vars_list",
             "spatial_vars",
@@ -137,21 +137,21 @@ class LinearPDEConfig(BaseConfig):
 
         for param in required_params:
             if not hasattr(self, param) or getattr(self, param) is None:
-                raise ValueError(f"必要参数 '{param}' 未设置")
+                raise ValueError(f"Required parameter '{param}' is not set")
 
-        # 特殊验证
+        # Special validations
         if len(self.spatial_vars) != len(self.n_segments):
             raise ValueError(
-                f"spatial_vars长度({len(self.spatial_vars)})和n_segments长度({len(self.n_segments)})不匹配"
+                f"Length of spatial_vars ({len(self.spatial_vars)}) and n_segments ({len(self.n_segments)}) do not match"
             )
 
         if len(self.spatial_vars) != len(self.poly_degree):
             raise ValueError(
-                f"spatial_vars长度({len(self.spatial_vars)})和poly_degree长度({len(self.poly_degree)})不匹配"
+                f"Length of spatial_vars ({len(self.spatial_vars)}) and poly_degree ({len(self.poly_degree)}) do not match"
             )
 
     def _init_segment_ranges(self):
-        """初始化分段区间"""
+        """Initialize segment ranges"""
         self.segment_ranges = []
         
         for i in range(self.n_dim):
@@ -159,55 +159,55 @@ class LinearPDEConfig(BaseConfig):
             x_max = self.x_domain[i][1]
             n_seg = self.n_segments[i]
             
-            # 计算分段区间
+            # Calculate segment ranges
             seg_ranges = np.linspace(x_min, x_max, n_seg + 1)
             self.segment_ranges.append(seg_ranges)
             
     def _init_boundaries(self):
-        """初始化边界参数"""
-        # 创建边界数组
+        """Initialize boundary parameters"""
+        # Create boundary arrays
         self.x_min = np.array([range[0] for range in self.segment_ranges])
         self.x_max = np.array([range[-1] for range in self.segment_ranges])
         
-        # 归一化边界
+        # Normalize boundaries
         self.x_min_norm = -np.ones(self.n_dim)
         self.x_max_norm = np.ones(self.n_dim)
         
     def init_seed(self):
-        """初始化随机种子"""
+        """Initialize random seed"""
         np.random.seed(self.seed)
         
-    # 覆盖基类方法，定义需要特殊处理的字段
+    # Override base class methods, define fields that need special handling
     def _int_list_fields(self):
-        """需要转换为整数的字段列表"""
+        """List of fields that need to be converted to integers"""
         return ["n_segments", "poly_degree", "hidden_dims"]
 
     def _list_fields(self):
-        """需要特殊处理的列表字段"""
+        """List of fields that need special handling"""
         return ["n_segments", "poly_degree", "hidden_dims", "x_domain"]
 
     def _process_list_field(self, key, value):
-        """处理列表类型字段"""
+        """Process list type fields"""
         if key == "n_segments" or key == "poly_degree" or key == "hidden_dims":
-            # 确保是整数列表
+            # Ensure it's a list of integers
             return [int(v) if isinstance(v, str) else v for v in value]
         elif key == "x_domain":
-            # 确保是二维列表
+            # Ensure it's a two-dimensional list
             if isinstance(value, list) and len(value) > 0:
                 if not isinstance(value[0], list):
-                    # 如果是简单的列表[min, max]，转换为[[min, max]]
+                    # If it's a simple list [min, max], convert to [[min, max]]
                     return [value]
             return value
         return value
 
     def load_config_from_json(self, case_dir=None):
-        """从JSON文件加载配置，并更新对象属性
+        """Load configuration from a JSON file and update object attributes
         
-        与BaseConfig中不同，此方法会动态添加配置文件中的所有字段，
-        即使这些字段未在类中预先定义。
+        Different from BaseConfig, this method dynamically adds all fields from the config file,
+        even if they are not predefined in the class.
 
         Args:
-            case_dir: 配置文件所在的目录
+            case_dir: Directory containing the configuration file
         """
         config_path = os.path.join(case_dir, "config.json")
         if os.path.exists(config_path):
@@ -215,9 +215,9 @@ class LinearPDEConfig(BaseConfig):
                 with open(config_path, "r") as f:
                     config_dict = json.load(f)
 
-                # 将配置字典中的值应用到这个对象
+                # Apply values from the config dictionary to this object
                 for key, value in config_dict.items():
-                    # 特殊类型处理
+                    # Special type handling
                     if isinstance(value, str) and key in self._int_list_fields():
                         try:
                             value = int(value)
@@ -226,14 +226,14 @@ class LinearPDEConfig(BaseConfig):
                     elif isinstance(value, list) and key in self._list_fields():
                         value = self._process_list_field(key, value)
 
-                    # 设置属性，无论是否预先定义
+                    # Set attribute whether predefined or not
                     setattr(self, key, value)
                     
-                print(f"成功从 {config_path} 加载了配置")
+                print(f"Successfully loaded configuration from {config_path}")
                 return True
             except Exception as e:
-                print(f"加载配置文件时出错: {e}")
+                print(f"Error loading configuration file: {e}")
                 return False
         else:
-            print(f"配置文件路径无效: {config_path}")
+            print(f"Invalid configuration file path: {config_path}")
             return False 

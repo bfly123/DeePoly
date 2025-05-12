@@ -47,7 +47,6 @@
   ],
   "device": "cuda",
   "linear_device": "cpu",
-  "n_train": 2000,
-  "target_function_path": "target_function.py",
-  "output_module_path": "output.py"
+  "output_module_path": "output.py",
+  "seed": 42
 }

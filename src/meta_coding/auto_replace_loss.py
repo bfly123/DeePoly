@@ -138,7 +138,7 @@ class LossProcessor:
         used_derivatives = self._find_used_derivatives(equations)
         code_lines = []
         
-        # Add constants from const_list - 修正访问格式为param[0]["constant_name"]
+        # Add constants from const_list - Corrected access format to param[0]["constant_name"]
         for const_dict in self.const_list:
             for const_name, const_value in const_dict.items():
                 code_lines.append(f"# Get {const_name} from parameters")

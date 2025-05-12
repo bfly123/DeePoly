@@ -25,36 +25,36 @@ from src.problem_solvers.time_pde_solver.utils.config import TimePDEConfig
 
 class TimePDESolver:
     def __init__(self, config):
-        # 初始化配置
+        # Initialize config
         self.config = config
         self.config.export_to_json("config.json")
 
-        # 初始化数据生成器
+        # Initialize data generator
         self.datagen = TimePDEDataGenerator(self.config)
 
-        # 准备训练和测试数据
+        # Prepare training and test data
         self.data_train = self.datagen.generate_data("train")
         self.data_test = self.datagen.generate_data("test")
 
-        # 初始化模型
+        # Initialize model
         self.model = TimePDENet(
             in_dim=2, hidden_dims=self.config.hidden_dims, out_dim=self.config.n_eqs
         ).to(self.config.device)
 
-        # 准备GPU数据
+        # Prepare GPU data
         self.data_GPU = self.datagen.prepare_gpu_data(self.data_train)
 
-        # 初始化拟合器
+        # Initialize fitter
         self.fitter = TimePDEFitter(config=self.config, data=self.data_train)
 
-        # 创建结果目录
-        os.makedirs("./Case2/results/evolution", exist_ok=True)
+        # Create results directory
+        os.makedirs(self.config.results_dir, exist_ok=True)
 
-        # 初始化可视化器
+        # Initialize visualizer
         self.visualizer = TimePDEVisualizer(self.config)
 
     def solve(self) -> Tuple[np.ndarray, list, torch.nn.Module, np.ndarray]:
-        """主求解函数"""
+        """Main solving function"""
         start_time = time.time()
 
         u_n, u_n_seg, model, coeffs = self.solve_time_evolution()
@@ -62,11 +62,11 @@ class TimePDESolver:
         total_time = time.time() - start_time
         print(f"Total time: {total_time:.2f} seconds")
 
-        # 评估结果
+        # Evaluate results
         test_predictions, _ = self.fitter.construct(self.data_test, model, coeffs)
         self.visualizer.plot_solution(self.data_test, test_predictions, "results/final_solution.png")
 
-        # 保存动画
+        # Save animation
         self.visualizer.save_animation("results/flow_evolution.gif", duration=200)
 
         return u_n, u_n_seg, model, coeffs
@@ -74,19 +74,19 @@ class TimePDESolver:
     def solve_time_evolution(
         self,
     ) -> Tuple[np.ndarray, list, torch.nn.Module, np.ndarray]:
-        """时间演化求解，使用TR-BDF2格式"""
-        # 初始化时间步参数
+        """Time evolution solving, using TR-BDF2 format"""
+        # Initialize time step parameters
         it = 0
         T = 0
         dt = self.config.dt
 
-        # 初始化解和分段解
+        # Initialize solution and segmented solution
         u_n = self.data_train["u"]
         u_n_seg = self.data_train["u_segments"]
-        f_n = None  # 存储空间导数项
+        f_n = None  # Store spatial derivative term
 
         while T < self.config.time:
-            # 调整时间步长
+            # Adjust time step
             if it == 0:
                 dt = self.config.dt / 10
             else:
@@ -100,7 +100,7 @@ class TimePDESolver:
             print(f"T = {T:.3f}")
 
             if it == 1:
-                # 第一步使用一阶方法
+                # First step using first-order method
                 u_np1, u_np1_seg, f_np1, f_np1_seg, self.model, coeffs = (
                     self._time_evolve(
                         "1st_order",
@@ -117,7 +117,7 @@ class TimePDESolver:
                     )
                 )
             else:
-                # TR-BDF2第一阶段：计算u^{n+γ}
+                # TR-BDF2 first stage: calculate u^{n+γ}
                 u_np1, u_np1_seg, f_np1, f_np1_seg, self.model, coeffs = (
                     self._time_evolve(
                         "pre",
@@ -135,16 +135,16 @@ class TimePDESolver:
                     )
                 )
 
-            # 更新解
+            # Update solution
             u_n = u_np1
             u_n_seg = u_np1_seg
             f_n = f_np1
             f_n_seg = f_np1_seg
             
-            # 可视化当前时间步
+            # Visualize current time step
             self.visualizer.plot_evolution_step(
                 T, u_n, self.data_train["x"],
-                f"Case2/results/evolution/t_{T:.3f}.png"
+                f"{self.config.results_dir}/evolution/t_{T:.3f}.png"
             )
 
         self.visualizer.close_evolution_plot()
@@ -153,16 +153,16 @@ class TimePDESolver:
     def _time_evolve(
         self, step: str, data: Dict, data_seg: Dict, dt: float
     ) -> Tuple[np.ndarray, list, np.ndarray, list, torch.nn.Module, np.ndarray]:
-        """单个时间步的演化"""
-        # 训练模型
+        """Single time step evolution"""
+        # Train model
         train(data, self.model, self.data_GPU, self.config, optim, step=step, dt=dt)
         self.fitter.fitter_init(self.model)
 
-        # 拟合并预测
+        # Fit and predict
         coeffs = self.fitter.fit(data_seg, step=step, dt=dt)
         u, u_seg = self.fitter.construct(self.data_train, self.model, coeffs)
 
-        # 计算空间导数
+        # Calculate spatial derivative
         u_x, u_x_seg = self.fitter.construct(
             self.data_train, self.model, coeffs, [1, 0]
         )
@@ -170,7 +170,7 @@ class TimePDESolver:
             self.data_train, self.model, coeffs, [0, 1]
         )
 
-        # 计算总的空间导数项
+        # Calculate total spatial derivative term
         f = u_x + u_y
         f_seg = [x_seg + y_seg for x_seg, y_seg in zip(u_x_seg, u_y_seg)]
 
@@ -178,10 +178,10 @@ class TimePDESolver:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='求解器入口')
+    parser = argparse.ArgumentParser(description='Solver entry')
     parser.add_argument('--case', type=str, default='time_dependent',
                       choices=['time_dependent'],
-                      help='选择要运行的算例')
+                      help='Select the case to run')
     args = parser.parse_args()
 
     if args.case == 'time_dependent':
@@ -189,7 +189,7 @@ def main():
         solver = TimePDESolver(config)
         solver.solve()
     else:
-        raise ValueError(f"未知的算例类型: {args.case}")
+        raise ValueError(f"Unknown case type: {args.case}")
 
 
 if __name__ == "__main__":
