@@ -33,19 +33,20 @@ class FuncFittingDataGenerator(BaseDataGenerator):
         """
         x_global = self._generate_global_points(mode)
         y_global = self.generate_global_field(x_global)
-
+        global_boundary_dict = self.read_boundary_conditions()
         # 2. Split into local segments
         x_segments,masks = self.split_global_points(x_global)
         y_segments = self.split_global_field(masks, y_global)
 
+
         # 3. Process segment data
-        #x_swap, x_swap_norm, x_segments_norm, boundary_segments_dict = self._process_segments(x_segments)
+        x_swap, x_swap_norm, x_segments_norm, boundary_segments_dict = self._process_segments(x_segments,global_boundary_dict)
 
         # 4. Prepare output data
         return self._prepare_output_dict(
             x_segments,
             y_segments,
-            #x_segments_norm,
+            x_segments_norm,
             #x_swap,
             #x_swap_norm,
             #boundary_segments_dict
@@ -55,7 +56,7 @@ class FuncFittingDataGenerator(BaseDataGenerator):
       [
           x_segments,
           y_segments,
-          #x_segments_norm,
+          x_segments_norm,
           #x_swap,
           #x_swap_norm,
           #boundary_segments_dict,
@@ -68,7 +69,7 @@ class FuncFittingDataGenerator(BaseDataGenerator):
           "x_max": self.config.x_max,
           #"x_swap_norm": x_swap_norm,
           #"x_swap": x_swap,
-          #"x_segments_norm": x_segments_norm,
+          "x_segments_norm": x_segments_norm,
           "x_segments": x_segments,
           "u_segments": y_segments,
       }

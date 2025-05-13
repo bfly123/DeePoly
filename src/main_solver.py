@@ -4,7 +4,7 @@ import os
 import sys
 
 # Directly specify the absolute path of the src directory
-src_dir = "/home/bfly/workspace/computeforcfd/混合网络/算例整合2/src"
+src_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src"
 
 # Add to Python path
 if src_dir not in sys.path:
@@ -28,8 +28,8 @@ def main():
     
     if DEBUG_MODE:
         # Directly specify test case path
-        #case_dir = "/home/bfly/workspace/computeforcfd/混合网络/算例整合2/cases/func_fitting_cases/case_2d"
-        case_dir = "/home/bfly/workspace/computeforcfd/混合网络/算例整合2/cases/linear_pde_cases/poisson_2d"
+        #case_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/func_fitting_cases/case_2d"
+        case_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/linear_pde_cases/poisson_2d"
     else:
         # Get parameters from command line
         parser = argparse.ArgumentParser(description='Solver entry point')

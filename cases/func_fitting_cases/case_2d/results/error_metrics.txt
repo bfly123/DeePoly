@@ -12,4 +12,4 @@ MAX_ERROR: 2.42415827e-07
 
 === Solution Information ===
 Final Training Loss: 2.85443370e-05
-Total Solution Time: 44.0905 seconds
+Total Solution Time: 43.9635 seconds

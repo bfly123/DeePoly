@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import os
 import importlib.util
+import sys
 from typing import Dict, List, Tuple, Optional
 from abc import ABC, abstractmethod
 
@@ -28,6 +29,16 @@ class BaseDataGenerator(ABC):
 
         if not os.path.exists(data_generate_path):
             print(f"Custom data generator module not found: {data_generate_path}, using default data generation method")
+            return None
+
+        # Add case directory to Python path
+        if self.case_dir not in sys.path:
+            sys.path.insert(0, self.case_dir)
+            
+        try:
+            return importlib.import_module("data_generate")
+        except ImportError as e:
+            print(f"Error importing data_generate module: {e}")
             return None
 
     def _load_source_term(self, x_global: np.ndarray) -> Optional[callable]:
@@ -66,13 +77,23 @@ class BaseDataGenerator(ABC):
         import numpy as np
         from math import sin, cos, exp, pi, sqrt
 
+        # Create a namespace with all required functions
+        namespace = {
+            'sin': np.sin,
+            'cos': np.cos,
+            'exp': np.exp,
+            'pi': np.pi,
+            'sqrt': np.sqrt,
+            'np': np
+        }
+
         # Build function expression
         var_names = ", ".join(self.config.spatial_vars)
         func_str = f"lambda {var_names}: {source_expr}"
 
         try:
-            # Compile function
-            source_func = eval(func_str)
+            # Compile function with the namespace
+            source_func = eval(func_str, namespace)
             return source_func
         except Exception as e:
             print(f"Error parsing source term expression: {e}")
@@ -335,8 +356,8 @@ class BaseDataGenerator(ABC):
             points = []
             for i in range(self.n_dim):
                 points.append(np.random.uniform(
-                    self.config.x_domain[i, 0],
-                    self.config.x_domain[i, 1],
+                    self.config.x_domain[i][0],
+                    self.config.x_domain[i][1],
                     Np_total
                 ))
             return np.column_stack(points)
@@ -346,8 +367,8 @@ class BaseDataGenerator(ABC):
                 points = []
                 for i in range(self.n_dim):
                     points.append(np.random.uniform(
-                        self.config.x_domain[i, 0]+0.01,
-                        self.config.x_domain[i, 1]-0.01,
+                        self.config.x_domain[i][0]+0.01,
+                        self.config.x_domain[i][1]-0.01,
                         Np_total
                     ))
                 return np.column_stack(points)
@@ -355,8 +376,8 @@ class BaseDataGenerator(ABC):
                 grids = []
                 for i in range(self.n_dim):
                     grids.append(np.linspace(
-                        self.config.x_domain[i, 0]+0.01,
-                        self.config.x_domain[i, 1]-0.01,
+                        self.config.x_domain[i][0]+0.01,
+                        self.config.x_domain[i][1]-0.01,
                         self.config.points_domain_test[i]
                     ))
                 return np.array(np.meshgrid(*grids)).reshape(self.n_dim, -1).T
@@ -421,15 +442,15 @@ class BaseDataGenerator(ABC):
     
     def _generate_swap_points(self, n: int) -> np.ndarray:
         """Generate swap points - supports arbitrary dimensions"""
-        x_min, x_max = self.config.x_min[n], self.config.x_max[n]
+        x_min, x_max = self.config.x_min, self.config.x_max
         x_swap = np.zeros((2*self.n_dim, self.Nw, self.n_dim))
         
         # Generate boundary points for each dimension
         for i in range(self.n_dim):
             # Lower boundary
-            x_swap[2*i] = self._generate_swap_boundary_points(x_min, x_max, i, 0)
+            x_swap[2*i] = self._generate_swap_boundary_points(x_min[n], x_max[n], i, 0)
             # Upper boundary
-            x_swap[2*i+1] = self._generate_swap_boundary_points(x_min, x_max, i, 1)
+            x_swap[2*i+1] = self._generate_swap_boundary_points(x_min[n], x_max[n], i, 1)
             
         return x_swap
 
@@ -459,7 +480,7 @@ class BaseDataGenerator(ABC):
         """Process boundary conditions for a single segment"""
         # Initialize boundary condition dictionary for this segment
         segment_boundary_dict = {}
-        x_min, x_max = self.config.x_min[segment_idx], self.config.x_max[segment_idx]
+        x_min, x_max = self.config.x_min, self.config.x_max
         
         # Process each variable
         for var in global_boundary_dict:
@@ -486,7 +507,7 @@ class BaseDataGenerator(ABC):
                 u_seg = global_boundary_dict[var][bc_type]['u'][mask]
                 
                 # Normalize coordinates
-                x_seg_norm = self._normalize_data(x_seg, x_min, x_max)
+                x_seg_norm = self._normalize_data(x_seg, x_min[segment_idx], x_max[segment_idx])
                 
                 # Save to the segment boundary condition dictionary
                 segment_boundary_dict[var][bc_type]['x'] = x_seg_norm

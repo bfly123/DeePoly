@@ -60,6 +60,7 @@
   "points_domain_test": [50,50],
   "poly_degree": [5,5],
   "x_domain": [[0,1],[0,1]],
+  "auto_code": true,
   "device": "cuda",
   "linear_device": "cpu",
   "seed": 42,
