@@ -7,7 +7,7 @@ import numpy as np
 import shutil
 from datetime import datetime
 import logging
-from abstract_class.base_net import BaseNet
+from src.abstract_class.base_net import BaseNet
 
 
 class LossProcessor:
@@ -297,7 +297,7 @@ class LossCodeGenerator:
         self.vars_list = vars_list
         self.const_list = const_list or []
         self.processor = LossProcessor(dimensions, vars_list, const_list)
-        self.model_path = model_path or "NewFramework/NS_stable/models/net.py"
+        self.model_path = model_path  
 
     def update_code(self, linear_equations: List[str], nonlinear_equations: List[str] = None) -> None:
         """

@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
 from typing import List, Dict
 import numpy as np
-from meta_coding.auto_eq import parse_equation_to_list
-from meta_coding.auto_repalce_nonlinear import update_hybrid_fitter_code
-from meta_coding.auto_replace_loss import update_physics_loss_code
-from abstract_class.config.base_config import BaseConfig
+from src.meta_coding.auto_eq import parse_equation_to_list
+from src.meta_coding.auto_repalce_nonlinear import update_hybrid_fitter_code
+from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
+from src.abstract_class.config.base_config import BaseConfig
 
 @dataclass
 class TimePDEConfig(BaseConfig):

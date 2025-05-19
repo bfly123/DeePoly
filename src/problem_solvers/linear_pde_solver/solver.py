@@ -82,13 +82,9 @@ class LinearPDESolver:
         
         # Train the network and record final loss
         print("Starting neural network training...")
-        self.model = self.model.train_net(self.data_train, self.model, data_GPU)
-        
-        # Get final loss value (calculated once in evaluation mode)
         self.model.eval()
-        with torch.no_grad():
-            final_loss = self.model.physics_loss(data_GPU).item()
-        self.model.train()
+        self.model.train_net(self.data_train, self.model, data_GPU)
+        final_loss = self.model.physics_loss(data_GPU).item()
         print(f"Neural network training completed, final loss: {final_loss:.8e}")
         
         self.fitter.fitter_init(self.model)

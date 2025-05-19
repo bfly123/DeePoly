@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Dict, Optional, List
-from abstract_class.config.base_visualize import BaseVisualizer
+from src.abstract_class.config.base_visualize import BaseVisualizer
 import torch
 from PIL import Image
 import io

@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict
-from abstract_class.config.base_data import BaseDataGenerator
+from src.abstract_class.config.base_data import BaseDataGenerator
 
 
 class FuncFittingDataGenerator(BaseDataGenerator):

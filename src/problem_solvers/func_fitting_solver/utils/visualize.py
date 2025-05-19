@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 
-from abstract_class.config.base_visualize import BaseVisualizer
+from src.abstract_class.config.base_visualize import BaseVisualizer
 
 class FuncFittingVisualizer(BaseVisualizer):
     """函数拟合问题的可视化器"""

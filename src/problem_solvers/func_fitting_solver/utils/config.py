@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
-from meta_coding.auto_eq import parse_equation_to_list
+from src.meta_coding.auto_eq import parse_equation_to_list
 import os
 import json
 

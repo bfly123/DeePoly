@@ -3,8 +3,8 @@ import numpy as np
 import torch
 from torch import nn
 
-from abstract_class.base_fitter import BaseDeepPolyFitter
-from algebraic_solver import LinearSolver
+from src.abstract_class.base_fitter import BaseDeepPolyFitter
+from src.algebraic_solver import LinearSolver
 
 class FuncFittingFitter(BaseDeepPolyFitter):
     """函数拟合问题的混合拟合器实现"""

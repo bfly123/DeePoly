@@ -340,13 +340,19 @@ class BaseDataGenerator(ABC):
             
         return x_segments, masks
 
-    def split_global_field(self, masks: List[np.ndarray], u_global: np.ndarray) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    def split_global_field(self, masks: List[np.ndarray], u_global: np.ndarray) -> List[np.ndarray]:
         """Split global field into local segments"""
+        # 保持原始形状，无需强制转换为(-1, 1)
+        # 只在u_global为1D数组时才进行reshape
+        if len(u_global.shape) == 1:
+            u_global = u_global.reshape(-1, 1)
+            
         u_segments = []
         for n in range(self.Ns):
             mask = masks[n]
             u_seg = u_global[mask]
             u_segments.append(u_seg)
+        
         return u_segments
 
     def _generate_global_points(self, mode: str) -> np.ndarray:

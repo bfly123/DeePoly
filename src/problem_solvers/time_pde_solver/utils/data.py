@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict
-from abstract_class.config.base_data import BaseDataGenerator
+from src.abstract_class.config.base_data import BaseDataGenerator
 
 class TimePDEDataGenerator(BaseDataGenerator):
     """时间相关PDE问题的数据生成器"""
@@ -73,7 +73,8 @@ class TimePDEDataGenerator(BaseDataGenerator):
         u_global = self.generate_global_field(x_global)
         
         # 2. 切分到局部段
-        x_segments, u_segments = self.split_global_field(x_global, u_global)
+        x_segments, masks = self.split_global_points(x_global)
+        u_segments = self.split_global_field(masks, u_global)
         
         # 3. 生成交换点和归一化数据
         x_swap, x_swap_norm, x_segments_norm = self._process_segments(x_segments)

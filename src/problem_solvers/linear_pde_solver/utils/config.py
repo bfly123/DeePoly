@@ -2,9 +2,10 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
-from meta_coding.auto_eq import parse_equation_to_list
+from src.meta_coding.auto_eq import parse_equation_to_list
 import os
 import json
+from src.problem_solvers.linear_pde_solver.auto_code import auto_code_scopper
 
 
 @dataclass
@@ -68,6 +69,7 @@ class LinearPDEConfig(BaseConfig):
         self._init_segment_ranges()
         self._init_boundaries()
         self.init_seed()
+        self._auto_code()
 
         # Parse equations
         (
@@ -85,10 +87,8 @@ class LinearPDEConfig(BaseConfig):
         )
 
     def _auto_code(self):
-        if self.auto_code:
-          self.auto_code_spotter()
-          self.auto_code_snipper()
-        pass
+        if hasattr(self, "auto_code") and self.auto_code:
+            auto_code_scopper(self)
 
     def _validate_config(self):
         """Validate configuration parameters"""

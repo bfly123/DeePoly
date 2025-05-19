@@ -1,6 +1,6 @@
 import torch
 from typing import Dict
-from abstract_class.base_net import BaseNet
+from src.abstract_class.base_net import BaseNet
 
 class TimePDENet(BaseNet):
     """时间依赖问题的神经网络实现"""

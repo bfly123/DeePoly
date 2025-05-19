@@ -2,7 +2,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Callable
 import os
 import importlib.util
-from abstract_class.config.base_data import BaseDataGenerator
+from src.abstract_class.config.base_data import BaseDataGenerator
 
 
 class LinearPDEDataGenerator(BaseDataGenerator):
@@ -20,10 +20,10 @@ class LinearPDEDataGenerator(BaseDataGenerator):
 
     def generate_global_field(self, x_global: np.ndarray) -> np.ndarray:
         """Generate global field values
-        
+
         Args:
             x_global: Global point coordinates
-            
+
         Returns:
             np.ndarray: Global field values
         """
@@ -49,7 +49,6 @@ class LinearPDEDataGenerator(BaseDataGenerator):
         )
 
         return self._prepare_output_dict(
-            [
                 x_segments,
                 source_segments,
                 global_boundary_dict,
@@ -57,14 +56,13 @@ class LinearPDEDataGenerator(BaseDataGenerator):
                 x_swap,
                 x_swap_norm,
                 boundary_segments_dict,
-            ]
         )
 
     def _prepare_output_dict(self, *args) -> Dict:
         """Prepare output data dictionary"""
         [
             x_segments,
-            u_segments,
+            source_segments,
             global_boundary_dict,
             x_segments_norm,
             x_swap,
@@ -74,7 +72,7 @@ class LinearPDEDataGenerator(BaseDataGenerator):
 
         return {
             "x": np.vstack(x_segments),
-            "u": np.vstack(u_segments),
+            "source": np.vstack(source_segments),
             "global_boundary_dict": global_boundary_dict,
             "x_segments_norm": x_segments_norm,
             "x_swap": x_swap,

@@ -79,7 +79,7 @@ class BaseNet(nn.Module):
             outputs, inputs, grad_outputs=torch.ones_like(outputs), create_graph=True
         )
 
-    def physics_loss(self, data_GPU: Dict, data_train: Dict, **kwargs) -> torch.Tensor:
+    def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
         """计算物理损失
 
         Args:
