@@ -16,6 +16,7 @@ class BaseDeepPolyFitter(ABC):
         from .features_generator import FeatureGenerator
         self.data = data
 
+
         self.config = config
         self.feature_generator = FeatureGenerator(self.config.linear_device)
         self.dt = dt
@@ -36,6 +37,7 @@ class BaseDeepPolyFitter(ABC):
         else:
             self.dgN = self.dg
         self.device = self.config.linear_device
+        self.n_eqs = self.config.n_eqs
 
         # Initialize members
         self.A = None
@@ -58,10 +60,10 @@ class BaseDeepPolyFitter(ABC):
         n_cols = ne * dgN * ns
         return total_rows, n_cols, rows_per_segment
 
-    @abstractmethod
-    def get_segment_data(self, segment_idx: int) -> Dict:
-        """获取指定段的数据，支持高维索引"""
-        pass
+#    @abstractmethod
+#    def get_segment_data(self, segment_idx: int) -> Dict:
+#        """获取指定段的数据，支持高维索引"""
+#        pass
 
     def process_constraints(
         self, A: List[np.ndarray], b: List[np.ndarray]
@@ -72,13 +74,9 @@ class BaseDeepPolyFitter(ABC):
         return A_constraints, b_constraints
 
     @abstractmethod
-    def build_segment_jacobian(
+    def _build_segment_jacobian(
         self,
-        segment_data: Dict[str, Any],
-        equations: Dict,
-        variables: Dict,
         segment_idx: int,
-        config: Dict,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """构建单个段的雅可比矩阵"""
         pass
@@ -90,22 +88,70 @@ class BaseDeepPolyFitter(ABC):
 
     def fit(self, **kwargs) -> np.ndarray:
         """使用非线性求解器求解系统"""
-        coeffs = self._solve_system_nonlinear(**kwargs)
+        coeffs = self._solve_system(**kwargs)
         return coeffs
 
-    def _solve_system_nonlinear(self, **kwargs) -> np.ndarray:
+    def _solve_system(self, **kwargs) -> np.ndarray:
         """使用信赖域法求解非线性系统"""
         shape = (self.ns, self.config.n_eqs, self.dgN)
-        L, r = self._build_jacobian_nonlinear(**kwargs)
+        L, r = self._build_jacobian(**kwargs)
         coeffs = self.solver.solve(L, r, method="auto")[0]
         return coeffs.reshape(shape)
 
-    @abstractmethod
-    def _build_jacobian_nonlinear(
+    def _build_jacobian(
         self, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """构建雅可比矩阵和残差向量"""
-        pass
+
+        ns = self.ns
+        ne = self.config.n_eqs
+        dgN = self.dgN
+
+        # 计算总行数
+        total_rows = 0
+        rows_per_segment = []
+        for i in range(ns):
+            n_points = len(self.data["x_segments_norm"][i])
+            segment_rows = n_points * ne
+            rows_per_segment.append(segment_rows)
+            total_rows += segment_rows
+
+#TODO: dgN may can change in future
+        n_cols = ne * dgN * ns
+
+        # 预分配矩阵
+        J1 = np.zeros((total_rows, n_cols), dtype=np.float64)
+        b1 = np.zeros((total_rows, 1), dtype=np.float64)
+
+        # 处理每个段
+        row_start = 0
+        for i in range(ns):
+            # 计算当前段的索引
+            row_end = row_start + rows_per_segment[i]
+            col_start = i * ne * dgN
+            col_end = (i + 1) * ne * dgN
+
+            L, r = self._build_segment_jacobian(i)
+
+            # 填充矩阵
+            J1[row_start:row_end, col_start:col_end] = L
+            b1[row_start:row_end] = r
+
+            row_start = row_end
+
+        # 处理约束
+        if len(self.A) > 0:
+            A_constraints = np.vstack(self.A)
+            b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in self.b])
+        else:
+            A_constraints = np.zeros((0, n_cols))
+            b_constraints = np.zeros((0, 1))
+
+        # 组装最终结果
+        J = np.vstack([J1, A_constraints])
+        r = np.vstack([b1, b_constraints])
+
+        return J, r
+
 
     def _get_segment_features(
         self,
@@ -411,8 +457,8 @@ class BaseDeepPolyFitter(ABC):
     ) -> Tuple[np.ndarray, List[np.ndarray]]:
         """使用系数进行预测"""
         x_segments = data["x_segments_norm"]
-        x_min = data["x_min"]
-        x_max = data["x_max"]
+        x_min = self.config.x_min
+        x_max = self.config.x_max
         ne = self.config.n_eqs
         ns = self.ns
 

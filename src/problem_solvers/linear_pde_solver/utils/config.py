@@ -5,8 +5,7 @@ from src.abstract_class.config.base_config import BaseConfig
 from src.meta_coding.auto_eq import parse_equation_to_list
 import os
 import json
-from src.problem_solvers.linear_pde_solver.auto_code import auto_code_scopper
-
+from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
 
 @dataclass
 class LinearPDEConfig(BaseConfig):
@@ -63,12 +62,15 @@ class LinearPDEConfig(BaseConfig):
         # Validate configuration
         self._validate_config()
 
-        # Initialize parameters
+        #self._validate_required_params()
+
+        # 初始化其他参数
         self.n_dim = len(self.spatial_vars)
         self.n_eqs = len(self.eq)
         self._init_segment_ranges()
         self._init_boundaries()
         self.init_seed()
+        self.DNN_degree = self.hidden_dims[-1]
         self._auto_code()
 
         # Parse equations
@@ -88,7 +90,15 @@ class LinearPDEConfig(BaseConfig):
 
     def _auto_code(self):
         if hasattr(self, "auto_code") and self.auto_code:
-            auto_code_scopper(self)
+          update_physics_loss_code(
+            linear_equations=self.eq,
+            vars_list=self.vars_list,
+            spatial_vars=self.spatial_vars,
+            const_list=self.const_list,
+            case_dir=self.case_dir
+          )
+
+          print("Auto code completed, please check the net.py file, restart the program")
 
     def _validate_config(self):
         """Validate configuration parameters"""

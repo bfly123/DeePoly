@@ -8,8 +8,18 @@ def generate_source_term(x):
   """
   x_coords = x[:, 0]
   y_coords = x[:, 1]
-  f = 2 * (pi**2) * np.sin(pi * x_coords) * np.sin(pi * y_coords)
+  f = -np.sin(4*pi * x_coords) * np.sin(4*pi * y_coords)
   return f.reshape(-1, 1)
+
+def generate_reference_solution(x):
+  """
+  生成泊松方程的精确解 u(x,y) = sin(πx)sin(πy)
+  """
+  x_coords = x[:, 0]
+  y_coords = x[:, 1]
+  u = 0.5/(4*pi)**2 * np.sin(4*pi * x_coords) * np.sin(4*pi * y_coords)
+
+  return u.reshape(-1, 1)
 
 def generate_global_field(x):
     """

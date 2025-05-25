@@ -101,6 +101,7 @@ class LinearPDESolver:
 
         # Make predictions
         print("Making predictions on training set...")
+        
         train_predictions, train_segments = self.fitter.construct(
             self.data_train, self.model, coeffs
         )

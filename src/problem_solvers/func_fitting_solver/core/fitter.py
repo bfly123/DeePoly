@@ -8,7 +8,7 @@ from src.algebraic_solver import LinearSolver
 
 class FuncFittingFitter(BaseDeepPolyFitter):
     """函数拟合问题的混合拟合器实现"""
-    
+
     def __init__(self, config, data: Dict = None):
         super().__init__(config, data)
         self.data = data
@@ -33,7 +33,7 @@ class FuncFittingFitter(BaseDeepPolyFitter):
         """构建单个段的雅可比矩阵"""
         # 获取数据
         x = segment_data["x"]
-        u = segment_data["u"]
+        u = segment_data["u"][segment_idx]
         
         eq = []
         for i in range(self.config.n_eqs):

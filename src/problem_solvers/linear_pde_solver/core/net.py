@@ -64,26 +64,24 @@ class LinearPDENet(BaseNet):
         global_boundary_dict = data_GPU.get("global_boundary_dict", None)
 
         _, output = self(x_train)
-        u = output[...,0]
-        # auto code begin
-    # Extract constants
-    c = 1.0
-    
-    # Extract physical quantities from output
-    u = output[..., 0]
-    
-    # Calculate derivatives in each direction
-    
-    # Calculate second-order derivatives
-    du_tt = self.gradients(du_t, x_train)[0][..., 2]
-    du_xx = self.gradients(du_x, x_train)[0][..., 0]
-    du_yy = self.gradients(du_y, x_train)[0][..., 1]
-    
-    # Compute equations
-    eq0 = du_tt - c*c*(du_xx + du_yy)
+# auto code begin
+        # Extract physical quantities from output
+        u = output[..., 0]
+
+        # Calculate derivatives in each direction
+        du_x = self.gradients(u, x_train)[0][..., 0]
+        du_y = self.gradients(u, x_train)[0][..., 1]
+
+        # Calculate second-order derivatives
+        du_xx = self.gradients(du_x, x_train)[0][..., 0]
+        du_yy = self.gradients(du_y, x_train)[0][..., 1]
+
+        # Compute equations as a list
+        eq = [du_xx + du_yy]
+
+        pde_loss = torch.mean((eq[0] - source[0]) ** 2)
 
 # auto code end
-        pde_loss = torch.mean((eq - source[0]) ** 2)
 
         # Initialize boundary loss
         boundary_loss = 0.0

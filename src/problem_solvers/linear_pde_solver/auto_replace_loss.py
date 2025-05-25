@@ -1,6 +1,28 @@
 import re
+import json
+import sys
+import os
 from typing import List, Dict, Tuple, Optional
 from src.abstract_class.base_net import BaseNet
+
+def update_config_auto_code(config_path: str, auto_code: bool = False) -> None:
+    """Update the auto_code setting in config file
+    
+    Args:
+        config_path: Path to the config file
+        auto_code: New value for auto_code
+    """
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        config['auto_code'] = auto_code
+        
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+            
+    except Exception as e:
+        print(f"Warning: Failed to update config file: {e}")
 
 class LossCodeGenerator:
     """Class to generate PINNs physics loss code for PDE systems"""
@@ -40,8 +62,11 @@ class LossCodeGenerator:
             if var not in derivatives:
                 derivatives[var] = []
                 
-            # Add derivative dimension repeated by order
-            derivatives[var].append(dim * order)
+            # Always add all lower-order derivatives up to the required order
+            for o in range(1, order + 1):
+                d = dim * o
+                if d not in derivatives[var]:
+                    derivatives[var].append(d)
             
         return derivatives
         
@@ -119,23 +144,18 @@ class LossCodeGenerator:
                         
         return "\n".join(code_lines)
         
-    def _generate_equations_code(self, equations: List[str]) -> str:
-        """Generate code for equation computation
-        
+    def _generate_equations_code(self, equations: List[str], is_nonlinear: bool = False) -> str:
+        """Generate code for equation computation as a list eq = [ ... ]
         Args:
             equations: List of equation strings
-            
+            is_nonlinear: Whether these are nonlinear terms to be added to existing equations
         Returns:
             Generated equation computation code
         """
-        code_lines = []
-        code_lines.append("# Compute equations")
-        
-        for i, eq in enumerate(equations):
-            # Replace diff() terms with their corresponding derivative variables
+        eq_exprs = []
+        diff_pattern = r"diff\((\w+),(\w+)(?:,(\d+))?\)"
+        for eq in equations:
             eq_code = eq
-            diff_pattern = r"diff\((\w+),(\w+)(?:,(\d+))?\)"
-            
             def replace_diff(match):
                 var, dim, order = match.groups()
                 order = int(order) if order else 1
@@ -143,11 +163,32 @@ class LossCodeGenerator:
                     return f"d{var}_{dim}"
                 else:
                     return f"d{var}_{dim * order}"
-                    
             eq_code = re.sub(diff_pattern, replace_diff, eq_code)
-            code_lines.append(f"eq{i} = {eq_code}")
+            eq_exprs.append(eq_code)
+            
+        if is_nonlinear:
+            # For nonlinear terms, add them to existing equations
+            code_lines = ["# Add nonlinear terms"]
+            for i, expr in enumerate(eq_exprs):
+                code_lines.append(f"eq[{i}] = eq[{i}] + {expr}")
+        else:
+            # For linear terms, create the initial equations list
+            code_lines = ["# Compute equations as a list"]
+            code_lines.append(f"eq = [" + ", ".join(eq_exprs) + "]")
             
         return "\n".join(code_lines)
+        
+    def _generate_loss_code(self, num_equations: int) -> str:
+        """Generate code for computing the PDE loss using eq[i] in a sum
+        Args:
+            num_equations: Number of equations
+        Returns:
+            Generated loss computation code
+        """
+        if num_equations == 1:
+            return "pde_loss = torch.mean((eq[0] - source[0]) ** 2)"
+        else:
+            return f"pde_loss = torch.mean(sum((eq[i] - source[i]) ** 2 for i in range({num_equations})))"
         
     def update_code(self, equations: List[str], nonlinear_equations: Optional[List[str]] = None) -> None:
         """Update the physics loss code in the model file
@@ -164,9 +205,22 @@ class LossCodeGenerator:
         
         # Combine all equations
         if nonlinear_equations:
-            nonlinear_code = self._generate_equations_code(nonlinear_equations)
-            equations_code += "\n\n# Add nonlinear terms\n" + nonlinear_code
+            nonlinear_code = self._generate_equations_code(nonlinear_equations, is_nonlinear=True)
+            equations_code += "\n\n" + nonlinear_code
             
+        # Generate loss code - use len(equations) since nonlinear terms are added to existing equations
+        loss_code = self._generate_loss_code(len(equations))
+        
+        # Backup current file before making changes
+        backup_path = self.model_path + ".backup"
+        try:
+            with open(self.model_path, "r") as f:
+                current_content = f.read()
+            with open(backup_path, "w") as f:
+                f.write(current_content)
+        except Exception as e:
+            print(f"Warning: Failed to create backup file: {e}")
+        
         # Read the model file
         with open(self.model_path, "r") as f:
             lines = f.readlines()
@@ -180,13 +234,14 @@ class LossCodeGenerator:
         found_section = False
         
         for line in lines:
+            # Remove any pde_loss line globally
+            if "pde_loss = torch.mean" in line:
+                continue
             if start_marker in line:
                 new_lines.append(line)  # Keep start marker line
-                
-                # Add appropriate indentation
-                indented_code = "\n".join("    " + code_line for code_line in (derivatives_code + "\n\n" + equations_code).strip().split("\n"))
+                # Add appropriate indentation (8 spaces for function body)
+                indented_code = "\n".join("        " + code_line if code_line.strip() else "" for code_line in (derivatives_code + "\n\n" + equations_code + "\n\n" + loss_code).strip().split("\n"))
                 new_lines.append(indented_code + "\n\n")
-                
                 skip_mode = True
                 found_section = True
             elif end_marker in line:
@@ -194,7 +249,7 @@ class LossCodeGenerator:
                 new_lines.append(line)  # Keep end marker line
             elif not skip_mode:
                 new_lines.append(line)
-                
+        
         if not found_section:
             raise ValueError(f"Code segment to replace not found in file {self.model_path}")
             
@@ -208,6 +263,7 @@ def update_physics_loss_code(
     spatial_vars: List[str] = None,
     const_list: List[Dict[str, float]] = None,
     model_path: Optional[str] = None,
+    case_dir: Optional[str] = None,
 ) -> None:
     """Convenient function to update code in physics_loss function
     
@@ -218,6 +274,14 @@ def update_physics_loss_code(
         spatial_vars: List of spatial dimensions
         const_list: List of constant dictionaries
         model_path: Path to net.py, default None uses preset path
+        config_path: Path to config.json, default None uses preset path
     """
     generator = LossCodeGenerator(spatial_vars, vars_list, const_list, model_path)
-    generator.update_code(linear_equations, nonlinear_equations) 
+    generator.update_code(linear_equations, nonlinear_equations)
+    
+    # Update config file and exit
+    if case_dir:
+      config_path = os.path.join(case_dir, "config.json")
+      update_config_auto_code(config_path, False)
+      print("Auto code completed, please check the net.py file, restart the program")
+      sys.exit(0) 

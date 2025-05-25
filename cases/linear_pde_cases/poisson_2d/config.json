@@ -1,71 +1,92 @@
 {
-  "problem_type": "linear_pde",
-  "method": "hybrid",
-  "eq": [
-    "diff(u,x,2) + diff(u,y,2)"
-  ],
-  "source_term": "sin(pi*x)*sin(pi*y)",
-  "eq_nonlinear": [],
-  "vars_list": [
-    "u"
-  ],
-  "spatial_vars": [
-    "x",
-    "y"
-  ],
-  "boundary_conditions": [
-    {
-      "region": "left",
-      "var": [
+    "problem_type": "linear_pde",
+    "method": "hybrid",
+    "eq": [
+        "diff(u,x,2) + diff(u,y,2)"
+    ],
+    "source_term": "-sin(4*pi*x)*sin(4*pi*y)",
+    "eq_nonlinear": [],
+    "vars_list": [
         "u"
-      ],
-      "type": "dirichlet",
-      "value": 0.0,
-      "points": 500
-    },
-    {
-      "region": "right",
-      "var": [
-        "u"
-      ],
-      "type": "dirichlet",
-      "value": 0.0,
-      "points": 500
-    },
-    {
-      "region": "bottom",
-      "var": [
-        "u"
-      ],
-      "type": "dirichlet",
-      "value": 0.0,
-      "points": 500
-    },
-    {
-      "region": "top",
-      "var": [
-        "u"
-      ],
-      "type": "dirichlet",
-      "value": 0.0,
-      "points": 500
-    }
-  ],
-  "hidden_dims": [32,64,32],
-  "epochs_adam": 300,
-  "epochs_lbfgs": 10,
-  "max_retries": 1,
-  "DNNtol": 1e-4,
-  "learning_rate": 0.001,
-  "n_segments": [2,2],
-  "points_domain": 20000,
-  "points_per_swap": 30,
-  "points_domain_test": [50,50],
-  "poly_degree": [5,5],
-  "x_domain": [[0,1],[0,1]],
-  "auto_code": false,
-  "device": "cuda",
-  "linear_device": "cpu",
-  "seed": 42,
-  "output_module_path": "output.py"
+    ],
+    "spatial_vars": [
+        "x",
+        "y"
+    ],
+    "boundary_conditions": [
+        { "region": "left",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
+            "points": 500
+        },
+        {
+            "region": "right",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
+            "points": 500
+        },
+        {
+            "region": "bottom",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
+            "points": 500
+        },
+        {
+            "region": "top",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
+            "points": 500
+        }
+    ],
+    "hidden_dims": [
+        32,
+        64,
+        32
+    ],
+    "epochs_adam": 5000,
+    "epochs_lbfgs": 300,
+    "max_retries": 1,
+    "DNNtol": 0.0001,
+    "learning_rate": 0.001,
+    "n_segments": [
+        4,
+        4
+    ],
+    "points_domain": 10000,
+    "points_per_swap": 30,
+    "points_domain_test": [
+        50,
+        50
+    ],
+    "poly_degree": [
+        4,
+        4
+    ],
+    "x_domain": [
+        [
+            0,
+            1
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+    "auto_code": false,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42,
+    "output_module_path": "output.py"
 }
