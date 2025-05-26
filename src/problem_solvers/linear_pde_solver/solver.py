@@ -99,38 +99,8 @@ class LinearPDESolver:
         total_solve_time = time.time() - solve_start_time
         print(f"Total solution time: {total_solve_time:.2f} seconds")
 
-        # Make predictions
-        print("Making predictions on training set...")
-        
-        train_predictions, train_segments = self.fitter.construct(
-            self.data_train, self.model, coeffs
-        )
 
-        print("Making predictions on test set...")
-        test_predictions, test_segments = self.fitter.construct(
-            self.data_test, self.model, coeffs
-        )
-        
-        # Use the unified plot module to handle result output and visualization
-        print("Generating results using plot module...")
-        output_data = {
-            "train_data": self.data_train,
-            "test_data": self.data_test,
-            "train_predictions": train_predictions,
-            "test_predictions": test_predictions,
-            "train_segments": train_segments,
-            "test_segments": test_segments,
-            "coeffs": coeffs,
-            "model": self.model,
-            "config": self.config,
-            "result_dir": result_dir,
-            "final_loss": final_loss,         # Add final loss
-            "solution_time": total_solve_time  # Add total solution time
-        }
-        self.output_module.generate_output(output_data)
-
-        print("Linear partial differential equation solution completed!")
-        return train_predictions, test_predictions
+        self.output_module.generate_output(self.config,self.data_train,self.data_test,self.fitter,self.model,coeffs,result_dir)
 
 
 def main():

@@ -4,7 +4,7 @@
     "eq": [
         "diff(u,x,2) + diff(u,y,2)"
     ],
-    "source_term": "-sin(4*pi*x)*sin(4*pi*y)",
+    "source_term": "-sin(pi*x)*sin(pi*y)",
     "eq_nonlinear": [],
     "vars_list": [
         "u"
@@ -19,8 +19,8 @@
                 "u"
             ],
             "type": "dirichlet",
-            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
-            "points": 500
+            "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
+            "points": 50
         },
         {
             "region": "right",
@@ -28,8 +28,8 @@
                 "u"
             ],
             "type": "dirichlet",
-            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
-            "points": 500
+            "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
+            "points": 50
         },
         {
             "region": "bottom",
@@ -37,8 +37,8 @@
                 "u"
             ],
             "type": "dirichlet",
-            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
-            "points": 500
+            "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
+            "points": 50
         },
         {
             "region": "top",
@@ -46,8 +46,8 @@
                 "u"
             ],
             "type": "dirichlet",
-            "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
-            "points": 500
+            "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
+            "points": 50
         }
     ],
     "hidden_dims": [
@@ -58,11 +58,11 @@
     "epochs_adam": 5000,
     "epochs_lbfgs": 300,
     "max_retries": 1,
-    "DNNtol": 0.0001,
+    "DNNtol": 0.00000001,
     "learning_rate": 0.001,
     "n_segments": [
-        4,
-        4
+        2,
+        2
     ],
     "points_domain": 10000,
     "points_per_swap": 30,

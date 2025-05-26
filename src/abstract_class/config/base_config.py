@@ -60,44 +60,13 @@ class BaseConfig(ABC):
 
         # Set boundaries for each segment
         for n in range(Ns):
-            # Convert segment index n to multi-dimensional index
-            indices = self._segment_index_to_multi_index(n, self.n_segments)
+            # Convert segment index n to multi-dimensional index using NumPy
+            indices = np.unravel_index(n, self.n_segments, order='F')
 
             # Set boundaries for each dimension
             for dim in range(self.n_dim):
                 self.x_min[n, dim] = self.segment_ranges[dim][indices[dim]]
                 self.x_max[n, dim] = self.segment_ranges[dim][indices[dim] + 1]
-
-    def _segment_index_to_multi_index(
-        self, index: int, n_segments: List[int]
-    ) -> List[int]:
-        """Convert one-dimensional segment index to multi-dimensional index
-
-        Args:
-            index: One-dimensional segment index
-            n_segments: Number of segments in each dimension
-
-        Returns:
-            List[int]: Multi-dimensional index
-        """
-        multi_index = []
-        remaining = index
-
-        # Start from the last dimension and move towards the first
-        for i in range(self.n_dim - 1, -1, -1):
-            # Calculate product of all dimensions before current
-            divisor = 1
-            for j in range(i):
-                divisor *= n_segments[j]
-
-            # Calculate index for current dimension
-            dim_index = remaining // divisor
-            remaining %= divisor
-
-            # Insert this dimension index at the beginning of the list
-            multi_index.insert(0, dim_index)
-
-        return multi_index
 
     @property
     def device(self) -> str:

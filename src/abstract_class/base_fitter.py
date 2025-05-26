@@ -376,11 +376,13 @@ class BaseDeepPolyFitter(ABC):
                         self.b.append(10 * np.array([u_bd[pt_idx, 0]]))
 
     def _add_swap_conditions(self, model: nn.Module):
-        """添加界面连续性条件"""
+        """Add interface continuity conditions"""
         n_dims = len(self.n_segments)
+        
         for dim in range(n_dims):
             current_segments = list(self.n_segments)
             current_segments[dim] -= 1
+            
             indices = np.array(
                 np.meshgrid(*[range(n) for n in current_segments])
             ).T.reshape(-1, n_dims)
@@ -389,7 +391,7 @@ class BaseDeepPolyFitter(ABC):
                 self._add_dimension_swap(idx, dim, model)
 
     def _add_dimension_swap(self, idx: np.ndarray, dim: int, model: nn.Module):
-        """添加指定维度的界面连续性条件"""
+        """Add interface continuity conditions for specified dimension"""
         n_dims = len(self.n_segments)
         NS = np.prod(self.n_segments)
         nw = self.config.points_per_swap
@@ -400,8 +402,9 @@ class BaseDeepPolyFitter(ABC):
         idx2 = idx.copy()
         idx2[dim] += 1
 
-        seg1 = np.ravel_multi_index(idx1, self.n_segments)
-        seg2 = np.ravel_multi_index(idx2, self.n_segments)
+        # Use Fortran-style indexing to match base_config.py
+        seg1 = np.ravel_multi_index(idx1, self.n_segments, order='F')
+        seg2 = np.ravel_multi_index(idx2, self.n_segments, order='F')
 
         for i in range(ne):
             derivatives = self.all_derivatives[i]
@@ -420,7 +423,7 @@ class BaseDeepPolyFitter(ABC):
         derivative: List[int],
         dim: int,
     ):
-        """添加指定维度的导数界面条件"""
+        """Add derivative interface conditions for specified dimension"""
         P1 = self._get_segment_features(
             self.data["x_swap_norm"][seg1, 2 * dim + 1, :, :],
             self.config.x_min[seg1],

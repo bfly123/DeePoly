@@ -63,6 +63,7 @@ class LinearPDENet(BaseNet):
         source = data_GPU.get("source", None)
         global_boundary_dict = data_GPU.get("global_boundary_dict", None)
 
+
         _, output = self(x_train)
 # auto code begin
         # Extract physical quantities from output
@@ -79,9 +80,13 @@ class LinearPDENet(BaseNet):
         # Compute equations as a list
         eq = [du_xx + du_yy]
 
-        pde_loss = torch.mean((eq[0] - source[0]) ** 2)
+
 
 # auto code end
+
+        pde_loss = 0.0
+        for i in range(len(eq)):
+            pde_loss += torch.mean((eq[i] - source[:,i]) ** 2)
 
         # Initialize boundary loss
         boundary_loss = 0.0

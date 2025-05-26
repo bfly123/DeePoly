@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple, Optional, Callable
 import os
 import importlib.util
 from src.abstract_class.config.base_data import BaseDataGenerator
+import matplotlib.pyplot as plt
 
 
 class LinearPDEDataGenerator(BaseDataGenerator):
@@ -41,6 +42,7 @@ class LinearPDEDataGenerator(BaseDataGenerator):
         # Generate domain points
         x_global = self._generate_global_points(mode)
         source_term = self._load_source_term(x_global)
+        #plot_source_term(x_global, source_term)
         global_boundary_dict = self.read_boundary_conditions()
         x_segments, masks = self.split_global_points(x_global)
         source_segments = self.split_global_field(masks, source_term)
@@ -80,3 +82,22 @@ class LinearPDEDataGenerator(BaseDataGenerator):
             "x_swap_norm": x_swap_norm,
             "boundary_segments_dict": boundary_segments_dict,
         }
+
+def plot_source_term(x_global, source_term):
+    """
+    Plot source term using scatter plot
+    
+    Args:
+        x_global: Global point coordinates
+        source_term: Source term values
+    """
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(x_global[:, 0], x_global[:, 1], 
+                         c=source_term, 
+                         cmap='coolwarm',
+                         s=50)
+    plt.colorbar(scatter, label='Source Term Value')
+    plt.title('Source Term Distribution')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()

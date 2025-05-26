@@ -13,11 +13,11 @@ class LinearPDEFitter(BaseDeepPolyFitter):
     def __init__(self, config, data: Dict = None):
         super().__init__(config, data)
         self.data = data
-        # 初始化求解器
+        # initialize the solver
         self.solver = LinearSolver(verbose=True, use_gpu=True, performance_tracking=True)
 
 #    def get_segment_data(self, segment_idx: int) -> Dict:
-#        """获取指定段的数据"""
+#        """get the data for each segment"""
 #        return {
 #            "x_norm": self.data["x_segments_norm"][segment_idx],
 #            "source": self.data["source_segments"][segment_idx],
@@ -28,8 +28,8 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         self,
         segment_idx: int,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """构建单个段的雅可比矩阵"""
-        # 获取数据
+        """construct the jacobian matrix for each segment"""
+        # get the data
         source = self.data["source_segments"][segment_idx]
         
         eq = []
@@ -43,14 +43,15 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         L = np.zeros((ne, n_points, ne * dgN))
         b = np.zeros((ne, n_points))
 
-        # 构建拟合方程
-        b[0] = source[:].flatten()
+        # construct the fitting equations
+        for i in range(ne):
+            b[i,:] = source[:,i]
 
-        # 添加空间离散项
+        # add the spatial discrete terms
         for i in range(ne):
             L[i] = eq[i]
 
-        # 重塑矩阵
+        # reshape the matrix
         L = np.vstack([L[i] for i in range(ne)])
         b = np.vstack([b[i].reshape(-1, 1) for i in range(ne)])
 
