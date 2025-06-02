@@ -8,7 +8,7 @@ def generate_source_term(x):
   """
   x_coords = x[:, 0]
   y_coords = x[:, 1]
-  f = -np.sin(pi * x_coords) * np.sin(pi * y_coords)
+  f = -np.sin( pi * x_coords) * np.sin(pi * y_coords)
   return f.reshape(-1, 1)
 
 def generate_reference_solution(x):

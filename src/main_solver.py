@@ -3,8 +3,8 @@ import json
 import os
 import sys
 
-# Directly specify the absolute path of the src directory
-src_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src"
+# Method 1: Get src directory dynamically based on current file location
+src_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Add to Python path
 if src_dir not in sys.path:
@@ -27,9 +27,9 @@ def main():
     DEBUG_MODE = True
     
     if DEBUG_MODE:
-        # Directly specify test case path
-        #case_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/func_fitting_cases/case_2d"
-        case_dir = "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/linear_pde_cases/poisson_2d"
+        # Dynamically construct case path relative to project root
+        case_dir = os.path.join(project_root, "cases", "func_fitting_cases", "case_2d")
+        #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
     else:
         # Get parameters from command line
         parser = argparse.ArgumentParser(description='Solver entry point')

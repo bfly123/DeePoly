@@ -448,8 +448,8 @@ class BaseDeepPolyFitter(ABC):
         ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
         cont[:, ndisp : ndisp + dgN] = -P2
 
-        self.A.extend([cont])
-        self.b.extend(np.zeros((nw, 1)).flatten())
+        self.A.extend(10*cont)
+        self.b.extend(10*np.zeros((nw, 1)).flatten())
 
     def construct(
         self,

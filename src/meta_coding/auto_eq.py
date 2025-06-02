@@ -66,6 +66,8 @@ def parse_diff_term(content, vars_list, spatial_vars):
 
 def parse_coefficient(term_part, const_list):
     """解析项的系数部分"""
+    # Remove trailing '*' if present
+    term_part = term_part.rstrip('*')
     try:
         return float(term_part)
     except ValueError:
@@ -77,6 +79,7 @@ def parse_coefficient(term_part, const_list):
         try:
             return float(eval(term_part))
         except:
+            print(f"Debug: Failed to parse coefficient from {term_part}")
             return 1.0
 
 
@@ -262,11 +265,14 @@ def parse_equation_to_list(
             if "diff(" in num_part:
                 # 提取前面的系数
                 diff_idx = num_part.find("diff(")
+                coef_val = 1.0  # Default coefficient value
                 if diff_idx > 0:
                     coef_part = num_part[:diff_idx]
-                    coef_val = parse_coefficient(coef_part, const_list)
-                    if coef_val is not None:
-                        coef *= coef_val
+                    print(f"Debug: coef_part = {coef_part}")  # Debug output
+                    parsed_coef = parse_coefficient(coef_part, const_list)
+                    print(f"Debug: parsed_coef = {parsed_coef}")  # Debug output
+                    if parsed_coef is not None:
+                        coef_val = parsed_coef
 
                 content = extract_diff_content(num_part[diff_idx:])
                 if not content:
@@ -285,7 +291,10 @@ def parse_equation_to_list(
                 deriv_index = deriv_to_index[tuple(deriv_tuple)]
                 
                 term_name = deriv_names[f"{var_index},{deriv_index}"]
-                eq_terms.append([coef, var_index, deriv_index, term_name])
+                # Apply the base coefficient (from sign) and the parsed coefficient
+                final_coef = coef * coef_val
+                print(f"Debug: final_coef = {final_coef}, coef = {coef}, coef_val = {coef_val}")  # Debug output
+                eq_terms.append([final_coef, var_index, deriv_index, term_name])
 
             # 处理普通变量
             elif num_part in vars_list:

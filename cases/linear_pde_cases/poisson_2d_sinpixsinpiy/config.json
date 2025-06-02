@@ -20,7 +20,7 @@
             ],
             "type": "dirichlet",
             "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
-            "points": 50
+            "points": 100
         },
         {
             "region": "right",
@@ -29,7 +29,7 @@
             ],
             "type": "dirichlet",
             "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
-            "points": 50
+            "points": 100
         },
         {
             "region": "bottom",
@@ -38,7 +38,7 @@
             ],
             "type": "dirichlet",
             "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
-            "points": 50
+            "points": 100
         },
         {
             "region": "top",
@@ -47,32 +47,33 @@
             ],
             "type": "dirichlet",
             "value": "1/2/(pi)**2*sin(pi*x)*sin(pi*y)",
-            "points": 50
+            "points": 100
         }
     ],
     "hidden_dims": [
+        12,
         32,
-        64,
-        32
+        32,
+        25
     ],
     "epochs_adam": 5000,
     "epochs_lbfgs": 300,
     "max_retries": 1,
-    "DNNtol": 0.00000001,
+    "DNNtol": 0.0001,
     "learning_rate": 0.001,
     "n_segments": [
-        2,
-        2
+        5,
+        5
     ],
-    "points_domain": 10000,
+    "points_domain": 3000,
     "points_per_swap": 30,
     "points_domain_test": [
         50,
         50
     ],
     "poly_degree": [
-        4,
-        4
+        5,
+        5
     ],
     "x_domain": [
         [

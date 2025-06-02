@@ -10,6 +10,7 @@ import sys
 
 from .core import LinearPDENet, LinearPDEFitter
 from .utils import LinearPDEConfig, LinearPDEDataGenerator
+from src.abstract_class.config.base_visualize import BaseVisualizer
 
 class LinearPDESolver:
 
@@ -21,6 +22,7 @@ class LinearPDESolver:
         self.datagen = LinearPDEDataGenerator(self.config)
         self.data_train = self.datagen.generate_data("train")
         self.data_test = self.datagen.generate_data("test")
+        self.visualizer = BaseVisualizer(self.config)
 
         # Initialize the model
         self.model = LinearPDENet(self.config).to(self.config.device)
@@ -77,6 +79,7 @@ class LinearPDESolver:
         # Initialize and execute fitting
         print("Initializing fitter...")
 
+        start_time = time.time()
         self.fitter = LinearPDEFitter(self.config, self.data_train)
         data_GPU = self.model.prepare_gpu_data(self.data_train)
         
@@ -86,21 +89,22 @@ class LinearPDESolver:
         self.model.train_net(self.data_train, self.model, data_GPU)
         final_loss = self.model.physics_loss(data_GPU).item()
         print(f"Neural network training completed, final loss: {final_loss:.8e}")
+        scoper_time = time.time() - start_time
         
         self.fitter.fitter_init(self.model)
 
         print("Starting equation fitting...")
-        start_time = time.time()
         coeffs = self.fitter.fit()
-        fit_time = time.time() - start_time
-        print(f"Fitting completed, time used: {fit_time:.2f} seconds")
-
         # Calculate total solution time
-        total_solve_time = time.time() - solve_start_time
-        print(f"Total solution time: {total_solve_time:.2f} seconds")
+        total_time = time.time() - start_time
 
+        sniper_time = total_time - scoper_time
 
-        self.output_module.generate_output(self.config,self.data_train,self.data_test,self.fitter,self.model,coeffs,result_dir)
+        print(f"Total solution time: {total_time:.2f} seconds")
+        print(f"Scoper time: {scoper_time:.2f} seconds")
+        print(f"Sniper time: {sniper_time:.2f} seconds")
+
+        self.output_module.generate_output(self.config,self.data_train,self.data_test,self.fitter,self.model,coeffs,result_dir,self.visualizer,total_time,scoper_time,sniper_time)
 
 
 def main():

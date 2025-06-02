@@ -1,8 +1,0 @@
-Error Statistics:
-Training Data:
-Net Method - MSE: 2.01e-09, MAE: 3.18e-05, Max Error: 1.91e-04
-DeePoly Method - MSE: 1.78e-12, MAE: 8.63e-07, Max Error: 9.23e-06
-
-Test Data:
-Net Method - MSE: 1.99e-09, MAE: 3.15e-05, Max Error: 1.73e-04
-DeePoly Method - MSE: 1.77e-12, MAE: 8.55e-07, Max Error: 8.46e-06

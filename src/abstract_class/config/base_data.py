@@ -63,15 +63,22 @@ class BaseDataGenerator(ABC):
         """
         # Import necessary modules
         import numpy as np
-        from math import sin, cos, exp, pi, sqrt
+        from math import sin, cos, tan, exp, pi, sqrt, tanh, sinh, cosh
 
         # Create namespace with mathematical functions and operations
         namespace = {
             'sin': np.sin,
             'cos': np.cos,
+            'tan': np.tan,
+            'tanh': np.tanh,
+            'sinh': np.sinh,
+            'cosh': np.cosh,
             'exp': np.exp,
             'pi': np.pi,
             'sqrt': np.sqrt,
+            'log': np.log,
+            'log10': np.log10,
+            'abs': np.abs,
             'np': np,
             '**': lambda x, y: x ** y,
             '/': lambda x, y: x / y,
@@ -86,11 +93,64 @@ class BaseDataGenerator(ABC):
 
         try:
             value_func = eval(func_str, namespace)
-            return value_func(*[x[:, i] for i in range(x.shape[1])]).reshape(-1, 1)
+            result = value_func(*[x[:, i] for i in range(x.shape[1])])
+            # Ensure result is a numpy array with correct shape
+            if isinstance(result, (int, float)):
+                result = np.full((x.shape[0], 1), result)
+            else:
+                result = result.reshape(-1, 1)
+            return result
         except Exception as e:
             print(f"Error parsing expression: {e}")
             print(f"Expression: {expr}")
             return np.zeros((x.shape[0], 1))
+
+    def _parse_piecewise_expression(self, value_dict: dict, x: np.ndarray) -> np.ndarray:
+        """Parse and evaluate piecewise mathematical expressions
+        
+        Args:
+            value_dict: Dictionary defining the piecewise function
+            x: Input coordinates for evaluation
+            
+        Returns:
+            np.ndarray: Evaluated values
+        """
+        import numpy as np
+        
+        if value_dict.get('type') != 'piecewise':
+            print("Not a piecewise function")
+            return np.zeros((x.shape[0], 1))
+        
+        var = value_dict.get('variable')
+        if var not in self.config.spatial_vars:
+            print(f"Error: Variable {var} not in spatial variables {self.config.spatial_vars}")
+            return np.zeros((x.shape[0], 1))
+        
+        var_idx = self.config.spatial_vars.index(var)
+        x_var = x[:, var_idx]
+        result = np.zeros((x.shape[0], 1))
+        processed = np.zeros((x.shape[0],), dtype=bool)
+        
+        print(f"Processing piecewise function on variable {var} (index {var_idx})")
+        print(f"x_var range: min={x_var.min()}, max={x_var.max()}")
+        print(f"Number of points: {len(x_var)}")
+        
+        for piece in value_dict.get('pieces', []):
+            range_min, range_max = piece.get('range', [float('-inf'), float('inf')])
+            expression = piece.get('expression', '0')
+            mask = (x_var >= range_min) & (x_var < range_max) & ~processed
+            print(f"Range [{range_min}, {range_max}): {mask.sum()} points matched")
+            if isinstance(expression, str):
+                temp_result = self._parse_math_expression(expression, x)
+                result[mask] = temp_result[mask]
+                print(f"Applied expression '{expression}' to {mask.sum()} points")
+            else:
+                result[mask] = expression
+                print(f"Applied constant {expression} to {mask.sum()} points")
+            processed[mask] = True
+        
+        print(f"Result range after processing: min={result.min()}, max={result.max()}")
+        return result
 
     def _load_source_term(self, x_global: np.ndarray) -> np.ndarray:
         """Load and evaluate source term function
@@ -143,9 +203,12 @@ class BaseDataGenerator(ABC):
             for var in self.config.vars_list:
                 if bc_type == 'dirichlet':
                     boundary_dict[var]['dirichlet']['x'].append(x_boundary)
-                    u_values = (self._parse_math_expression(value, x_boundary) 
-                              if isinstance(value, str) 
-                              else np.ones((x_boundary.shape[0], 1)) * value)
+                    if isinstance(value, dict) and value.get('type') == 'piecewise':
+                        u_values = self._parse_piecewise_expression(value, x_boundary)
+                    else:
+                        u_values = (self._parse_math_expression(value, x_boundary) 
+                                  if isinstance(value, str) 
+                                  else np.ones((x_boundary.shape[0], 1)) * value)
                     boundary_dict[var]['dirichlet']['u'].append(u_values)
                 
                 elif bc_type == 'neumann':
@@ -434,16 +497,16 @@ class BaseDataGenerator(ABC):
         x_min, x_max = self.config.x_min[i], self.config.x_max[i]
         masks = []
         for j in range(self.n_dim):
-            masks.append(x[:, j] > x_min[j])
-            masks.append(x[:, j] <= x_max[j])
+            masks.append(x[:, j] >= x_min[j]-0.001)
+            masks.append(x[:, j] <= x_max[j]+0.001)
         
         main_mask = np.logical_and.reduce(masks)
         
-        if i == 0:
-            boundary_mask = np.logical_or.reduce([
-                np.isclose(x[:, j], x_min[j]) for j in range(self.n_dim)
-            ])
-            return np.logical_or(main_mask, boundary_mask)
+       #if i == 0:
+       #    boundary_mask = np.logical_or.reduce([
+       #        np.isclose(x[:, j], x_min[j]) for j in range(self.n_dim)
+       #    ])
+       #    return np.logical_or(main_mask, boundary_mask)
         return main_mask
 
     def _process_segments(self, x_segments: List[np.ndarray], global_boundary_dict: Dict) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[Dict]]:

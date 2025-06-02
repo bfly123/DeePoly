@@ -1,0 +1,98 @@
+{
+    "problem_type": "linear_pde",
+    "method": "hybrid",
+    "eq": [
+        "diff(u,t) +0.3*diff(u,x)"
+    ],
+    "source_term": "0",
+    "eq_nonlinear": [],
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "t",
+        "x"
+    ],
+    "boundary_conditions": [
+        {
+            "region": "left",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": {
+                "type": "piecewise",
+                "variable": "x",
+                "pieces": [
+                    {
+                        "range": [0, 0.7],
+                        "expression": "16 * (x/0.7)**2 * (1 - x/0.7)**2+0.5"
+                    },
+                    {
+                        "range": [0.7, 1.0],
+                        "expression": "0.5"
+                    }
+                ]
+            },
+            "points": 500
+        },
+        {
+            "region": "bottom",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0.5,
+            "points": 500
+        },
+        {
+            "region": "top",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0.5,
+            "points": 0
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        25
+    ],
+    "epochs_adam": 5000,
+    "epochs_lbfgs": 300,
+    "max_retries": 1,
+    "DNNtol": 1e-07,
+    "learning_rate": 0.001,
+    "n_segments": [
+        5,
+        5
+    ],
+    "points_domain": 5000,
+    "points_per_swap": 40,
+    "points_domain_test": [
+        50,
+        50
+    ],
+    "poly_degree": [
+        5,
+        5
+    ],
+    "x_domain": [
+        [
+            0,
+            1.0
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+    "auto_code": false,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42,
+    "output_module_path": "output.py"
+}

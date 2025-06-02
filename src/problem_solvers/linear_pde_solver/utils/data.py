@@ -74,6 +74,7 @@ class LinearPDEDataGenerator(BaseDataGenerator):
 
         return {
             "x": np.vstack(x_segments),
+            "x_segments": x_segments,
             "source": np.vstack(source_segments),
             "source_segments": source_segments,
             "global_boundary_dict": global_boundary_dict,
