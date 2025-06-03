@@ -1,5 +1,5 @@
 """
-代数求解器模块，提供各种方程求解算法
+Algebraic solver module, providing various equation solving algorithms
 """
 
 from .linear_solver import LinearSolver

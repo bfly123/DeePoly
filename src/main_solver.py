@@ -24,7 +24,8 @@ from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
 
 def main():
     # Debug mode: directly specify test directory
-    DEBUG_MODE = True
+   # DEBUG_MODE = True
+    DEBUG_MODE = False
     
     if DEBUG_MODE:
         # Dynamically construct case path relative to project root

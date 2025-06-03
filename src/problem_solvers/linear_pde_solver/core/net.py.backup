@@ -70,10 +70,15 @@ class LinearPDENet(BaseNet):
         u = output[..., 0]
 
         # Calculate derivatives in each direction
-        du_t = self.gradients(u, x_train)[0][..., 0]
+        du_x = self.gradients(u, x_train)[0][..., 0]
+        du_y = self.gradients(u, x_train)[0][..., 1]
+
+        # Calculate second-order derivatives
+        du_xx = self.gradients(du_x, x_train)[0][..., 0]
+        du_yy = self.gradients(du_y, x_train)[0][..., 1]
 
         # Compute equations as a list
-        eq = [du_t]
+        eq = [du_xx + du_yy]
 
         pde_loss = torch.mean((eq[0] - source[0]) ** 2)
 

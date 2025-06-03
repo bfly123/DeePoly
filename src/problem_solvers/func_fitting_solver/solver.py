@@ -11,6 +11,7 @@ import sys
 # Use __init__.py to simplify imports
 from .core import FuncFittingNet, FuncFittingFitter
 from .utils import FuncFittingConfig, FuncFittingDataGenerator
+from src.abstract_class.config.base_visualize import BaseVisualizer
 
 class FuncFittingSolver:
     """Function fitting solver"""
@@ -23,6 +24,7 @@ class FuncFittingSolver:
         self.datagen = FuncFittingDataGenerator(self.config)
         self.data_train = self.datagen.generate_data("train")
         self.data_test = self.datagen.generate_data("test")
+        self.visualizer = BaseVisualizer(self.config)
 
         # Initialize model
         self.model = FuncFittingNet(self.config).to(self.config.device)
@@ -79,31 +81,30 @@ class FuncFittingSolver:
         # Initialize and execute fitting
         print("Initializing fitter...")
 
+        start_time = time.time()
         self.fitter = FuncFittingFitter(self.config, self.data_train)
         data_GPU = self.model.prepare_gpu_data(self.data_train)
         
         # Train network and record final loss
         print("Starting neural network training...")
-        self.model = self.model.train_net(self.data_train, self.model, data_GPU)
-        
-        # Get final loss value (calculated once in evaluation mode)
         self.model.eval()
-        with torch.no_grad():
-            final_loss = self.model.physics_loss(data_GPU).item()
-        self.model.train()
+        self.model = self.model.train_net(self.data_train, self.model, data_GPU)
+        final_loss = self.model.physics_loss(data_GPU).item()
         print(f"Neural network training completed, final loss: {final_loss:.8e}")
+        scoper_time = time.time() - start_time
         
         self.fitter.fitter_init(self.model)
 
         print("Starting data fitting...")
-        start_time = time.time()
         coeffs = self.fitter.fit()
-        fit_time = time.time() - start_time
-        print(f"Fitting completed, time used: {fit_time:.2f} seconds")
-
         # Calculate total solution time
-        total_solve_time = time.time() - solve_start_time
-        print(f"Total solution time: {total_solve_time:.2f} seconds")
+        total_time = time.time() - start_time
+
+        sniper_time = total_time - scoper_time
+
+        print(f"Total solution time: {total_time:.2f} seconds")
+        print(f"Scoper time: {scoper_time:.2f} seconds")
+        print(f"Sniper time: {sniper_time:.2f} seconds")
 
         # Make predictions
         print("Making predictions on training set...")
@@ -116,23 +117,26 @@ class FuncFittingSolver:
             self.data_test, self.model, coeffs
         )
         
-        # Use unified plot module to handle result output and visualization
-        print("Generating results using plot module...")
-        output_data = {
-            "train_data": self.data_train,
-            "test_data": self.data_test,
-            "train_predictions": train_predictions,
-            "test_predictions": test_predictions,
-            "train_segments": train_segments,
-            "test_segments": test_segments,
-            "coeffs": coeffs,
-            "model": self.model,
-            "config": self.config,
-            "result_dir": result_dir,
-            "final_loss": final_loss,         # Add final loss
-            "solution_time": total_solve_time  # Add total solution time
-        }
-        self.output_module.generate_output(output_data)
+        # Use unified output module with consistent interface
+        print("Generating results using output module...")
+        self.output_module.generate_output(
+            self.config,
+            self.data_train,
+            self.data_test,
+            self.fitter,
+            self.model,
+            coeffs,
+            result_dir,
+            self.visualizer,
+            total_time,
+            scoper_time,
+            sniper_time,
+            train_predictions=train_predictions,
+            test_predictions=test_predictions,
+            train_segments=train_segments,
+            test_segments=test_segments,
+            final_loss=final_loss
+        )
 
         print("Function fitting solution completed!")
         return train_predictions, test_predictions

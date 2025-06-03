@@ -1,5 +1,5 @@
 """
-元编程模块，提供代码自动生成和替换功能
+Meta-programming module, providing code auto-generation and replacement functionality
 """
 
 from .auto_eq import parse_equation_to_list, generate_all_derivatives, split_equations

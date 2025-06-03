@@ -6,6 +6,7 @@ CONFIGURATION PARAMETERS:
 ----------------------------------------
 Problem Type: linear_pde
 Method: hybrid
+Dimensionality: 2D
 Segments: [1, 20]
 Polynomial Degree: [5 5]
 Hidden Dimensions: [12, 32, 32, 25]
@@ -15,11 +16,11 @@ Test Grid: [50, 50]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 18.4239 seconds
-Neural Network Training Time (Scoper): 17.8304 seconds
-Equation Fitting Time (Sniper): 0.5934 seconds
-Scoper Time Percentage: 96.8%
-Sniper Time Percentage: 3.2%
+Total Solution Time: 17.4521 seconds
+Neural Network Training Time (Scoper): 16.8255 seconds
+Equation Fitting Time (Sniper): 0.6267 seconds
+Scoper Time Percentage: 96.4%
+Sniper Time Percentage: 3.6%
 
 ERROR METRICS:
 ----------------------------------------

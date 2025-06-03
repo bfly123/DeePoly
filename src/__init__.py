@@ -1,10 +1,10 @@
 """
-计算流体力学混合网络求解器包
+Computational Fluid Dynamics Hybrid Network Solver Package
 
-该包提供了一系列用于流体力学问题求解的工具和方法。
+This package provides a series of tools and methods for solving fluid dynamics problems.
 """
 
-# 导入各个子模块
+# Import submodules
 from . import abstract_class
 from . import algebraic_solver
 from . import problem_solvers

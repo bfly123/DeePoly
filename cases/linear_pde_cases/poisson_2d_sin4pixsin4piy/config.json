@@ -14,7 +14,8 @@
         "y"
     ],
     "boundary_conditions": [
-        { "region": "left",
+        {
+            "region": "left",
             "var": [
                 "u"
             ],
