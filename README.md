@@ -90,11 +90,11 @@ The following test cases demonstrate DeePoly's capabilities across function appr
 ![Test Results](cases/func_fitting_cases/case_2d/results/visualizations/test_analysis_u.png)
 
 ##### Performance Metrics
-| Component | Value |
-|-----------|--------|
-| **MSE** | 4.85e-17 |
-| **Max Error** | 2.00e-07 |
-| **Total Time** | 42.9 seconds |
+| Component | Time Cost |
+|-----------|-----------|
+| **Scoper/DNN** | 36.7667 seconds |
+| **Sniper** | 6.2360 seconds |
+| **Total** | 43.0027 seconds |
 
 ##### Additional Information
 - **Error Analysis**: Detailed metrics available in `cases/func_fitting_cases/case_2d/results/error_analysis_report.txt`
@@ -115,11 +115,11 @@ The following test cases demonstrate DeePoly's capabilities across function appr
 ![Test Results](cases/func_fitting_cases/discontinuous_case1/results/visualizations/test_analysis_u.png)
 
 ##### Performance Metrics
-| Component | Value |
-|-----------|--------|
-| **MSE** | 2.11e-05 |
-| **Max Error** | 1.83e-02 |
-| **Total Time** | 14.0 seconds |
+| Component | Time Cost |
+|-----------|-----------|
+| **Scoper/DNN** | 17.8730 seconds |
+| **Sniper** | 0.2645 seconds |
+| **Total** | 18.1374 seconds |
 
 ##### Additional Information
 - **Error Analysis**: Detailed metrics available in `cases/func_fitting_cases/discontinuous_case1/results/error_analysis_report.txt`
@@ -142,11 +142,11 @@ The following test cases demonstrate DeePoly's capabilities across function appr
 ![Test Results](cases/linear_pde_cases/poisson_2d_sinpixsinpiy/results/visualizations/test_analysis_u.png)
 
 ##### Performance Metrics
-| Component | Value |
-|-----------|--------|
-| **DeePoly MSE** | 1.45e-14 |
-| **PINNs MSE** | 1.37e-06 |
-| **Improvement** | 10⁸× better |
+| Component | Time Cost |
+|-----------|-----------|
+| **Scoper/PINNs** | 10.2692 seconds |
+| **Sniper** | 2.0110 seconds |
+| **Total** | 12.2802 seconds |
 
 ##### Additional Information
 - **Error Analysis**: Detailed metrics available in `cases/linear_pde_cases/poisson_2d_sinpixsinpiy/results/error_analysis_report.txt`
@@ -167,11 +167,11 @@ The following test cases demonstrate DeePoly's capabilities across function appr
 ![Test Results](cases/linear_pde_cases/poisson_2d_sin4pixsin4piy/results/visualizations/test_analysis_u.png)
 
 ##### Performance Metrics
-| Component | Value |
-|-----------|--------|
-| **Frequency** | 4π |
-| **Convergence** | High-order |
-| **Challenge** | High-frequency oscillations |
+| Component | Time Cost |
+|-----------|-----------|
+| **Scoper/PINNs** | 34.7317 seconds |
+| **Sniper** | 14.3702 seconds |
+| **Total** | 49.1018 seconds |
 
 ##### Additional Information
 - **Error Analysis**: Detailed metrics available in `cases/linear_pde_cases/poisson_2d_sin4pixsin4piy/results/error_analysis_report.txt`
@@ -192,23 +192,14 @@ The following test cases demonstrate DeePoly's capabilities across function appr
 ![Test Results](cases/linear_pde_cases/linear_convection_discontinuity/results/visualizations/test_analysis_u.png)
 
 ##### Performance Metrics
-| Component | Value |
-|-----------|--------|
-| **Wave Speed** | 0.3 |
-| **Problem Type** | Hyperbolic |
-| **Challenge** | Discontinuous wave fronts |
+| Component | Time Cost |
+|-----------|-----------|
+| **Scoper/PINNs** | 16.8255 seconds |
+| **Sniper** | 0.6267 seconds |
+| **Total** | 17.4521 seconds |
 
 ##### Additional Information
 - **Error Analysis**: Detailed metrics available in `cases/linear_pde_cases/linear_convection_discontinuity/results/error_analysis_report.txt`
 - **Configuration**: See `cases/linear_pde_cases/linear_convection_discontinuity/config.json`
 
 ---
-
-### Performance Summary
-| Case Type | Best MSE | Key Feature |
-|-----------|----------|-------------|
-| 1D Functions | ~1e-16 | Baseline accuracy |
-| 2D Smooth Functions | 4.85e-17 | Multi-modal complexity |
-| Discontinuous Functions | 2.11e-05 | Sharp transitions |
-| Linear PDEs | 1.45e-14 | vs PINNs: 10⁸× better |
-| Time-dependent PDEs | - | Discontinuous propagation |
