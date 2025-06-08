@@ -8,7 +8,7 @@ Problem Type: linear_pde
 Method: hybrid
 Dimensionality: 2D
 Segments: [5, 5]
-Polynomial Degree: [5 5]
+Polynomial Degree: [10 10]
 Hidden Dimensions: [12, 32, 32, 25]
 Domain: [[0 1]
  [0 1]]
@@ -16,20 +16,20 @@ Test Grid: [50, 50]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 12.2802 seconds
-Neural Network Training Time (Scoper): 10.2692 seconds
-Equation Fitting Time (Sniper): 2.0110 seconds
-Scoper Time Percentage: 83.6%
-Sniper Time Percentage: 16.4%
+Total Solution Time: 18.0606 seconds
+Neural Network Training Time (Scoper): 13.7356 seconds
+Equation Fitting Time (Sniper): 4.3249 seconds
+Scoper Time Percentage: 76.1%
+Sniper Time Percentage: 23.9%
 
 ERROR METRICS:
 ----------------------------------------
-Method          Dataset  MSE          MAE          Max Error    Rel Error   
+Method          Dataset  MSE          MAE          Max Error    Time   
 --------------------------------------------------------------------------------
-PINNs           Train    1.36e-06     1.01e-03     4.63e-03     1.55e+00    
-DeePoly         Train    8.53e-23     4.69e-12     1.23e-10     1.57e-08    
-PINNs           Test     1.37e-06     1.02e-03     4.91e-03     4.31e-01    
-DeePoly         Test     9.50e-23     4.75e-12     1.25e-10     2.50e-09    
+PINNs           Train    1.04e-06     8.51e-04     4.50e-03       13.73   
+DeePoly         Train    5.57e-32     1.75e-16     2.37e-15     18.06    
+PINNs           Test     1.06e-06     8.58e-04     4.54e-03     --    
+DeePoly         Test     6.11e-32     1.81e-16     2.24e-15     --   
 
 ================================================================================
 PERFORMANCE COMPARISON:

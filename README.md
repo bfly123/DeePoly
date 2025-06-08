@@ -4,7 +4,8 @@
 
 ## Introduction
 
-DeePoly is a novel general-purpose platform for function approximation and equation solving algorithms. Core theorem and algorithm: [DeePoly: A High-Order Accuracy and Efficiency Scientific Machine Learning Framework](https://www.researchgate.net/publication/391464939_DeePoly_A_High-Order_Accuracy_and_Efficiency_Scientific_Machine_Learning_Framework?_tp=eyJjb250ZXh0Ijp7ImZpcnN0UGFnZSI6InByb2ZpbGUiLCJwYWdlIjoicHJvZmlsZSJ9fQ)
+DeePoly is a novel general-purpose platform for function approximation and equation solving algorithms. Core theorem and algorithm: [Reseachgate](https://www.researchgate.net/publication/391464939_DeePoly_A_High-Order_Accuracy_and_Efficiency_Scientific_Machine_Learning_Framework?_tp=eyJjb250ZXh0Ijp7ImZpcnN0UGFnZSI6InByb2ZpbGUiLCJwYWdlIjoicHJvZmlsZSJ9fQ)
+Or [arxiv](https://arxiv.org/abs/2506.04613)
 
 ## Key Features
 

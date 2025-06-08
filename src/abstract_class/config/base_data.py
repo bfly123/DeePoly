@@ -192,13 +192,35 @@ class BaseDataGenerator(ABC):
         
         # Process each boundary condition
         for bc in self.config.boundary_conditions:
-            region = bc['region']
+            regions = bc['region']
             bc_type = bc['type'].lower()
             value = bc['value']
             points = bc['points']
             
-            x_boundary = self._generate_boundary_points(region, points)
-            normals = self._get_boundary_normals(region, x_boundary.shape[0])
+            # 处理单个region或region列表
+            if isinstance(regions, str):
+                regions = [regions]  # 转换为列表
+            elif not isinstance(regions, list):
+                print(f"Warning: region should be string or list, got {type(regions)}")
+                continue
+            
+            # 为所有region生成边界点
+            all_x_boundary = []
+            all_normals = []
+            
+            for region in regions:
+                x_boundary = self._generate_boundary_points(region, points)
+                if x_boundary.size > 0:  # 只添加有效的边界点
+                    normals = self._get_boundary_normals(region, x_boundary.shape[0])
+                    all_x_boundary.append(x_boundary)
+                    all_normals.append(normals)
+            
+            # 合并所有边界点
+            if all_x_boundary:
+                x_boundary = np.vstack(all_x_boundary)
+                normals = np.vstack(all_normals)
+            else:
+                continue  # 跳过无效的边界条件
             
             for var in self.config.vars_list:
                 if bc_type == 'dirichlet':

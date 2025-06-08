@@ -66,15 +66,15 @@
         5,
         5
     ],
-    "points_domain": 3000,
+    "points_domain": 5000,
     "points_per_swap": 30,
     "points_domain_test": [
         50,
         50
     ],
     "poly_degree": [
-        5,
-        5
+        10,
+        10
     ],
     "x_domain": [
         [
