@@ -21,7 +21,7 @@
   "epochs_lbfgs": 100,
   "DNNtol": 2e-05,
   "n_segments": [
-    30
+    27
   ],
   "points_domain": 2000,
   "points_domain_test": [

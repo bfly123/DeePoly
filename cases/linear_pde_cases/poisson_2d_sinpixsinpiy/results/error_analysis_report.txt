@@ -16,20 +16,20 @@ Test Grid: [50, 50]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 18.0606 seconds
-Neural Network Training Time (Scoper): 13.7356 seconds
-Equation Fitting Time (Sniper): 4.3249 seconds
-Scoper Time Percentage: 76.1%
-Sniper Time Percentage: 23.9%
+Total Solution Time: 17.0859 seconds
+Neural Network Training Time (Scoper): 12.6287 seconds
+Equation Fitting Time (Sniper): 4.4572 seconds
+Scoper Time Percentage: 73.9%
+Sniper Time Percentage: 26.1%
 
 ERROR METRICS:
 ----------------------------------------
-Method          Dataset  MSE          MAE          Max Error    Time   
+Method          Dataset  MSE          MAE          Max Error    Rel Error   
 --------------------------------------------------------------------------------
-PINNs           Train    1.04e-06     8.51e-04     4.50e-03       13.73   
-DeePoly         Train    5.57e-32     1.75e-16     2.37e-15     18.06    
-PINNs           Test     1.06e-06     8.58e-04     4.54e-03     --    
-DeePoly         Test     6.11e-32     1.81e-16     2.24e-15     --   
+PINNs           Train    1.04e-06     8.51e-04     4.50e-03     1.13e+00    
+DeePoly         Train    5.57e-32     1.75e-16     2.37e-15     1.94e-13    
+PINNs           Test     1.06e-06     8.58e-04     4.54e-03     3.90e-01    
+DeePoly         Test     6.11e-32     1.81e-16     2.24e-15     6.43e-14    
 
 ================================================================================
 PERFORMANCE COMPARISON:
