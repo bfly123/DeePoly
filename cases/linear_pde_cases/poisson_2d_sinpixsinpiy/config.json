@@ -63,8 +63,8 @@
   "DNNtol": 0.0001,
   "learning_rate": 0.001,
   "n_segments": [
-    5,
-    5
+    1,
+    1
   ],
   "points_domain": 5000,
   "points_per_swap": 30,

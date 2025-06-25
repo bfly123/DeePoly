@@ -209,7 +209,7 @@ def main():
     convergence_path = case_dir / "results/convergence_analysis.md"
     
     # 要测试的n_segments值 - 修改为1到10
-    n_segments_list = list(range(1,6))  # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    n_segments_list = list(range(1,2))  # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     
     # 确保结果目录存在
     os.makedirs(case_dir / "results", exist_ok=True)

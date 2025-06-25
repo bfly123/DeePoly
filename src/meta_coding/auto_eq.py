@@ -424,9 +424,9 @@ def test_parse_equation():
     return result, deriv_orders, max_deriv_orders, result_nonlinear, all_derivatives
 
 
-#if __name__ == "__main__":
-#    test_parse_equation()
-#
+if __name__ == "__main__":
+    test_parse_equation()
+
 ## 测试用例
 #equation_str = ["diff(u,x)"]
 #equation_nonlinear_str = ["u*diff(u,x)"]  # 非线性项

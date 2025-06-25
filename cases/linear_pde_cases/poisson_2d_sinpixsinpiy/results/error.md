@@ -58,3 +58,7 @@
  segments = 3x3 train_time: 12.6s train_MSE: 3.4e-27 train_MaxErr: 6.9e-13 train_RelL2: 9.9e-11 test_MSE: 3.6e-27 test_MaxErr: 6.5e-13 test_RelL2: 2.2e-11 total_time: 14s
  segments = 4x4 train_time: 12.7s train_MSE: 3.4e-32 train_MaxErr: 1.8e-15 train_RelL2: 3.9e-13 test_MSE: 3.0e-32 test_MaxErr: 1.4e-15 test_RelL2: 6.1e-14 total_time: 14s
  segments = 5x5 train_time: 12.6s train_MSE: 5.6e-32 train_MaxErr: 2.4e-15 train_RelL2: 1.9e-13 test_MSE: 6.1e-32 test_MaxErr: 2.2e-15 test_RelL2: 6.4e-14 total_time: 17s
+ segments = 1x1 train_time: 12.9s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 13s
+ segments = 2x2 train_time: 12.8s train_MSE: 3.4e-28 train_MaxErr: 1.3e-13 train_RelL2: 4.5e-11 test_MSE: 3.3e-28 test_MaxErr: 1.0e-13 test_RelL2: 7.5e-12 total_time: 13s
+ segments = 1x1 train_time: 12.9s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 13s
+ segments = 1x1 train_time: 12.6s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 13s
