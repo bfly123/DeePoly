@@ -2,10 +2,10 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
-from src.meta_coding.auto_eq import parse_equation_to_list
 import os
 import json
 from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
+from src.meta_coding import parse_operators
 
 @dataclass
 class LinearPDEConfig(BaseConfig):
@@ -73,20 +73,10 @@ class LinearPDEConfig(BaseConfig):
         self.DNN_degree = self.hidden_dims[-1]
         self._auto_code()
 
-        # Parse equations
-        (
-            self.eq_linear_list,
-            self.deriv_orders,
-            self.max_deriv_orders,
-            self.eq_nonlinear_list,
-            self.all_derivatives,
-        ) = parse_equation_to_list(
-            self.eq,
-            self.eq_nonlinear,
-            self.vars_list,
-            self.spatial_vars,
-            self.const_list,
-        )
+
+        # Parse using new interface
+        self.operator_parse = parse_operators(self.eq, self.vars_list, self.spatial_vars, self.const_list)
+
 
     def _auto_code(self):
         if hasattr(self, "auto_code") and self.auto_code:

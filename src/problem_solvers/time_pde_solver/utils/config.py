@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 import numpy as np
 import os
 import json
-from src.meta_coding.auto_eq import parse_equation_to_list
+from src.meta_coding import parse_operators
 from src.meta_coding.auto_repalce_nonlinear import update_hybrid_fitter_code
 from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
 from src.abstract_class.config.base_config import BaseConfig
@@ -188,19 +188,7 @@ class TimePDEConfig(BaseConfig):
                 all_nonlinear_eqs.append(semi_implicit_term)
 
         # 解析方程
-        (
-            self.eq_linear_list,
-            self.deriv_orders,
-            self.max_deriv_orders,
-            self.eq_nonlinear_list,
-            self.all_derivatives,
-        ) = parse_equation_to_list(
-            all_linear_eqs,
-            all_nonlinear_eqs,
-            self.vars_list,
-            self.spatial_vars,
-            self.const_list,
-        )
+        self.operator_parse = parse_operators(self.eq, self.vars_list, self.spatial_vars, self.const_list)
 
         print(f"Parsed linear equations: {self.eq_linear_list}")
         print(f"Parsed nonlinear equations: {self.eq_nonlinear_list}")

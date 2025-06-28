@@ -24,7 +24,14 @@ class BaseDeepPolyFitter(ABC):
        # self.all_derivatives = getattr(
        #     config, "all_derivatives", []
        # )  # Provide default if missing
-        self.all_derivatives = config.all_derivatives
+        self.max_derivatives = config.operator_parse["max_derivative_orders"]
+        self.all_derivatives = config.operator_parse["all_derivatives"]
+        self.derivatives = config.operator_parse["derivatives"]
+        self.operator_terms = config.operator_parse["operator_terms"]
+        self.L1 = self.operator_terms["L1"] if "L1" in self.operator_terms else None
+        self.L2 = self.operator_terms["L2"] if "L2" in self.operator_terms else None
+        self.N = self.operator_terms["N"] if "N" in self.operator_terms else None
+        self.F = self.operator_terms["F"] if "F" in self.operator_terms else None
         self.ns = np.prod(self.config.n_segments)
         self.n_segments = self.config.n_segments
         self.dg = np.int32(
@@ -44,6 +51,7 @@ class BaseDeepPolyFitter(ABC):
         self.b = None
         self.equations = None
         self.variables = None
+    
 
     def get_matrix_size(
         self, ns: int, ne: int, dgN: int,
@@ -197,10 +205,10 @@ class BaseDeepPolyFitter(ABC):
         self.equations = {f"eq{i}": [] for i in range(self.config.n_eqs)}
         self.variables = {}
 
-        for term in self.config.eq_nonlinear_list:
-            name = term[2]
-            if name not in self.variables:
-                self.variables[name] = []
+    #    for term in self.config.eq_nonlinear_list:
+    #        name = term[2]
+    #        if name not in self.variables:
+    #            self.variables[name] = []
 
         self._build_basic_equations_and_varibales(model)
         self._add_constraints(model)
@@ -213,7 +221,7 @@ class BaseDeepPolyFitter(ABC):
 
     def _get_features(self, segment_idx: int, model: nn.Module) -> List[np.ndarray]:
         """获取特征和导数"""
-        feature_list = self.config.deriv_orders
+        feature_list = self.derivatives
         x = self.data["x_segments_norm"][segment_idx]
         x_min = self.config.x_min[segment_idx]
         x_max = self.config.x_max[segment_idx]
@@ -240,6 +248,8 @@ class BaseDeepPolyFitter(ABC):
                 j = var * self.dgN
                 eq[:, j : j + self.dgN] += coeff * features[deriv]
             self.equations[f"eq{i}"].append(eq)
+        
+        #eq = operator_func(features,self.)
 
         for term in nonlinear_eq_list:
             var, deriv, name = term[0], term[1], term[2]

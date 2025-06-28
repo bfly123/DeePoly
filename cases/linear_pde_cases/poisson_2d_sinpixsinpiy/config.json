@@ -1,11 +1,13 @@
 {
   "problem_type": "linear_pde",
   "method": "hybrid",
-  "eq": [
-    "diff(u,x,2) + diff(u,y,2)"
-  ],
+  "eq": {
+    "L1": [
+      "diff(u,x,2) + diff(u,y,2)"
+    ]
+  },
   "source_term": "-sin(pi*x)*sin(pi*y)",
-  "eq_nonlinear": [],
+  "const_list": [],
   "vars_list": [
     "u"
   ],

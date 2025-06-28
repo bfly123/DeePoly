@@ -13,6 +13,7 @@ Or [arxiv](https://arxiv.org/abs/2506.04613)
 - **Mesh-Free**: Sampling points can be randomly generated with no logical relationships, suitable for complex geometries.
 - **High Accuracy**: Achieves high-order convergence.
 - **Scheme-Free**: Handles derivative relationships using automatic differentiation.
+- **Auto Code of different PDEs**: Write the equations into config.json and no need to change any code.
 - **Efficient**: Computational efficiency comparable to traditional finite difference methods.
 - **GPU Accelerated**: Supports CPU parallelism and GPU acceleration.
 - **Applicable to Complex and Discontinuous Problems**: Accurately approximates discontinuous and high-gradient functions.
@@ -24,7 +25,7 @@ Previous version: v0.1 (Beta). The `cases` directory includes both function appr
 
 Current version: v0.2:
 - High-accuracy solving for arbitrary-dimensional linear PDEs.
-- Auto code of the PDE.
+- Auto code of the PDE (set auto_code=true in config.json and rerun the case again).
 - English-commented version.
 - Other corrections of output and visualize.
 

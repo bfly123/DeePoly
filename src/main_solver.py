@@ -24,12 +24,12 @@ from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
 
 def main():
     # Debug mode: directly specify test directory
-   # DEBUG_MODE = True
-    DEBUG_MODE = False
+    DEBUG_MODE = True
+    #DEBUG_MODE = False
     
     if DEBUG_MODE:
         # Dynamically construct case path relative to project root
-        case_dir = os.path.join(project_root, "cases", "func_fitting_cases", "case_2d")
+        case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
         #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
     else:
         # Get parameters from command line

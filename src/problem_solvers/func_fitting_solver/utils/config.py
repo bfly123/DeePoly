@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
-from src.meta_coding.auto_eq import parse_equation_to_list
+from src.meta_coding import parse_operators
 import os
 import json
 
@@ -93,19 +93,8 @@ class FuncFittingConfig(BaseConfig):
         self.DNN_degree = self.hidden_dims[-1]
 
         # 解析方程
-        (
-            self.eq_linear_list,
-            self.deriv_orders,
-            self.max_deriv_orders,
-            self.eq_nonlinear_list,
-            self.all_derivatives,
-        ) = parse_equation_to_list(
-            self.eq,
-            self.eq_nonlinear,
-            self.vars_list,
-            self.spatial_vars,
-            self.const_list,
-        )
+        self.operator_parse = parse_operators(self.eq, self.vars_list, self.spatial_vars, self.const_list)
+        
 
     def _map_config_fields(self):
         """处理配置文件中的字段命名与类属性的映射"""
