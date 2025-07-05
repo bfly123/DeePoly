@@ -5,7 +5,7 @@ from typing import Dict, Tuple, Optional
 import torch.optim as optim
 
 class BaseNet(nn.Module):
-    """基础神经网络类"""
+    """Base neural network class"""
 
     def __init__(
         self, config, use_periodic: bool = False
@@ -17,10 +17,10 @@ class BaseNet(nn.Module):
         self.hidden_dims = config.hidden_dims
         self.out_dim = config.n_eqs
 
-        # 计算实际输入维度
+        # Calculate actual input dimension
         actual_in = self.in_dim * 3 if use_periodic else self.in_dim
 
-        # 构建网络层
+        # Build network layers
         layers = []
         dims = [actual_in] + list(self.hidden_dims)
         for i in range(len(dims) - 1):
@@ -33,13 +33,13 @@ class BaseNet(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """前向传播
+        """Forward propagation
 
         Args:
-            x: 输入张量
+            x: Input tensor
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: (隐藏层输出, 最终输出)
+            Tuple[torch.Tensor, torch.Tensor]: (Hidden layer output, Final output)
         """
         if self.use_periodic:
             x = torch.cat(
@@ -50,13 +50,13 @@ class BaseNet(nn.Module):
         return h, self.out(h)
 
     def derivative_h(self, x: torch.Tensor) -> torch.Tensor:
-        """计算隐藏层输出对输入的导数
+        """Calculate derivative of hidden layer output with respect to input
 
         Args:
-            x: 输入张量
+            x: Input tensor
 
         Returns:
-            torch.Tensor: 导数
+            torch.Tensor: Derivative
         """
         h, _ = self.forward(x)
         h_x = torch.autograd.grad(
@@ -66,53 +66,53 @@ class BaseNet(nn.Module):
 
     @staticmethod
     def gradients(outputs: torch.Tensor, inputs: torch.Tensor) -> Tuple[torch.Tensor]:
-        """计算梯度
+        """Calculate gradients
 
         Args:
-            outputs: 输出张量
-            inputs: 输入张量
+            outputs: Output tensor
+            inputs: Input tensor
 
         Returns:
-            Tuple[torch.Tensor]: 梯度
+            Tuple[torch.Tensor]: Gradients
         """
         return torch.autograd.grad(
             outputs, inputs, grad_outputs=torch.ones_like(outputs), create_graph=True
         )
 
     def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
-        """计算物理损失
+        """Calculate physics loss
 
         Args:
-            data_GPU: GPU数据字典，包含训练所需的GPU数据
-            data_train: 训练数据字典，包含训练所需的CPU数据
-            **kwargs: 额外的参数，具体实现可以根据需要添加
+            data_GPU: GPU data dictionary containing GPU data required for training
+            data_train: Training data dictionary containing CPU data required for training
+            **kwargs: Additional parameters, specific implementations can add as needed
 
         Returns:
-            torch.Tensor: 损失值
+            torch.Tensor: Loss value
         """
-        raise NotImplementedError("子类必须实现physics_loss方法")
+        raise NotImplementedError("Subclasses must implement physics_loss method")
 
     def prepare_gpu_data(data_train: Dict) -> Dict:
-        """准备GPU数据
+        """Prepare GPU data
 
         Args:
-            data_train: 训练数据
-            config: 配置对象
+            data_train: Training data
+            config: Configuration object
 
         Returns:
-            Dict: GPU数据字典
+            Dict: GPU data dictionary
         """
-        raise NotImplementedError("子类必须实现prepare_gpu_data方法")
+        raise NotImplementedError("Subclasses must implement prepare_gpu_data method")
 
     def prepare_train_data(self, data: Dict) -> Dict:
-        """将原始数据中的所有非空值转换为tensor
+        """Convert all non-null values in raw data to tensors
 
         Args:
-            data: 原始数据字典
-            config: 配置对象，用于获取device信息
+            data: Raw data dictionary
+            config: Configuration object for getting device information
 
         Returns:
-            Dict: 包含转换后tensor的数据字典
+            Dict: Data dictionary containing converted tensors
         """
         data_train = {}
         for key, value in data.items():
@@ -124,15 +124,15 @@ class BaseNet(nn.Module):
 
     @staticmethod
     def model_init():
-        """初始化模型
+        """Initialize model
 
         Args:
-            config: 配置对象
+            config: Configuration object
 
         Returns:
-            BaseNet: 初始化后的模型
+            BaseNet: Initialized model
         """
-        raise NotImplementedError("子类必须实现model_init方法")
+        raise NotImplementedError("Subclasses must implement model_init method")
 
 
     def train_net(self,data, model, data_GPU, **kwargs):
@@ -144,7 +144,7 @@ class BaseNet(nn.Module):
       while retry_count < max_retries:
           if retry_count > 0:
               print(
-                  f"重试 {retry_count}/{max_retries}，更改随机种子为 {self.config.seed + retry_count}"
+                  f"Retry {retry_count}/{max_retries}, changing random seed to {self.config.seed + retry_count}"
               )
               torch.manual_seed(self.config.seed + retry_count)
               np.random.seed(self.config.seed + retry_count)
@@ -163,7 +163,7 @@ class BaseNet(nn.Module):
               loss.backward()
               return loss
 
-          # Adam优化
+          # Adam optimization
           final_loss = None
           for epoch in range(self.config.epochs_adam):
               optimizer_adam.zero_grad()
@@ -179,7 +179,7 @@ class BaseNet(nn.Module):
 
           print(f"Final Adam Loss: {final_loss}")
   #
-          # LBFGS优化
+          # LBFGS optimization
           if self.config.epochs_lbfgs > 0:
               for epoch in range(self.config.epochs_lbfgs):
                   optimizer_lbfgs.zero_grad()
@@ -193,13 +193,13 @@ class BaseNet(nn.Module):
                   if epoch % 100 == 0:
                       print(f"LBFGS Epoch {epoch}, Loss: {final_loss}")
 
-          # 保存最佳模型
+          # Save best model
           if final_loss < best_loss:
               best_loss = final_loss
               best_model = model.state_dict().copy()
 
           if final_loss < self.config.DNNtol:
-              print(f"已达到目标精度 {self.config.DNNtol}，停止重试")
+              print(f"Target accuracy {self.config.DNNtol} achieved, stopping retries")
               break
 
           retry_count += 1
@@ -209,6 +209,6 @@ class BaseNet(nn.Module):
           best_model_id = id(best_model)
           if current_model_id != best_model_id:
               model.load_state_dict(best_model)
-              print(f"使用最佳模型，损失值: {best_loss}")
+              print(f"Using best model, loss value: {best_loss}")
 
       return model

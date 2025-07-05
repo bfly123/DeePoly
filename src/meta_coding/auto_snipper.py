@@ -139,18 +139,20 @@ class OperatorParser:
 
         return derivatives
 
-    def get_max_orders(self, expressions: List[str]) -> Dict[str, List[int]]:
-        """Get maximum derivative orders for each variable"""
-        max_orders = {var: [0] * len(self.spatial_vars) for var in self.variables}
+    def get_max_orders(self, expressions: List[str]) -> List[List[int]]:
+        """Get maximum derivative orders for each variable as a list"""
+        # Initialize max orders for each variable
+        max_orders = [[0] * len(self.spatial_vars) for _ in self.variables]
 
         for expr in expressions:
             matches = re.findall(r"diff\((\w+),(\w+)(?:,(\d+))?\)", expr)
             for var_name, spatial_var, order_str in matches:
                 if var_name in self.variables and spatial_var in self.spatial_vars:
+                    var_idx = self.variables.index(var_name)  # 获取变量索引
                     spatial_idx = self.spatial_vars.index(spatial_var)
                     order = int(order_str) if order_str else 1
-                    max_orders[var_name][spatial_idx] = max(
-                        max_orders[var_name][spatial_idx], order
+                    max_orders[var_idx][spatial_idx] = max(
+                        max_orders[var_idx][spatial_idx], order
                     )
 
         return max_orders
@@ -183,19 +185,16 @@ class OperatorParser:
         if not expr:
             return {"derivative_indices": [], "symbolic_expr": expr}
 
-        # Create name to index mapping
-        name_to_index = {
-            name: idx for idx, name in enumerate(sorted(derivatives.keys()))
-        }
-
         # Replace with standardized names
         processed = self.replace_with_names(expr)
 
-        # Find all derivative names in the processed expression
+        # Find all derivative names in the processed expression and get their deriv_idx
         indices = set()
         for name in derivatives.keys():
             if re.search(rf"\b{name}\b", processed):
-                indices.add(name_to_index[name])
+                # Use the deriv_idx from all_derivatives [var_idx, deriv_idx]
+                var_idx, deriv_idx = derivatives[name]
+                indices.add(deriv_idx)
 
         return {"derivative_indices": sorted(indices), "symbolic_expr": processed}
 

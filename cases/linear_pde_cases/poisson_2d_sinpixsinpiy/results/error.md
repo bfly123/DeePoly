@@ -62,3 +62,4 @@
  segments = 2x2 train_time: 12.8s train_MSE: 3.4e-28 train_MaxErr: 1.3e-13 train_RelL2: 4.5e-11 test_MSE: 3.3e-28 test_MaxErr: 1.0e-13 test_RelL2: 7.5e-12 total_time: 13s
  segments = 1x1 train_time: 12.9s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 13s
  segments = 1x1 train_time: 12.6s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 13s
+ segments = 1x1 train_time: 14.2s train_MSE: 3.9e-22 train_MaxErr: 1.2e-10 train_RelL2: 2.6e-08 test_MSE: 4.1e-22 test_MaxErr: 1.2e-10 test_RelL2: 7.5e-09 total_time: 15s

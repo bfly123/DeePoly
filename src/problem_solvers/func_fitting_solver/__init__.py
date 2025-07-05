@@ -1,8 +1,8 @@
 """
-函数拟合求解器
+Function fitting solver
 """
 
-# 导入相关类和函数
+# Import related classes and functions
 from .solver import FuncFittingSolver
 
 __all__ = ['FuncFittingSolver']

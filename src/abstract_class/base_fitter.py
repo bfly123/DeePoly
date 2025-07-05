@@ -3,27 +3,47 @@ from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
 import torch
 from torch import nn
+import re
+from itertools import product
 
 # Delay import to break cycle
 # from .features_generator import FeatureGenerator
+from .operator_factory import create_operator_factory
 
 
 class BaseDeepPolyFitter(ABC):
-    """拟合器抽象基类"""
+    """Abstract base class for DeePoly fitters"""
 
     def __init__(self, config, dt: float = None, data: Dict = None):
         # Import FeatureGenerator here
-        from .features_generator import FeatureGenerator
-        self.data = data
-
+        from src.abstract_class.features_generator import FeatureGenerator
+        from src.abstract_class.operator_factory import create_operator_factory
 
         self.config = config
-        self.feature_generator = FeatureGenerator(self.config.linear_device)
+        self.data = data
         self.dt = dt
-        # Ensure all_derivatives exists in config
-       # self.all_derivatives = getattr(
-       #     config, "all_derivatives", []
-       # )  # Provide default if missing
+
+        # Base dimensions - now supporting multiple dimensions
+        self.n_dim = config.n_dim
+        if hasattr(config, "n_segments"):
+            if isinstance(config.n_segments, (list, tuple)):
+                self.n_segments = config.n_segments
+            else:
+                self.n_segments = [config.n_segments] * self.n_dim
+        else:
+            self.n_segments = [10] * self.n_dim
+
+        self.ns = np.prod(self.n_segments)
+
+        # === Added: Hierarchical pre-compilation cache system ===
+        self._features = {}  # Cache features: {segment_idx: features_list}
+        self._linear_operators = {}  # Cache linear operators: {segment_idx: {'L1': matrix, 'L2': matrix}}
+        self._nonlinear_functions = {}  # Pre-compiled coefficient functions: {segment_idx: {'N': func, 'F': func}}
+        self._nonlinear_results = {}  # Pre-compiled coefficient functions: {segment_idx: {'N': func, 'F': func}}
+        self._constraints = None  # Cache constraint conditions
+        self._precompiled = False  # Pre-compilation completion flag
+
+        self.feature_generator = FeatureGenerator(self.config.linear_device)
         self.max_derivatives = config.operator_parse["max_derivative_orders"]
         self.all_derivatives = config.operator_parse["all_derivatives"]
         self.derivatives = config.operator_parse["derivatives"]
@@ -32,8 +52,6 @@ class BaseDeepPolyFitter(ABC):
         self.L2 = self.operator_terms["L2"] if "L2" in self.operator_terms else None
         self.N = self.operator_terms["N"] if "N" in self.operator_terms else None
         self.F = self.operator_terms["F"] if "F" in self.operator_terms else None
-        self.ns = np.prod(self.config.n_segments)
-        self.n_segments = self.config.n_segments
         self.dg = np.int32(
             np.prod(
                 self.config.poly_degree + np.ones(np.shape(self.config.poly_degree))
@@ -47,16 +65,45 @@ class BaseDeepPolyFitter(ABC):
         self.n_eqs = self.config.n_eqs
 
         # Initialize members
-        self.A = None
-        self.b = None
-        self.equations = None
+        #self.A = None
+        #self.b = None
+        self.A_constraints = None
+        self.b_constraints = None
+        #self.equations = None
         self.variables = None
-    
+
+        # Generate fixed operator functions (execute only once)
+        self._generate_operator_functions()
+
+    def _generate_operator_functions(self):
+        """Generate all operator functions once, use fixed functions afterwards"""
+
+        # Get constants dictionary if available
+        constants = getattr(self.config, "constants", {})
+
+        # Create operator factory
+        self.operator_factory = create_operator_factory(
+            all_derivatives=self.all_derivatives,
+            constants=constants,
+            optimized=True,  # Use optimized version
+        )
+
+        # Batch create all operator functions
+        operator_funcs = self.operator_factory.create_all_operators(self.operator_terms)
+
+        # Assign functions to instance attributes
+        self.L1_func = operator_funcs.get("L1_func", None)
+        self.L2_func = operator_funcs.get("L2_func", None)
+        self.N_func = operator_funcs.get("N_func", None)
+        self.F_func = operator_funcs.get("F_func", None)
 
     def get_matrix_size(
-        self, ns: int, ne: int, dgN: int,
+        self,
+        ns: int,
+        ne: int,
+        dgN: int,
     ) -> Tuple[int, int, List[int]]:
-        """计算矩阵大小，支持任意维度"""
+        """Calculate matrix size, supporting arbitrary dimensions"""
         total_rows = 0
         rows_per_segment = []
         for i in range(ns):
@@ -68,53 +115,214 @@ class BaseDeepPolyFitter(ABC):
         n_cols = ne * dgN * ns
         return total_rows, n_cols, rows_per_segment
 
-#    @abstractmethod
-#    def get_segment_data(self, segment_idx: int) -> Dict:
-#        """获取指定段的数据，支持高维索引"""
-#        pass
+    #    @abstractmethod
+    #    def get_segment_data(self, segment_idx: int) -> Dict:
+    #        """Get data for specified segment, supporting high-dimensional indexing"""
+    #        pass
 
-    def process_constraints(
-        self, A: List[np.ndarray], b: List[np.ndarray]
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """处理约束条件"""
-        A_constraints = np.vstack(A)
-        b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in b])
-        return A_constraints, b_constraints
+   # def process_constraints(
+   #     self, A: List[np.ndarray], b: List[np.ndarray]
+   # ) -> Tuple[np.ndarray, np.ndarray]:
+   #     """Process constraint conditions"""
+   #     A_constraints = np.vstack(A)
+   #     b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in b])
+   #     return A_constraints, b_constraints
 
     @abstractmethod
     def _build_segment_jacobian(
         self,
         segment_idx: int,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """构建单个段的雅可比矩阵"""
+        """Build Jacobian matrix for single segment"""
         pass
 
     def fitter_init(self, model: nn.Module):
-        """初始化拟合器并构建系统方程"""
+        """Initialize and pre-compile operator matrices"""
         model = model.to(self.config.linear_device)
-        self._build_system(model)
+        self._current_model = model  # Save model reference for later use
+        self._precompile_all_operators(model)
+        return model
+
+    def _precompile_all_operators(self, model: nn.Module):
+        """Hierarchical pre-compilation of all operators"""
+
+        n_cols = self.config.n_eqs * self.dgN * self.ns
+
+        for segment_idx in range(self.ns):
+            # Level 1: Pre-compile and cache features
+            features = self._get_features(segment_idx, model)
+            self._features[segment_idx] = features
+
+            # Level 2: Pre-compile linear operators (directly return correct format)
+            linear_ops = {}
+            if self.has_operator("L1"):
+                linear_ops["L1"] = self.L1_func(
+                    features
+                )  # Returns (ne, n_points, ne*dgN)
+            if self.has_operator("L2"):
+                linear_ops["L2"] = self.L2_func(
+                    features
+                )  # Returns (ne, n_points, ne*dgN)
+            self._linear_operators[segment_idx] = linear_ops
+
+            # Level 3: Pre-compile nonlinear operators as coefficient functions
+            nonlinear_funcs = {}
+            if self.has_operator("N"):
+                # Create coefficient-only dependent function
+                nonlinear_funcs["N"] = self._create_nonlinear_function(
+                    features, self.N_func, "N"
+                )
+            if self.has_operator("F"):
+                nonlinear_funcs["F"] = self._create_nonlinear_function(
+                    features, self.F_func, "F"
+                )
+            self._nonlinear_functions[segment_idx] = nonlinear_funcs
+
+        # Level 4: Pre-compile constraint conditions (if available)
+            # Save current state
+            #old_equations = getattr(self, "equations", None)
+            #old_A = getattr(self, "A", None)
+            #old_b = getattr(self, "b", None)
+
+            # Try to build constraints only
+            if self.config.problem_type != "func_fitting":
+                self._add_constraints(model)
+
+        if self.A and self.b:
+            self.A_constraints = np.vstack(self.A)
+            self.b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in self.b])
+        else:
+            self.A_constraints = np.zeros((0, n_cols))
+            self.b_constraints = np.zeros((0, 1))
+
+            # Restore previous state
+            #if old_equations is not None:
+        self._precompiled = True
+
+    def _create_nonlinear_function(self, features, operator_func, operator_name):
+        """Pre-compile nonlinear operators as coefficient-only dependent functions"""
+
+        def coeffs_function(coeffs_nonlinear):
+            """
+            Pre-compiled coefficient function
+            Args:
+                coeffs_nonlinear: shape (n_deriv_types, n_equations)
+            Returns:
+                np.ndarray: shape (ne, n_points)
+            """
+            # Call original operator function
+            result = operator_func(features, coeffs_nonlinear)
+
+            # Ensure correct return format (ne, n_points)
+          #  if isinstance(result, list):
+          #      # If list, convert to matrix
+          #      ne = len(result)
+          #      n_points = result[0].shape[0] if len(result) > 0 else 0
+          #      matrix = np.zeros((ne, n_points))
+          #      for i, res in enumerate(result):
+          #          matrix[i, :] = res.flatten()
+          #      return matrix
+          #  else:
+                # If already matrix, return directly
+            return result
+
+        return coeffs_function
+
+    def _build_system(self, model: nn.Module, coeffs: np.ndarray):
+        """
+        Efficiently rebuild nonlinear system - using pre-compiled cache
+
+        Args:
+            model: Neural network model
+            coeffs: Coefficient matrix (ns, ne, dgN)
+        """
+        #coeffs_nonlinear = self._extract_nonlinear_coeffs(coeffs)
+
+        # Use pre-compiled results for fast equation construction
+        for segment_idx in range(self.ns):
+            #linear_ops = self._linear_operators[segment_idx]
+            nonlinear_funcs = self._nonlinear_functions[segment_idx]
+            for op_name, coeffs_func in nonlinear_funcs.items():
+                nonlinear_result = coeffs_func(coeffs)
+                self._nonlinear_results[segment_idx][op_name] = nonlinear_result
+
+        #if self._constraints:
+        #    self.A = self._constraints["A"].copy()
+        #    self.b = self._constraints["b"].copy()
+   
+    def _extract_nonlinear_coeffs(self, coeffs: np.ndarray) -> np.ndarray:
+        """Extract coefficients needed by nonlinear operators from complete coefficients"""
+        # coeffs shape: (ns, ne, dgN)
+        # Return coefficients in (n_deriv_types, ne) format
+
+        # Implementation needs to be based on specific coefficient organization
+        # Temporarily return an appropriate format
+        n_deriv_types = len(self.all_derivatives)
+        ne = self.config.n_eqs
+
+        # Simplified implementation: take coefficients from first segment and reorganize
+        if coeffs.ndim == 3:
+            # Extract from (ns, ne, dgN) to (n_deriv_types, ne)
+            sample_coeffs = coeffs[0]  # (ne, dgN)
+            return sample_coeffs[:, :n_deriv_types].T  # (n_deriv_types, ne)
+        else:
+            return coeffs
+
+   # def _build_system_for_solving(self):
+   #     """Build system for solving - use pre-compiled cache if available"""
+   #     if not self._precompiled:
+   #         raise RuntimeError("System not pre-compiled. Call fitter_init() first.")
+
+   #     # Use pre-compiled linear operators to build equations
+   #     print("Using pre-compiled operators for system building...")
+   #     self.equations = {f"eq{i}": [] for i in range(self.config.n_eqs)}
+
+   #     for segment_idx in range(self.ns):
+   #         # Use cached linear operators
+   #         linear_ops = self._linear_operators_cache[segment_idx]
+   #         for op_name, op_matrix in linear_ops.items():
+   #             # op_matrix shape: (ne, n_points, ne*dgN)
+   #             for eq_idx in range(self.config.n_eqs):
+   #                 if f"eq{eq_idx}" not in self.equations:
+   #                     self.equations[f"eq{eq_idx}"] = []
+   #                 self.equations[f"eq{eq_idx}"].append(op_matrix[eq_idx])
+
+   #     # Use cached constraints if available
+   #     if self._constraints_cache:
+   #         self.A = self._constraints_cache["A"].copy()
+   #         self.b = self._constraints_cache["b"].copy()
+   #     else:
+   #         self.A, self.b = [], []
+
+    def has_nonlinear_operators(self):
+        """Check if nonlinear operators exist"""
+        return self.has_operator("N") or self.has_operator("F")
 
     def fit(self, **kwargs) -> np.ndarray:
-        """使用非线性求解器求解系统"""
+        """Solve system using nonlinear solver"""
+        # Ensure equations are built before solving
+        #if self.equations is None:
+        #    # For linear problems, build the system if not already done
+        #    print("Building system equations...")
+        #    self._build_system_for_solving()
+
         coeffs = self._solve_system(**kwargs)
         return coeffs
 
     def _solve_system(self, **kwargs) -> np.ndarray:
-        """使用信赖域法求解非线性系统"""
+        """Solve nonlinear system using trust region method"""
         shape = (self.ns, self.config.n_eqs, self.dgN)
         L, r = self._build_jacobian(**kwargs)
         coeffs = self.solver.solve(L, r, method="auto")[0]
         return coeffs.reshape(shape)
 
-    def _build_jacobian(
-        self, **kwargs
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _build_jacobian(self, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
 
         ns = self.ns
         ne = self.config.n_eqs
         dgN = self.dgN
 
-        # 计算总行数
+        # Calculate total number of rows
         total_rows = 0
         rows_per_segment = []
         for i in range(ns):
@@ -123,43 +331,42 @@ class BaseDeepPolyFitter(ABC):
             rows_per_segment.append(segment_rows)
             total_rows += segment_rows
 
-#TODO: dgN may can change in future
+        # TODO: dgN may can change in future
         n_cols = ne * dgN * ns
 
-        # 预分配矩阵
+        # Pre-allocate matrices
         J1 = np.zeros((total_rows, n_cols), dtype=np.float64)
         b1 = np.zeros((total_rows, 1), dtype=np.float64)
 
-        # 处理每个段
+        # Process each segment
         row_start = 0
         for i in range(ns):
-            # 计算当前段的索引
+            # Calculate current segment indices
             row_end = row_start + rows_per_segment[i]
             col_start = i * ne * dgN
             col_end = (i + 1) * ne * dgN
 
             L, r = self._build_segment_jacobian(i)
 
-            # 填充矩阵
+            # Fill matrices
             J1[row_start:row_end, col_start:col_end] = L
             b1[row_start:row_end] = r
 
             row_start = row_end
 
-        # 处理约束
-        if len(self.A) > 0:
-            A_constraints = np.vstack(self.A)
-            b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in self.b])
-        else:
-            A_constraints = np.zeros((0, n_cols))
-            b_constraints = np.zeros((0, 1))
+        # Process constraints
+#        if len(self.A) > 0:
+#            A_constraints = np.vstack(self.A)
+#            b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in self.b])
+#        else:
+#            A_constraints = np.zeros((0, n_cols))
+#            b_constraints = np.zeros((0, 1))
 
-        # 组装最终结果
-        J = np.vstack([J1, A_constraints])
-        r = np.vstack([b1, b_constraints])
+        # Assemble final results
+        J = np.vstack([J1, self.A_constraints])
+        r = np.vstack([b1, self.b_constraints])
 
         return J, r
-
 
     def _get_segment_features(
         self,
@@ -169,7 +376,7 @@ class BaseDeepPolyFitter(ABC):
         model: nn.Module,
         derivative: List[int] = None,
     ) -> np.ndarray:
-        """获取段特征"""
+        """Get segment features"""
         n_dims = x.shape[1]
         if derivative is None:
             derivative = [0] * n_dims
@@ -200,27 +407,8 @@ class BaseDeepPolyFitter(ABC):
 
         return X_poly
 
-    def _build_system(self, model: nn.Module):
-        """构建系统方程和约束"""
-        self.equations = {f"eq{i}": [] for i in range(self.config.n_eqs)}
-        self.variables = {}
-
-    #    for term in self.config.eq_nonlinear_list:
-    #        name = term[2]
-    #        if name not in self.variables:
-    #            self.variables[name] = []
-
-        self._build_basic_equations_and_varibales(model)
-        self._add_constraints(model)
-
-    def _build_basic_equations_and_varibales(self, model: nn.Module):
-        """构建基本方程组"""
-        for i in range(self.ns):
-            features = self._get_features(i, model)
-            self._build_segment_equations_and_variables(features)
-
     def _get_features(self, segment_idx: int, model: nn.Module) -> List[np.ndarray]:
-        """获取特征和导数"""
+        """Get features and derivatives"""
         feature_list = self.derivatives
         x = self.data["x_segments_norm"][segment_idx]
         x_min = self.config.x_min[segment_idx]
@@ -233,166 +421,176 @@ class BaseDeepPolyFitter(ABC):
             )
         return features
 
-    def _build_segment_equations_and_variables(self, features: List[np.ndarray]):
-        """构建段的方程和变量"""
-        ne = self.config.n_eqs
-        n_points = features[0].shape[0]
-
-        eq_list = self.config.eq_linear_list
-        nonlinear_eq_list = self.config.eq_nonlinear_list
-
-        for i in range(ne):
-            eq = np.zeros((n_points, ne * self.dgN))
-            for term in eq_list[i]:
-                coeff, var, deriv = term[0], term[1], term[2]
-                j = var * self.dgN
-                eq[:, j : j + self.dgN] += coeff * features[deriv]
-            self.equations[f"eq{i}"].append(eq)
-        
-        #eq = operator_func(features,self.)
-
-        for term in nonlinear_eq_list:
-            var, deriv, name = term[0], term[1], term[2]
-            U0 = np.zeros((n_points, ne * self.dgN))
-            j = var * self.dgN
-            U0[:, j : j + self.dgN] = features[deriv]
-            self.variables[name].append(U0)
-
     def _add_constraints(self, model: nn.Module):
-        """添加约束条件"""
+        """Add constraint conditions"""
         self.A, self.b = [], []
         if self.config.problem_type != "func_fitting":
             self._add_boundary_conditions(model)
             self._add_swap_conditions(model)
 
     def _add_boundary_conditions(self, model: nn.Module):
-        """添加边界条件"""
+        """Add boundary conditions"""
         ne = self.config.n_eqs
-        
-        # 遍历所有分段
+
+        # Iterate through all segments
         for i in range(self.ns):
-            # 获取当前分段的边界条件数据
-            if 'boundary_segments_dict' not in self.data or i >= len(self.data['boundary_segments_dict']):
+            # Get boundary condition data for current segment
+            if "boundary_segments_dict" not in self.data or i >= len(
+                self.data["boundary_segments_dict"]
+            ):
                 continue
-            
-            segment_boundaries = self.data['boundary_segments_dict'][i]
-            
-            # 处理各个变量的边界条件
+
+            segment_boundaries = self.data["boundary_segments_dict"][i]
+
+            # Process boundary conditions for each variable
             for var_idx, var in enumerate(self.config.vars_list):
                 if var not in segment_boundaries:
                     continue
-                
-                # 处理Dirichlet边界条件
-                if 'dirichlet' in segment_boundaries[var] and len(segment_boundaries[var]['dirichlet']['x']) > 0:
-                    x_bd = segment_boundaries[var]['dirichlet']['x']
-                    u_bd = segment_boundaries[var]['dirichlet']['u']
-                    
-                    # 获取特征
+
+                # Process Dirichlet boundary conditions
+                if (
+                    "dirichlet" in segment_boundaries[var]
+                    and len(segment_boundaries[var]["dirichlet"]["x"]) > 0
+                ):
+                    x_bd = segment_boundaries[var]["dirichlet"]["x"]
+                    u_bd = segment_boundaries[var]["dirichlet"]["u"]
+
+                    # Get features
                     features = self._get_segment_features(
-                        x_bd, self.config.x_min[i], self.config.x_max[i], model, [0] * self.config.n_dim
+                        x_bd,
+                        self.config.x_min[i],
+                        self.config.x_max[i],
+                        model,
+                        [0] * self.config.n_dim,
                     )
-                    
-                    # 构建约束矩阵
+
+                    # Build constraint matrix
                     constraint = np.zeros((x_bd.shape[0], self.dgN * self.ns * ne))
                     start_idx = i * self.dgN * ne + self.dgN * var_idx
                     constraint[:, start_idx : start_idx + self.dgN] = features
-                    
-                    # 添加约束
+
+                    # Add constraints
                     self.A.append(10 * constraint)
                     self.b.append(10 * u_bd.flatten())
-                
-                # 处理Neumann边界条件
-                if 'neumann' in segment_boundaries[var] and len(segment_boundaries[var]['neumann']['x']) > 0:
-                    x_bd = segment_boundaries[var]['neumann']['x']
-                    u_bd = segment_boundaries[var]['neumann']['u']
-                    normals = segment_boundaries[var]['neumann']['normals']
-                    
-                    # 对每个边界点处理
+
+                # Process Neumann boundary conditions
+                if (
+                    "neumann" in segment_boundaries[var]
+                    and len(segment_boundaries[var]["neumann"]["x"]) > 0
+                ):
+                    x_bd = segment_boundaries[var]["neumann"]["x"]
+                    u_bd = segment_boundaries[var]["neumann"]["u"]
+                    normals = segment_boundaries[var]["neumann"]["normals"]
+
+                    # Process each boundary point
                     for pt_idx in range(x_bd.shape[0]):
-                        point = x_bd[pt_idx:pt_idx+1]  # 保持维度
+                        point = x_bd[pt_idx : pt_idx + 1]  # Keep dimensions
                         normal = normals[pt_idx]
-                        
-                        # 对每个空间维度，计算法向导数
+
+                        # For each spatial dimension, calculate normal derivative
                         for dim in range(self.config.n_dim):
-                            if abs(normal[dim]) < 1e-10:  # 如果法向量在该方向分量很小，跳过
+                            if (
+                                abs(normal[dim]) < 1e-10
+                            ):  # Skip if normal component is small in this direction
                                 continue
-                            
-                            # 创建导数向量
+
+                            # Create derivative vector
                             derivative = [0] * self.config.n_dim
-                            derivative[dim] = 1  # 一阶导数
-                            
-                            # 获取该方向导数的特征
+                            derivative[dim] = 1  # First-order derivative
+
+                            # Get features for this direction derivative
                             features = self._get_segment_features(
-                                point, self.config.x_min[i], self.config.x_max[i], model, derivative
+                                point,
+                                self.config.x_min[i],
+                                self.config.x_max[i],
+                                model,
+                                derivative,
                             )
-                            
-                            # 构建约束矩阵
+
+                            # Build constraint matrix
                             constraint = np.zeros((1, self.dgN * self.ns * ne))
                             start_idx = i * self.dgN * ne + self.dgN * var_idx
-                            constraint[:, start_idx : start_idx + self.dgN] = normal[dim] * features
-                            
-                            # 添加约束
+                            constraint[:, start_idx : start_idx + self.dgN] = (
+                                normal[dim] * features
+                            )
+
+                            # Add constraints
                             self.A.append(10 * constraint)
                             self.b.append(10 * np.array([u_bd[pt_idx, 0]]))
-                
-                # Robin边界条件处理类似，需要同时考虑值和导数
-                if 'robin' in segment_boundaries[var] and len(segment_boundaries[var]['robin']['x']) > 0:
-                    x_bd = segment_boundaries[var]['robin']['x']
-                    u_bd = segment_boundaries[var]['robin']['u']
-                    normals = segment_boundaries[var]['robin']['normals']
-                    params = segment_boundaries[var]['robin']['params']  # 通常是[alpha, beta]形式
-                    
-                    # Robin边界条件形式: alpha*u + beta*du/dn = g
-                    # 这里u_bd包含g值
+
+                # Robin boundary condition processing is similar, need to consider both values and derivatives
+                if (
+                    "robin" in segment_boundaries[var]
+                    and len(segment_boundaries[var]["robin"]["x"]) > 0
+                ):
+                    x_bd = segment_boundaries[var]["robin"]["x"]
+                    u_bd = segment_boundaries[var]["robin"]["u"]
+                    normals = segment_boundaries[var]["robin"]["normals"]
+                    params = segment_boundaries[var]["robin"][
+                        "params"
+                    ]  # Usually in [alpha, beta] format
+
+                    # Robin boundary condition form: alpha*u + beta*du/dn = g
+                    # Here u_bd contains g values
                     if not isinstance(params, list) or len(params) < 2:
-                        params = [1.0, 0.0]  # 默认参数
-                    
+                        params = [1.0, 0.0]  # Default parameters
+
                     alpha, beta = params
-                    
-                    # 处理每个边界点
+
+                    # Process each boundary point
                     for pt_idx in range(x_bd.shape[0]):
-                        point = x_bd[pt_idx:pt_idx+1]
+                        point = x_bd[pt_idx : pt_idx + 1]
                         normal = normals[pt_idx]
-                        
-                        # 获取u的特征
+
+                        # Get features for u
                         features_u = self._get_segment_features(
-                            point, self.config.x_min[i], self.config.x_max[i], model, [0] * self.config.n_dim
+                            point,
+                            self.config.x_min[i],
+                            self.config.x_max[i],
+                            model,
+                            [0] * self.config.n_dim,
                         )
-                        
-                        # 初始化法向导数特征
+
+                        # Initialize normal derivative features
                         features_du_dn = np.zeros_like(features_u)
-                        
-                        # 计算法向导数
+
+                        # Calculate normal derivative
                         for dim in range(self.config.n_dim):
                             if abs(normal[dim]) < 1e-10:
                                 continue
-                            
+
                             derivative = [0] * self.config.n_dim
                             derivative[dim] = 1
-                            
+
                             features_dim = self._get_segment_features(
-                                point, self.config.x_min[i], self.config.x_max[i], model, derivative
+                                point,
+                                self.config.x_min[i],
+                                self.config.x_max[i],
+                                model,
+                                derivative,
                             )
-                            
+
                             features_du_dn += normal[dim] * features_dim
-                        
-                        # 构建约束矩阵
+
+                        # Build constraint matrix
                         constraint = np.zeros((1, self.dgN * self.ns * ne))
                         start_idx = i * self.dgN * ne + self.dgN * var_idx
-                        constraint[:, start_idx : start_idx + self.dgN] = alpha * features_u + beta * features_du_dn
-                        
-                        # 添加约束
+                        constraint[:, start_idx : start_idx + self.dgN] = (
+                            alpha * features_u + beta * features_du_dn
+                        )
+
+                        # Add constraints
                         self.A.append(10 * constraint)
                         self.b.append(10 * np.array([u_bd[pt_idx, 0]]))
 
     def _add_swap_conditions(self, model: nn.Module):
         """Add interface continuity conditions"""
         n_dims = len(self.n_segments)
-        
+
         for dim in range(n_dims):
             current_segments = list(self.n_segments)
             current_segments[dim] -= 1
-            
+
             indices = np.array(
                 np.meshgrid(*[range(n) for n in current_segments])
             ).T.reshape(-1, n_dims)
@@ -413,13 +611,27 @@ class BaseDeepPolyFitter(ABC):
         idx2[dim] += 1
 
         # Use Fortran-style indexing to match base_config.py
-        seg1 = np.ravel_multi_index(idx1, self.n_segments, order='F')
-        seg2 = np.ravel_multi_index(idx2, self.n_segments, order='F')
+        seg1 = np.ravel_multi_index(idx1, self.n_segments, order="F")
+        seg2 = np.ravel_multi_index(idx2, self.n_segments, order="F")
+
+        # Import itertools.product for generating derivative combinations
 
         for i in range(ne):
-            derivatives = self.all_derivatives[i]
-            for der in derivatives:
-                self._add_swap_derivative(model, seg1, seg2, NS, nw, dgN, i, der, dim)
+            # Get maximum derivative orders for equation i, e.g., [2, 1] means 2nd order in x, 1st order in y
+            max_orders = self.max_derivatives[i]
+
+            # Calculate maximum orders reduced by 1 for each dimension: [max(0,n-1), max(0,m-1)]
+            reduced_orders = [max(0, order - 1) for order in max_orders]
+
+            # Generate all possible derivative combinations
+            # e.g., reduced_orders = [1, 0] will generate [0,0], [1,0]
+            ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
+
+            for derivative_tuple in product(*ranges):
+                derivative = list(derivative_tuple)  # Convert to list format
+                self._add_swap_derivative(
+                    model, seg1, seg2, NS, nw, dgN, i, derivative, dim
+                )
 
     def _add_swap_derivative(
         self,
@@ -458,8 +670,8 @@ class BaseDeepPolyFitter(ABC):
         ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
         cont[:, ndisp : ndisp + dgN] = -P2
 
-        self.A.extend(10*cont)
-        self.b.extend(10*np.zeros((nw, 1)).flatten())
+        self.A.extend(10 * cont)
+        self.b.extend(10 * np.zeros((nw, 1)).flatten())
 
     def construct(
         self,
@@ -468,7 +680,7 @@ class BaseDeepPolyFitter(ABC):
         coeffs: np.ndarray,
         derivative: List[int] = None,
     ) -> Tuple[np.ndarray, List[np.ndarray]]:
-        """使用系数进行预测"""
+        """Make predictions using coefficients"""
         x_segments = data["x_segments_norm"]
         x_min = self.config.x_min
         x_max = self.config.x_max
@@ -504,7 +716,7 @@ class BaseDeepPolyFitter(ABC):
     def predict_segment(
         self, data: Dict, model: nn.Module
     ) -> Tuple[np.ndarray, List[np.ndarray]]:
-        """直接使用神经网络模型预测"""
+        """Make predictions directly using neural network model"""
         model.to(self.config.linear_device)
         x_segments = data["x_segments"]
         ne = self.config.n_eqs
@@ -531,3 +743,59 @@ class BaseDeepPolyFitter(ABC):
             start_idx = end_idx
 
         return u_pred, pred_segments
+
+    def has_operator(self, operator_name):
+        """Check if operator exists"""
+        return getattr(self, f"{operator_name}_func", None) is not None
+
+    def get_operator_info(self, operator_name):
+        """Get operator information"""
+        func = getattr(self, f"{operator_name}_func", None)
+        if func:
+            return {
+                "exists": True,
+                "name": func.operator_name,
+                "num_terms": len(func.terms),
+                "terms": func.terms,
+                "is_nonlinear": getattr(func, "is_nonlinear", False),
+                "compiled": hasattr(func, "compiled_terms"),
+            }
+        return {"exists": False}
+
+    def get_system_info(self):
+        """Get system information"""
+        info = {
+            "linear_operators": [],
+            "nonlinear_operators": [],
+            "total_equations": self.config.n_eqs,
+            "total_segments": self.ns,
+            "degrees_of_freedom": self.dgN,
+        }
+
+        for op_name in ["L1", "L2", "N", "F"]:
+            if self.has_operator(op_name):
+                op_info = self.get_operator_info(op_name)
+                if op_info["is_nonlinear"]:
+                    info["nonlinear_operators"].append(op_name)
+                else:
+                    info["linear_operators"].append(op_name)
+
+        return info
+
+    def print_system_summary(self):
+        """Print system summary information"""
+        info = self.get_system_info()
+        print("=== DeePoly System Summary ===")
+        print(f"Equations: {info['total_equations']}")
+        print(f"Segments: {info['total_segments']}")
+        print(f"Degrees of Freedom per segment: {info['degrees_of_freedom']}")
+        print(f"Linear Operators: {info['linear_operators']}")
+        print(f"Nonlinear Operators: {info['nonlinear_operators']}")
+
+        if info["nonlinear_operators"]:
+            print(
+                "\nNote: System contains nonlinear operators and will require iterative solving."
+            )
+        else:
+            print("\nNote: System is linear and can be solved directly.")
+        print("=" * 30)

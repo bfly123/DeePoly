@@ -16,11 +16,11 @@ Test Grid: [50, 50]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 12.9049 seconds
-Neural Network Training Time (Scoper): 12.6010 seconds
-Equation Fitting Time (Sniper): 0.3039 seconds
-Scoper Time Percentage: 97.6%
-Sniper Time Percentage: 2.4%
+Total Solution Time: 14.9482 seconds
+Neural Network Training Time (Scoper): 14.5018 seconds
+Equation Fitting Time (Sniper): 0.4464 seconds
+Scoper Time Percentage: 97.0%
+Sniper Time Percentage: 3.0%
 
 ERROR METRICS:
 ----------------------------------------

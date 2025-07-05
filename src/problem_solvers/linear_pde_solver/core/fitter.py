@@ -8,7 +8,7 @@ from src.algebraic_solver import LinearSolver
 
 
 class LinearPDEFitter(BaseDeepPolyFitter):
-    """线性偏微分方程拟合器"""
+    """Linear partial differential equation fitter"""
     
     def __init__(self, config, data: Dict = None):
         super().__init__(config, data)
@@ -31,16 +31,17 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         """construct the jacobian matrix for each segment"""
         # get the data
         source = self.data["source_segments"][segment_idx]
+        L = self._linear_operators[segment_idx]["L1"]
         
-        eq = []
-        for i in range(self.config.n_eqs):
-            eq.append(self.equations[f"eq{i}"][segment_idx])
+        #eq = []
+        #for i in range(self.config.n_eqs):
+        #    eq.append(self.equations[f"eq{i}"][segment_idx])
         
         n_points = self.data["x_segments_norm"][segment_idx].shape[0]
         ne = self.n_eqs
         dgN = self.dgN
 
-        L = np.zeros((ne, n_points, ne * dgN))
+        #L = np.zeros((ne, n_points, ne * dgN))
         b = np.zeros((ne, n_points))
 
         # construct the fitting equations
@@ -48,8 +49,8 @@ class LinearPDEFitter(BaseDeepPolyFitter):
             b[i,:] = source[:,i]
 
         # add the spatial discrete terms
-        for i in range(ne):
-            L[i] = eq[i]
+        #for i in range(ne):
+        #    L[i] = eq[i]
 
         # reshape the matrix
         L = np.vstack([L[i] for i in range(ne)])

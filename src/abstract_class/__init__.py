@@ -1,13 +1,13 @@
 """
-抽象类模块，提供基础类和接口
+Abstract class module, providing base classes and interfaces
 """
 
-# 导入配置相关组件
+# Import configuration related components
 from .config.base_config import BaseConfig
 from .config.base_data import BaseDataGenerator
 from .config.base_visualize import BaseVisualizer
 
-# 不要在 __init__ 中直接导入可能导致循环的类
+# Do not directly import classes that may cause circular imports in __init__
 # from .base_net import BaseNet
 # from .base_fitter import BaseDeepPolyFitter
 
@@ -15,7 +15,7 @@ __all__ = [
     'BaseConfig',
     'BaseDataGenerator',
     'BaseVisualizer',
-    # 用户应直接从 .base_net 和 .base_fitter 导入
+    # Users should import directly from .base_net and .base_fitter
     # 'BaseNet',
     # 'BaseDeepPolyFitter'
 ] 

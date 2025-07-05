@@ -1,8 +1,8 @@
 """
-线性偏微分方程求解器
+Linear partial differential equation solver
 """
 
-# 导入相关类和函数
+# Import related classes and functions
 from .solver import LinearPDESolver
 
 __all__ = [

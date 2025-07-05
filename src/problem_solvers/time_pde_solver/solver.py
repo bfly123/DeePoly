@@ -7,15 +7,15 @@ import os
 import argparse
 import sys
 
-# 确保可以导入项目模块
+# Ensure project modules can be imported
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, "../../.."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# 将相对导入改为绝对导入
+# Change relative imports to absolute imports
 from src.problem_solvers.time_pde_solver.core.net import TimePDENet
-# 导入train函数
+# Import train function
 #from src.abstract_class.base_net import train_net
 from src.problem_solvers.time_pde_solver.core.fitter import TimePDEFitter
 from src.problem_solvers.time_pde_solver.utils.data import TimePDEDataGenerator

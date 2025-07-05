@@ -1,8 +1,8 @@
 """
-时间相关PDE求解器
+Time-dependent PDE solver
 """
 
-# 导入相关类和函数
+# Import related classes and functions
 from .solver import TimePDESolver
 from .core import TimePDENet, TimePDEFitter
 from .utils import TimePDEConfig, TimePDEDataGenerator, TimePDEVisualizer
