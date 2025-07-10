@@ -1,9 +1,11 @@
 {
   "problem_type": "func_fitting",
   "method": "hybrid",
-  "eq": [
-    "u"
-  ],
+  "eq": {
+    "L1": [
+      "u"
+    ]
+  },
   "eq_nonlinear": [],
   "vars_list": [
     "u"

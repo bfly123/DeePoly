@@ -35,30 +35,42 @@ class TimePDENet(BaseNet):
         Re = param[0]["Re"]
         nu = param[0]["nu"]
 
-        # 提取物理量
+# auto code begin
+        # Extract physical quantities from output
         u = output[..., 0]
+
+        # Calculate derivatives in each direction
+        du_x = self.gradients(u, x_train)[0][..., 0]
+
+        # Calculate 2nd-order derivatives
+        du_xx = self.gradients(du_x, x_train)[0][..., 0]
+
+
+        # Additional L1 operators (implicit linear)
+        L1_extra = [-0.0001*du_xx]
+
+        # Additional L2 operators (semi-implicit linear)
+        L2_extra = [u]
+
+        # f_L2 functions (nonlinear functions for L2)
+        f_L2 = [u**2-1]
+
+# auto code end
 
         # 根据不同步骤处理数据
         if step == "1st_order":
             # 一阶方法
             u_n = data_train["u_n"][..., 0]
-            # 计算空间导数
-            du_x = self.gradients(u, x_train)[0][..., 0]
-            du_y = self.gradients(u, x_train)[0][..., 1]
             # 一阶前向欧拉方法
-            eq0 = u - u_n - dt * (du_x + du_y)
+            eq0 = u - u_n - dt * (L1_0 + L2_0 * f_L2_0)
 
         elif step == "pre":
             # 第一阶段：Trapezoidal Rule
             u_n = data_train["u_n"][..., 0]
             f_n = data_train["f_n"][..., 0]  # 可能包含右端项
 
-            # 计算空间导数
-            du_x = self.gradients(u, x_train)[0][..., 0]
-            du_y = self.gradients(u, x_train)[0][..., 1]
-
             # u^{n+γ} = u^n + γdt[θF(u^{n+γ}) + (1-θ)F(u^n)]
-            eq0 = u - u_n - 0.5 * dt * ((du_x + du_y) + f_n)
+            eq0 = u - u_n - 0.5 * dt * (L1_0 + L2_0 * f_L2_0 + f_n)
 
         # 边界条件处理
         _, output_bd = self(x_bd)

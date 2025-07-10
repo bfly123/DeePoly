@@ -1,9 +1,11 @@
 {
   "problem_type": "func_fitting",
   "method": "hybrid",
-  "eq": [
-    "u"
-  ],
+  "eq": {
+    "L1": [
+      "u"
+    ]
+  },
   "eq_nonlinear": [],
   "vars_list": [
     "u"
@@ -51,5 +53,6 @@
     ]
   ],
   "target_function_path": "target_function.py",
-  "plot_module_path": "plot.py"
+  "plot_module_path": "plot.py",
+  "seed": 42
 }

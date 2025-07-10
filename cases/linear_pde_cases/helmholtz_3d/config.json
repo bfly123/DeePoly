@@ -1,10 +1,12 @@
 {
     "problem_type": "linear_pde",
     "method": "hybrid",
-    "eq": [
-        "diff(u,x,2) + diff(u,y,2)+2*pi^2*u"
-    ],
-    "source_term": "-pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
+    "eq": {
+        "L1": [
+            "diff(u,x,2) + diff(u,y,2) + diff(u,z,2) + 2*pi**2*u"
+        ]
+    },
+    "source_term": "-pi**2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
     "eq_nonlinear": [],
     "vars_list": [
         "u"
@@ -16,7 +18,52 @@
     ],
     "boundary_conditions": [
         {
-            "region":[ "left","right","bottom","top","front","back"],
+            "region": "dim0_min",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        },
+        {
+            "region": "dim0_max",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        },
+        {
+            "region": "dim1_min",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        },
+        {
+            "region": "dim1_max",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        },
+        {
+            "region": "dim2_min",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        },
+        {
+            "region": "dim2_max",
             "var": [
                 "u"
             ],
@@ -31,20 +78,22 @@
         32,
         25
     ],
-    "epochs_adam": 5000,
-    "epochs_lbfgs": 300,
+    "epochs_adam": 1000,
+    "epochs_lbfgs": 100,
     "max_retries": 1,
     "DNNtol": 0.0001,
     "learning_rate": 0.001,
     "n_segments": [
-        5,
-        5
+        3,
+        3,
+        3
     ],
-    "points_domain": 3000,
+    "points_domain": 1000,
     "points_per_swap": 30,
     "points_domain_test": [
-        50,
-        50
+        20,
+        20,
+        20
     ],
     "poly_degree": [
         3,
@@ -65,7 +114,7 @@
             1
         ]
     ],
-    "auto_code": true,
+    "auto_code": false,
     "device": "cuda",
     "linear_device": "cpu",
     "seed": 42,

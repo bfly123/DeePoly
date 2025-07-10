@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
 from src.meta_coding import parse_operators
@@ -8,110 +8,114 @@ import json
 
 @dataclass
 class FuncFittingConfig(BaseConfig):
-    # 在dataclass中，需要显式声明继承自父类的属性
-    case_dir: str  # 从BaseConfig继承的属性
+    """Configuration class for function fitting problems"""
     
-    # 添加配置文件中的必要字段
-    vars_list: List[str] = field(default_factory=list)  # 变量列表
-    spatial_vars: List[str] = field(default_factory=list)  # 空间变量
-    eq: List[str] = field(default_factory=list)  # 方程
-    eq_nonlinear: List[str] = field(default_factory=list)  # 非线性方程
-    const_list: List[str] = field(default_factory=list)  # 常量列表
-    
-    # 基本参数
-    # n_dim通过init=False字段声明，不要在这里重复声明
-    n_eqs: int = 1  # 方程数量 (通常是 1)
-    n_segments: List[int] = field(default_factory=lambda: [10])  # 分段数量
+    # Required fields
+    case_dir: str
+    vars_list: List[str] = field(default_factory=list)
+    spatial_vars: List[str] = field(default_factory=list)
+    eq: Union[List[str], Dict[str, List[str]]] = field(default_factory=list)
+    eq_nonlinear: List[str] = field(default_factory=list)
+    const_list: List[str] = field(default_factory=list)
 
-    # 多项式参数
-    poly_degree: List[int] = field(default_factory=lambda: [3])  # 多项式阶数
+    # Basic parameters
+    n_segments: List[int] = field(default_factory=lambda: [10])
+    poly_degree: List[int] = field(default_factory=lambda: [3])
+    x_domain: List = field(default_factory=list)
 
-    # 神经网络参数
-    method: str = "hybrid"  # 方法选择：'hybrid' 或 'poly'
-    DNN_degree: int = 10  # 神经网络特征维度 (如果 method='hybrid')
-    device: str = "cuda"  # 计算设备
-    linear_device: str = "cpu"  # 线性求解器设备
-    hidden_dims: List[int] = field(
-        default_factory=lambda: [64, 64, 64]
-    )  # 神经网络隐藏层
-    learning_rate: float = 0.001  # 学习率
-    max_retries: int = 1  # 最大重试次数
+    # Neural network parameters
+    method: str = "hybrid"
+    hidden_dims: List[int] = field(default_factory=lambda: [64, 64, 64])
+    device: str = "cuda"
+    linear_device: str = "cpu"
+    learning_rate: float = 0.001
+    max_retries: int = 1
 
-    # 训练/测试数据参数
-    n_train: int = 1000  # 训练点总数（仅用于 NN 预训练，如果需要）
-    n_test: int = 200  # 测试点总数
-    points_domain: int = 1000  # 域内点数 (用于混合拟合)
-    points_domain_test: int = 200  # 测试域内点数
-    points_per_swap: int = 20  # 界面点数
+    # Data parameters
+    points_domain: int = 1000
+    points_domain_test: int = 200
+    points_per_swap: int = 20
 
-    # 导数参数
-    deriv_orders: List[List[int]] = field(
-        default_factory=lambda: [[0]]
-    )  # 要拟合的导数阶数
-    all_derivatives: List[List[int]] = field(
-        default_factory=lambda: [[[0]]]
-    )  # 界面连续性条件所需的导数阶数 (每 eq)
+    # Function fitting specific parameters
+    target_function_str: Optional[str] = None
+    plot_module_path: Optional[str] = None
+    seed: int = 42
 
-    # 方程参数 (通常用于混合拟合的残差部分，函数拟合可能不需要复杂定义)
-    eq_linear_list: List[List] = field(default_factory=list)  # 线性项列表
-    eq_nonlinear_list: List[List] = field(default_factory=list)  # 非线性项列表
+    # Runtime computed fields
+    n_dim: int = field(init=False)
+    n_eqs: int = field(init=False)
+    x_min: np.ndarray = field(init=False)
+    x_max: np.ndarray = field(init=False)
+    segment_ranges: List[np.ndarray] = field(default_factory=list, init=False)
+    x_min_norm: np.ndarray = field(init=False)
+    x_max_norm: np.ndarray = field(init=False)
 
-    # 案例特定参数
-    target_function_str: Optional[str] = None  # 目标函数的字符串表示 (用于 eval)
-    plot_module_path: Optional[str] = None  # 自定义绘图模块的相对路径
-    x_domain: List = field(default_factory=list)  # 域边界
-    seed: int = 42  # 随机种子
-    
-    # 定义需要从BaseConfig初始化的字段
-    n_dim: int = field(init=False, default=1)  # 问题维度
-    x_min: np.ndarray = field(init=False, default=None)  # 每段的最小坐标
-    x_max: np.ndarray = field(init=False, default=None)  # 每段的最大坐标
-    segment_ranges: List[np.ndarray] = field(
-        default_factory=list, init=False
-    )  # 每个维度的分段范围
-    x_min_norm: np.ndarray = field(init=False, default=None)  # 归一化后的最小坐标
-    x_max_norm: np.ndarray = field(init=False, default=None)  # 归一化后的最大坐标
-    
     def __post_init__(self):
-        """初始化配置参数"""
+        """Initialize configuration parameters"""
         BaseConfig.__init__(self, self.case_dir)
         
+        # Load configuration
         self.load_config_from_json(self.case_dir)
         
-        # 处理配置文件中的字段映射（例如eq -> Eq）
+        # Normalize eq format
+        self._normalize_eq_format()
+        
+        # Process configuration field mappings
         self._map_config_fields()
         
-        # 验证必要参数
+        # Validate required parameters
         self._validate_required_params()
 
-        # 初始化其他参数
+        # Initialize other parameters
         self.n_dim = len(self.spatial_vars)
-        self.n_eqs = len(self.eq)
+        self.n_eqs = self._calculate_n_eqs()
         self._init_segment_ranges()
         self._init_boundaries()
         self.init_seed()
         self.DNN_degree = self.hidden_dims[-1]
 
-        # 解析方程
+        # Parse equations
         self.operator_parse = parse_operators(self.eq, self.vars_list, self.spatial_vars, self.const_list)
-        
+
+    def _normalize_eq_format(self):
+        """Convert eq to standardized dictionary format"""
+        if isinstance(self.eq, list):
+            # Convert list format to dictionary format
+            self.eq = {"L1": self.eq}
+        elif not isinstance(self.eq, dict):
+            raise ValueError(f"Invalid eq format: {type(self.eq)}. Must be list or dict.")
+
+    def _calculate_n_eqs(self):
+        """Calculate number of equations"""
+        if isinstance(self.eq, dict):
+            # For dictionary format, sum all equations in all operators
+            total_eqs = 0
+            for op_name, eq_list in self.eq.items():
+                if isinstance(eq_list, list):
+                    total_eqs += len(eq_list)
+                else:
+                    total_eqs += 1
+            return max(total_eqs, len(self.vars_list))
+        else:
+            # Fallback
+            return len(self.vars_list)
 
     def _map_config_fields(self):
-        """处理配置文件中的字段命名与类属性的映射"""
-        # 检查 eq 字段是否存在，如果存在则映射到 Eq
+        """Handle configuration field mappings"""
+        # Map eq to Eq for backward compatibility
         if hasattr(self, 'eq') and not hasattr(self, 'Eq'):
             self.Eq = self.eq
             
-        # 检查 eq_nonlinear 字段是否存在，如果存在则映射到 Eq_nonlinear
+        # Map eq_nonlinear to Eq_nonlinear for backward compatibility
         if hasattr(self, 'eq_nonlinear') and not hasattr(self, 'Eq_nonlinear'):
             self.Eq_nonlinear = self.eq_nonlinear
             
-        # 如果没有设置 const_list，创建空列表
+        # Create empty const_list if not set
         if not hasattr(self, 'const_list'):
             self.const_list = []
 
     def _validate_required_params(self):
-        """验证必要参数是否已设置"""
+        """Validate required parameters"""
         required_params = [
             "vars_list",
             "spatial_vars",
@@ -122,60 +126,42 @@ class FuncFittingConfig(BaseConfig):
 
         for param in required_params:
             if not hasattr(self, param) or getattr(self, param) is None:
-                raise ValueError(f"必要参数 '{param}' 未设置")
+                raise ValueError(f"Required parameter '{param}' is not set")
 
-        # 特殊验证
+        # Validate array lengths
         if len(self.spatial_vars) != len(self.n_segments):
-            raise ValueError(
-                f"spatial_vars长度({len(self.spatial_vars)})和n_segments长度({len(self.n_segments)})不匹配"
-            )
-
+            raise ValueError("Length of spatial_vars and n_segments must match")
         if len(self.spatial_vars) != len(self.poly_degree):
-            raise ValueError(
-                f"spatial_vars长度({len(self.spatial_vars)})和poly_degree长度({len(self.poly_degree)})不匹配"
-            )
+            raise ValueError("Length of spatial_vars and poly_degree must match")
 
-    # 覆盖基类方法，定义需要特殊处理的字段
     def _int_list_fields(self):
-        """需要转换为整数的字段列表"""
-        return ["n_segments", "poly_degree"]
+        """List of fields that need to be converted to integers"""
+        return ["n_segments", "poly_degree", "hidden_dims"]
 
     def _list_fields(self):
-        """需要特殊处理的列表字段"""
+        """List of fields that need special handling"""
         return ["n_segments", "poly_degree", "hidden_dims", "x_domain"]
 
     def _process_list_field(self, key, value):
-        """处理列表类型字段"""
-        if key == "n_segments" or key == "poly_degree" or key == "hidden_dims":
-            # 确保是整数列表
+        """Process list type fields"""
+        if key in ["n_segments", "poly_degree", "hidden_dims"]:
             return [int(v) if isinstance(v, str) else v for v in value]
-        elif key == "x_domain":
-            # 确保是二维列表
-            if isinstance(value, list) and len(value) > 0:
-                if not isinstance(value[0], list):
-                    # 如果是简单的列表[min, max]，转换为[[min, max]]
-                    return [value]
-            return value
+        elif key == "x_domain" and isinstance(value, list) and len(value) > 0:
+            if not isinstance(value[0], list):
+                return [value]
         return value
 
     def load_config_from_json(self, case_dir=None):
-        """从JSON文件加载配置，并更新对象属性
-        
-        与BaseConfig中不同，此方法会动态添加配置文件中的所有字段，
-        即使这些字段未在类中预先定义。
-
-        Args:
-            config_path: 配置文件路径
-        """
+        """Load configuration from a JSON file and update object attributes"""
         config_path = os.path.join(case_dir, "config.json")
-        if config_path and os.path.exists(config_path):
+        if os.path.exists(config_path):
             try:
                 with open(config_path, "r") as f:
                     config_dict = json.load(f)
 
-                # 将配置字典中的值应用到这个对象
+                # Apply values from the config dictionary to this object
                 for key, value in config_dict.items():
-                    # 特殊类型处理
+                    # Special type handling
                     if isinstance(value, str) and key in self._int_list_fields():
                         try:
                             value = int(value)
@@ -184,14 +170,14 @@ class FuncFittingConfig(BaseConfig):
                     elif isinstance(value, list) and key in self._list_fields():
                         value = self._process_list_field(key, value)
 
-                    # 设置属性，无论是否预先定义
+                    # Set attribute whether predefined or not
                     setattr(self, key, value)
-                    
-                print(f"成功从 {config_path} 加载了配置")
+
+                print(f"Successfully loaded configuration from {config_path}")
                 return True
             except Exception as e:
-                print(f"加载配置文件时出错: {e}")
+                print(f"Error loading configuration file: {e}")
                 return False
         else:
-            print(f"配置文件路径无效: {config_path}")
+            print(f"Invalid configuration file path: {config_path}")
             return False

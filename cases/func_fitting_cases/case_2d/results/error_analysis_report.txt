@@ -7,29 +7,29 @@ CONFIGURATION PARAMETERS:
 Problem Type: func_fitting
 Method: hybrid
 Dimensionality: 2D
-Segments: [10, 10]
+Segments: [5, 5]
 Polynomial Degree: [5 5]
 Hidden Dimensions: [32, 64, 32]
 Domain: [[-3  3]
  [-3  3]]
-Test Grid: [50, 50]
+Test Grid: [30, 30]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 43.0027 seconds
-Neural Network Training Time (Scoper): 36.7667 seconds
-Equation Fitting Time (Sniper): 6.2360 seconds
-Scoper Time Percentage: 85.5%
-Sniper Time Percentage: 14.5%
+Total Solution Time: 2.2120 seconds
+Neural Network Training Time (Scoper): 1.0982 seconds
+Equation Fitting Time (Sniper): 1.1138 seconds
+Scoper Time Percentage: 49.6%
+Sniper Time Percentage: 50.4%
 
 ERROR METRICS:
 ----------------------------------------
 Method          Dataset  MSE          MAE          Max Error    Rel Error   
 --------------------------------------------------------------------------------
-PINNs           Train    3.07e-04     1.40e-02     1.21e-01     1.47e-01    
-DeePoly         Train    5.62e-19     4.09e-10     1.28e-08     5.25e-09    
-PINNs           Test     3.28e-04     1.41e-02     1.50e-01     1.80e-01    
-DeePoly         Test     4.85e-17     1.31e-09     2.00e-07     8.07e-09    
+PINNs           Train    5.08e-03     5.84e-02     2.70e-01     5.94e-01    
+DeePoly         Train    4.45e-13     4.16e-07     5.37e-06     6.70e-06    
+PINNs           Test     6.22e-03     6.35e-02     2.89e-01     4.92e-01    
+DeePoly         Test     1.23e-10     2.24e-06     1.80e-04     1.78e-04    
 
 ================================================================================
 PERFORMANCE COMPARISON:

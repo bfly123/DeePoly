@@ -7,36 +7,36 @@ CONFIGURATION PARAMETERS:
 Problem Type: func_fitting
 Method: hybrid
 Dimensionality: 2D
-Segments: [10, 10]
+Segments: [5, 5]
 Polynomial Degree: [5 5]
 Hidden Dimensions: [32, 64, 32]
 Domain: [[-1  1]
  [-1  1]]
-Test Grid: [50, 50]
+Test Grid: [30, 30]
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 53.5706 seconds
-Neural Network Training Time (Scoper): 47.3724 seconds
-Equation Fitting Time (Sniper): 6.1982 seconds
-Scoper Time Percentage: 88.4%
-Sniper Time Percentage: 11.6%
+Total Solution Time: 8.0904 seconds
+Neural Network Training Time (Scoper): 7.3453 seconds
+Equation Fitting Time (Sniper): 0.7451 seconds
+Scoper Time Percentage: 90.8%
+Sniper Time Percentage: 9.2%
 
 ERROR METRICS:
 ----------------------------------------
 Method          Dataset  MSE          MAE          Max Error    Rel Error   
 --------------------------------------------------------------------------------
-PINNs           Train    2.00e-05     3.29e-03     3.11e-02     1.01e-03    
-DeePoly         Train    1.92e-09     1.25e-05     1.06e-03     6.31e-06    
-PINNs           Test     2.33e-05     3.47e-03     3.66e-02     6.36e-04    
-DeePoly         Test     1.89e-08     2.39e-05     4.80e-03     7.49e-06    
+PINNs           Train    7.88e-04     1.70e-02     1.69e-01     3.26e-03    
+DeePoly         Train    3.93e-07     2.29e-04     7.70e-03     8.97e-05    
+PINNs           Test     1.09e-03     1.95e-02     1.73e-01     8.80e-03    
+DeePoly         Test     5.41e+00     7.89e-02     6.98e+01     1.04e-02    
 
 ================================================================================
 PERFORMANCE COMPARISON:
 ----------------------------------------
-Training MSE Improvement: +99.99%
-Test MSE Improvement: +99.92%
+Training MSE Improvement: +99.95%
+Test MSE Improvement: -497022.40%
 Training Performance: DeePoly performs better
-Test Performance: DeePoly performs better
+Test Performance: PINNs performs better
 
 ================================================================================

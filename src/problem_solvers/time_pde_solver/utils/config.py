@@ -4,7 +4,7 @@ import numpy as np
 import os
 import json
 from src.meta_coding import parse_operators
-from src.meta_coding.auto_repalce_nonlinear import update_hybrid_fitter_code
+from src.meta_coding.auto_spotter import update_hybrid_fitter_code
 from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
 from src.abstract_class.config.base_config import BaseConfig
 

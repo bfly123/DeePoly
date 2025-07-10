@@ -1,9 +1,11 @@
 {
     "problem_type": "linear_pde",
     "method": "hybrid",
-    "eq": [
-        "diff(u,t) +0.3*diff(u,x)"
-    ],
+    "eq": {
+        "L1": [
+            "diff(u,t) + 0.3*diff(u,x)"
+        ]
+    },
     "source_term": "0",
     "eq_nonlinear": [],
     "vars_list": [

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Union, Dict
+from typing import List, Optional
 import numpy as np
 from src.abstract_class.config.base_config import BaseConfig
 import os
@@ -15,10 +15,10 @@ class LinearPDEConfig(BaseConfig):
     case_dir: str
     vars_list: List[str] = field(default_factory=list)
     spatial_vars: List[str] = field(default_factory=list)
-    eq: Union[List[str], Dict[str, List[str]]] = field(default_factory=list)
+    eq: List[str] = field(default_factory=list)
     eq_nonlinear: List[str] = field(default_factory=list)
     const_list: List[str] = field(default_factory=list)
-    source_term: Union[bool, str] = field(default=False)
+    source_term: bool = field(default=False)
 
     # Basic parameters
     n_segments: List[int] = field(default_factory=lambda: [10])
@@ -59,68 +59,36 @@ class LinearPDEConfig(BaseConfig):
         # Load configuration
         self.load_config_from_json(self.case_dir)
 
-        # Normalize eq format
-        self._normalize_eq_format()
-
         # Validate configuration
         self._validate_config()
 
-        # Initialize other parameters
+        #self._validate_required_params()
+
+        # 初始化其他参数
         self.n_dim = len(self.spatial_vars)
-        self.n_eqs = self._calculate_n_eqs()
+        self.n_eqs = len(self.eq)
         self._init_segment_ranges()
         self._init_boundaries()
         self.init_seed()
         self.DNN_degree = self.hidden_dims[-1]
         self._auto_code()
 
+
         # Parse using new interface
         self.operator_parse = parse_operators(self.eq, self.vars_list, self.spatial_vars, self.const_list)
 
-    def _normalize_eq_format(self):
-        """Convert eq to standardized dictionary format"""
-        if isinstance(self.eq, list):
-            # Convert list format to dictionary format
-            self.eq = {"L1": self.eq}
-        elif not isinstance(self.eq, dict):
-            raise ValueError(f"Invalid eq format: {type(self.eq)}. Must be list or dict.")
-
-    def _calculate_n_eqs(self):
-        """Calculate number of equations"""
-        if isinstance(self.eq, dict):
-            # For dictionary format, sum all equations in all operators
-            total_eqs = 0
-            for op_name, eq_list in self.eq.items():
-                if isinstance(eq_list, list):
-                    total_eqs += len(eq_list)
-                else:
-                    total_eqs += 1
-            return max(total_eqs, len(self.vars_list))
-        else:
-            # Fallback
-            return len(self.vars_list)
 
     def _auto_code(self):
         if hasattr(self, "auto_code") and self.auto_code:
-            # Convert eq to list format for auto_code
-            eq_list = []
-            if isinstance(self.eq, dict):
-                for op_name, eq_items in self.eq.items():
-                    if isinstance(eq_items, list):
-                        eq_list.extend(eq_items)
-                    else:
-                        eq_list.append(eq_items)
-            else:
-                eq_list = self.eq
+          update_physics_loss_code(
+            linear_equations=self.eq,
+            vars_list=self.vars_list,
+            spatial_vars=self.spatial_vars,
+            const_list=self.const_list,
+            case_dir=self.case_dir
+          )
 
-            update_physics_loss_code(
-                linear_equations=eq_list,
-                vars_list=self.vars_list,
-                spatial_vars=self.spatial_vars,
-                const_list=self.const_list,
-                case_dir=self.case_dir
-            )
-            print("Auto code completed, please check the net.py file, restart the program")
+          print("Auto code completed, please check the net.py file, restart the program")
 
     def _validate_config(self):
         """Validate configuration parameters"""
@@ -160,7 +128,14 @@ class LinearPDEConfig(BaseConfig):
         return value
 
     def load_config_from_json(self, case_dir=None):
-        """Load configuration from a JSON file and update object attributes"""
+        """Load configuration from a JSON file and update object attributes
+
+        Different from BaseConfig, this method dynamically adds all fields from the config file,
+        even if they are not predefined in the class.
+
+        Args:
+            case_dir: Directory containing the configuration file
+        """
         config_path = os.path.join(case_dir, "config.json")
         if os.path.exists(config_path):
             try:

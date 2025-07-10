@@ -1,7 +1,7 @@
 {
     "problem_type": "time_pde",
     "method": "hybrid",
-    "eq"
+    "eq": {},
     "eq_L1": [
         "-0.0001*diff(u,x,2)"
     ],

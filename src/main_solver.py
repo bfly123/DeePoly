@@ -29,8 +29,8 @@ def main():
     
     if DEBUG_MODE:
         # Dynamically construct case path relative to project root
-        case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
-        #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
+        case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
+        #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
     else:
         # Get parameters from command line
         parser = argparse.ArgumentParser(description='Solver entry point')

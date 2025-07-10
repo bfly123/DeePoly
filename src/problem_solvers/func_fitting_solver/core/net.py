@@ -25,8 +25,15 @@ class FuncFittingNet(BaseNet):
         
         # 提取预测值
         u = output[..., 0]
-        
-        # 获取真实值
+
+# auto code begin
+        # Extract physical quantities from output
+        u = output[..., 0]
+
+        # L1 operators
+        L1 = [u]
+
+# auto code end
         
         # 计算拟合误差
         fit_error = (u - u_train[..., 0]) ** 2

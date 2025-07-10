@@ -1,9 +1,11 @@
 {
   "problem_type": "func_fitting",
   "method": "hybrid",
-  "eq": [
-    "u"
-  ],
+  "eq": {
+    "L1": [
+      "u"
+    ]
+  },
   "eq_nonlinear": [],
   "vars_list": [
     "u"
@@ -18,17 +20,17 @@
     64,
     32
   ],
-  "epochs_adam": 50000,
-  "epochs_lbfgs": 100,
+  "epochs_adam": 1000,
+  "epochs_lbfgs": 50,
   "DNNtol": 2e-05,
   "n_segments": [
-    10,
-    10
+    5,
+    5
   ],
-  "points_domain": 20000,
+  "points_domain": 5000,
   "points_domain_test": [
-    50,
-    50
+    30,
+    30
   ],
   "points_per_swap": 0,
   "poly_degree": [
@@ -47,7 +49,7 @@
   ],
   "device": "cuda",
   "linear_device": "cpu",
-  "n_train": 2000,
+  "n_train": 1000,
   "target_function_path": "target_function.py",
   "output_module_path": "output.py"
 }
