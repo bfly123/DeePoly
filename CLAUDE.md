@@ -175,3 +175,27 @@ Current version: v0.2
 - Auto-coding capability for PDEs
 - GPU acceleration support
 - English documentation and comments
+
+## Technical Details
+
+### Tensor Dimensionality Notes
+- `features` is dimensioned as `(n_points, dgN)` on the segment dimension
+- `coeffs` is dimensioned as `(ns, n_eqs, dgN)` 
+- Segment-wise computation involves matrix multiplication:
+  ```python
+  for j in range(ne):
+      u_seg[:, j] = features @ coeffs[i, j, :]
+  ```
+  This means for each equation, the features are multiplied by the corresponding coefficients to compute segment-wise values.
+
+## Operational Details
+
+### Operator Output Dimensionality
+- L1,L2算子输出分区维度和features相同
+- N和F算子输出分区维度和u_seg维度相同
+
+### Memory Details
+- `build_segment_jacobian` 中的L维度和features相同，b尺寸为(ne,n_points)
+
+### Memory Notes
+- `u_seg`维度为`(n_points,ne)`

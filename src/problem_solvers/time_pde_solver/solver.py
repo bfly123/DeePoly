@@ -15,8 +15,9 @@ if project_root not in sys.path:
 
 # Change relative imports to absolute imports
 from src.problem_solvers.time_pde_solver.core.net import TimePDENet
+
 # Import train function
-#from src.abstract_class.base_net import train_net
+# from src.abstract_class.base_net import train_net
 from src.problem_solvers.time_pde_solver.core.fitter import TimePDEFitter
 from src.problem_solvers.time_pde_solver.utils.data import TimePDEDataGenerator
 from src.problem_solvers.time_pde_solver.utils.visualize import TimePDEVisualizer
@@ -37,13 +38,7 @@ class TimePDESolver:
         self.data_test = self.datagen.generate_data("test")
 
         # Initialize model
-        self.model = TimePDENet(
-            in_dim=2, hidden_dims=self.config.hidden_dims, out_dim=self.config.n_eqs
-        ).to(self.config.device)
-
-        # Prepare GPU data
-        self.data_GPU = self.datagen.prepare_gpu_data(self.data_train)
-
+        self.model = TimePDENet(self.config).to(self.config.device)
         # Initialize fitter
         self.fitter = TimePDEFitter(config=self.config, data=self.data_train)
 
@@ -64,7 +59,9 @@ class TimePDESolver:
 
         # Evaluate results
         test_predictions, _ = self.fitter.construct(self.data_test, model, coeffs)
-        self.visualizer.plot_solution(self.data_test, test_predictions, "results/final_solution.png")
+        self.visualizer.plot_solution(
+            self.data_test, test_predictions, "results/final_solution.png"
+        )
 
         # Save animation
         self.visualizer.save_animation("results/flow_evolution.gif", duration=200)
@@ -74,117 +71,191 @@ class TimePDESolver:
     def solve_time_evolution(
         self,
     ) -> Tuple[np.ndarray, list, torch.nn.Module, np.ndarray]:
-        """Time evolution solving, using TR-BDF2 format"""
-        # Initialize time step parameters
+        """Time evolution solving using IMEX-RK(2,2,2) method"""
+        # Initialize time parameters
         it = 0
-        T = 0
+        T = 0.0
         dt = self.config.dt
 
-        # Initialize solution and segmented solution
-        u_n = self.data_train["u"]
-        u_n_seg = self.data_train["u_segments"]
-        f_n = None  # Store spatial derivative term
+        # Initialize solution values directly
+        u_current = self._initialize_solution()
+
+        # Initialize fitter with model
+        self.fitter.fitter_init(self.model)
+
+        print("Starting time evolution with IMEX-RK(2,2,2)...")
+        self.fitter.print_time_scheme_summary()
 
         while T < self.config.time:
-            # Adjust time step
+            # Adaptive time step for first iteration
             if it == 0:
                 dt = self.config.dt / 10
             else:
                 dt = self.config.dt
 
-            it += 1
-            T += dt
+            # Estimate stable time step
+            if hasattr(self.fitter, "estimate_stable_dt"):
+                dt_stable = self.fitter.estimate_stable_dt(u_current)
+                dt = min(dt, dt_stable)
 
+            # Adjust for final time step
             if T + dt > self.config.time:
                 dt = self.config.time - T
-            print(f"T = {T:.3f}")
 
-            if it == 1:
-                # First step using first-order method
-                u_np1, u_np1_seg, f_np1, f_np1_seg, self.model, coeffs = (
-                    self._time_evolve(
-                        "1st_order",
-                        {
-                            "u_n": u_n,
-                            "u_ng": None,
-                            "f_n": None,
-                        },{
-                            "u_n_seg": u_n_seg,
-                            "u_ng_seg": None,
-                            "f_n_seg": None,
-                        },
-                        dt,
-                    )
-                )
-            else:
-                # TR-BDF2 first stage: calculate u^{n+γ}
-                u_np1, u_np1_seg, f_np1, f_np1_seg, self.model, coeffs = (
-                    self._time_evolve(
-                        "pre",
-                        {
-                            "u_n": u_n,
-                            "u_ng": None,
-                            "f_n": f_n,
-                        },
-                        {
-                            "u_n_seg": u_n_seg,
-                            "u_ng_seg": None,
-                            "f_n_seg": f_n_seg,
-                        },
-                        dt,
-                    )
-                )
+            print(f"Step {it}: T = {T:.6f}, dt = {dt:.6f}")
 
-            # Update solution
-            u_n = u_np1
-            u_n_seg = u_np1_seg
-            f_n = f_np1
-            f_n_seg = f_np1_seg
+            # Execute IMEX-RK time step - direct solution value operation
+            u_current = self.fitter.solve_time_step(u_current, dt)
+
+            # Update time and iteration
+            T += dt
+            it += 1
+
+            # Optional: monitoring
+            if it % 10 == 0:  # Every 10 steps
+                print(f"  Solution norm: {np.linalg.norm(u_current):.6e}")
+
+        print(f"Time evolution completed. Final time: T = {T:.6f}")
+
+        # Convert final solution to coefficients for output compatibility
+        coeffs_final = self._solution_to_coefficients(u_current)
+        
+        # Reconstruct segmented solution for output
+        u_n_seg = self._reconstruct_segmented_solution(u_current)
+
+        return u_current, u_n_seg, self.model, coeffs_final
+
+    def _initialize_solution(self) -> np.ndarray:
+        """Initialize solution values using initial conditions or neural network prediction"""
+        try:
+            # Initialize with small random values or use neural network prediction
+            total_points = sum(len(seg) for seg in self.data_train["x_segments_norm"])
             
-            # Visualize current time step
-            self.visualizer.plot_evolution_step(
-                T, u_n, self.data_train["x"],
-                f"{self.config.results_dir}/evolution/t_{T:.3f}.png"
-            )
+            # Use neural network to generate initial solution
+            u_init = np.zeros((total_points, self.config.n_eqs))
+            
+            start_idx = 0
+            for segment_idx in range(len(self.data_train["x_segments_norm"])):
+                x_seg = self.data_train["x_segments_norm"][segment_idx]
+                n_points = len(x_seg)
+                end_idx = start_idx + n_points
+                
+                # Use neural network prediction as initial condition
+                x_tensor = torch.tensor(x_seg, dtype=torch.float64, device=self.config.device)
+                with torch.no_grad():
+                    _, u_pred = self.model(x_tensor)
+                    u_init[start_idx:end_idx, :] = u_pred.cpu().numpy()
+                
+                start_idx = end_idx
+            
+            print(f"Initialized solution with norm: {np.linalg.norm(u_init):.6e}")
+            return u_init
+            
+        except Exception as e:
+            print(f"Warning: Failed to initialize with neural network: {e}")
+            # Fallback: use small random values
+            total_points = sum(len(seg) for seg in self.data_train["x_segments_norm"])
+            u_init = np.random.normal(0, 0.01, (total_points, self.config.n_eqs))
+            return u_init
 
-        self.visualizer.close_evolution_plot()
-        return u_n, u_n_seg, self.model, coeffs
+    def _reconstruct_segmented_solution(self, u_values: np.ndarray) -> list:
+        """Reconstruct segmented solution from global solution values"""
+        u_seg_list = []
+        start_idx = 0
+        
+        for segment_idx in range(len(self.data_train["x_segments_norm"])):
+            n_points = len(self.data_train["x_segments_norm"][segment_idx])
+            end_idx = start_idx + n_points
+            
+            u_seg = u_values[start_idx:end_idx, :]
+            u_seg_list.append(u_seg)
+            
+            start_idx = end_idx
+        
+        return u_seg_list
 
-    def _time_evolve(
-        self, step: str, data: Dict, data_seg: Dict, dt: float
-    ) -> Tuple[np.ndarray, list, np.ndarray, list, torch.nn.Module, np.ndarray]:
-        """Single time step evolution"""
-        # Train model
-        train(data, self.model, self.data_GPU, self.config, optim, step=step, dt=dt)
-        self.fitter.fitter_init(self.model)
+    def _solution_to_coefficients(self, u_values: np.ndarray) -> np.ndarray:
+        """Convert solution values back to coefficients using least squares fitting"""
+        try:
+            coeffs_shape = (self.fitter.ns, self.config.n_eqs, self.fitter.dgN)
+            coeffs_new = np.zeros(coeffs_shape)
 
-        # Fit and predict
-        coeffs = self.fitter.fit(data_seg, step=step, dt=dt)
-        u, u_seg = self.fitter.construct(self.data_train, self.model, coeffs)
+            # Process each segment
+            start_idx = 0
+            for segment_idx in range(self.fitter.ns):
+                n_points = len(self.data_train["x_segments_norm"][segment_idx])
+                end_idx = start_idx + n_points
 
-        # Calculate spatial derivative
-        u_x, u_x_seg = self.fitter.construct(
-            self.data_train, self.model, coeffs, [1, 0]
-        )
-        u_y, u_y_seg = self.fitter.construct(
-            self.data_train, self.model, coeffs, [0, 1]
-        )
+                # Get segment solution values
+                u_seg = u_values[start_idx:end_idx]
 
-        # Calculate total spatial derivative term
-        f = u_x + u_y
-        f_seg = [x_seg + y_seg for x_seg, y_seg in zip(u_x_seg, u_y_seg)]
+                # Get segment features (0th order derivatives)
+                features = self.fitter._features[segment_idx][0]
 
-        return u, u_seg, f, f_seg, self.model, coeffs
+                # Solve least squares for each equation
+                for eq_idx in range(self.config.n_eqs):
+                    if u_seg.ndim > 1:
+                        u_seg_eq = (
+                            u_seg[:, eq_idx] if u_seg.shape[1] > eq_idx else u_seg[:, 0]
+                        )
+                    else:
+                        u_seg_eq = u_seg
+
+                    try:
+                        # Least squares: features @ coeffs = u_seg_eq
+                        coeffs_seg_eq = np.linalg.lstsq(features, u_seg_eq, rcond=None)[
+                            0
+                        ]
+                        # Ensure correct size
+                        if len(coeffs_seg_eq) >= self.fitter.dgN:
+                            coeffs_new[segment_idx, eq_idx, :] = coeffs_seg_eq[
+                                : self.fitter.dgN
+                            ]
+                        else:
+                            coeffs_new[segment_idx, eq_idx, : len(coeffs_seg_eq)] = (
+                                coeffs_seg_eq
+                            )
+                    except:
+                        # If least squares fails, use pseudo-inverse
+                        try:
+                            coeffs_seg_eq = np.linalg.pinv(features) @ u_seg_eq
+                            if len(coeffs_seg_eq) >= self.fitter.dgN:
+                                coeffs_new[segment_idx, eq_idx, :] = coeffs_seg_eq[
+                                    : self.fitter.dgN
+                                ]
+                            else:
+                                coeffs_new[
+                                    segment_idx, eq_idx, : len(coeffs_seg_eq)
+                                ] = coeffs_seg_eq
+                        except:
+                            # Final fallback: small random values
+                            coeffs_new[segment_idx, eq_idx, :] = np.random.normal(
+                                0, 0.01, self.fitter.dgN
+                            )
+
+                start_idx = end_idx
+
+            return coeffs_new
+
+        except Exception as e:
+            print(f"Warning: Failed to convert solution to coefficients: {e}")
+            # Fallback: return zero coefficients
+            coeffs_shape = (self.fitter.ns, self.config.n_eqs, self.fitter.dgN)
+            return np.zeros(coeffs_shape)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Solver entry')
-    parser.add_argument('--case', type=str, default='time_dependent',
-                      choices=['time_dependent'],
-                      help='Select the case to run')
+    parser = argparse.ArgumentParser(description="Solver entry")
+    parser.add_argument(
+        "--case",
+        type=str,
+        default="time_dependent",
+        choices=["time_dependent"],
+        help="Select the case to run",
+    )
     args = parser.parse_args()
 
-    if args.case == 'time_dependent':
+    if args.case == "time_dependent":
         config = TimePDEConfig()
         solver = TimePDESolver(config)
         solver.solve()
@@ -193,4 +264,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

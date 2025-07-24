@@ -137,11 +137,11 @@ class FeatureGenerator:
         jacobian = np.zeros((h.shape[0], h.shape[1]), dtype=np.float64)
         for i in range(h.shape[1]):
             # Start with the i-th component of the NN output
-            grad = h[:, i] 
-            
+            grad = h[:, i]
+
             # Apply derivatives iteratively based on the 'derivative' list
             # This assumes order matters, e.g., derivative=[1, 2] means d/dx (d^2/dy^2 f)
-            current_grad = grad 
+            current_grad = grad
             for dim, order in enumerate(derivative):
                 if order > 0:
                     for _ in range(order):
@@ -149,16 +149,47 @@ class FeatureGenerator:
                             outputs=current_grad,
                             inputs=x_tensor,
                             grad_outputs=torch.ones_like(current_grad),
-                            create_graph=True, # Essential for higher orders
-                            retain_graph=True # Keep graph for next derivative calculation
+                            create_graph=True,  # Essential for higher orders
+                            retain_graph=True,  # Keep graph for next derivative calculation
                         )
                         if grad_tuple is None or grad_tuple[0] is None:
-                             raise ValueError(f"cannot compute {dim} derivative (current order {_ + 1}/{order}).")
-                        
+                            raise ValueError(
+                                f"cannot compute {dim} derivative (current order {_ + 1}/{order})."
+                            )
+
                         # Update current_grad to be the derivative w.r.t the current dimension
                         current_grad = grad_tuple[0][:, dim : dim + 1]
-            
+
             # After applying all derivatives, store the result
             jacobian[:, i] = current_grad.detach().cpu().numpy().squeeze()
 
         return jacobian
+
+    @staticmethod
+    def init_coefficients(model: torch.nn.Module, device: torch.device = "cuda"):
+        """
+        Args:
+            model: 神经网络模型
+            device: 计算设备
+
+        Returns:
+            线性参数矩阵，维度为[ne, nn]，其中:
+            - ne: 输出维度（方程数量）
+            - nn: 导数第一个隐层维度
+        """
+        model = model.to(device)
+
+        # 找到最后一个线性层
+        last_layer = None
+        for module in model.modules():
+            if isinstance(module, nn.Linear):
+                last_layer = module
+
+        if last_layer is None:
+            raise ValueError("模型中未找到线性层")
+
+        # 提取权重矩阵 - PyTorch Linear层的权重形状为[out_features, in_features]
+        # 这正好符合我们需要的[ne, nn]形状
+        weight_matrix = last_layer.weight.detach().cpu().numpy()
+
+        return weight_matrix

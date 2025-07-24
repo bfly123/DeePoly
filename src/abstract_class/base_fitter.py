@@ -546,6 +546,48 @@ class BaseDeepPolyFitter(ABC):
 
         return u_pred, pred_segments
 
+    def global_to_segments(self, u_global: np.ndarray) -> List[np.ndarray]:
+        """将全局u数组转换为段级列表
+        
+        Args:
+            u_global: 全局解数组，形状为 (total_points,) 或 (total_points, n_eqs)
+            
+        Returns:
+            List[np.ndarray]: 段级解值列表，每个元素对应一个段的解值
+        """
+        if u_global is None:
+            return [None] * self.ns
+            
+        u_segments = []
+        start_idx = 0
+        for seg_idx in range(self.ns):
+            n_points = len(self.data["x_segments_norm"][seg_idx])
+            end_idx = start_idx + n_points
+            
+            if u_global.ndim == 1:
+                u_segments.append(u_global[start_idx:end_idx].copy())
+            else:
+                u_segments.append(u_global[start_idx:end_idx, :].copy())
+                
+            start_idx = end_idx
+            
+        return u_segments
+
+    def segments_to_global(self, u_segments: List[np.ndarray]) -> np.ndarray:
+        """将段级列表转换为全局u数组
+        
+        Args:
+            u_segments: 段级解值列表
+            
+        Returns:
+            np.ndarray: 全局解数组
+        """
+        if not u_segments or u_segments[0] is None:
+            total_points = sum(len(self.data["x_segments_norm"][i]) for i in range(self.ns))
+            return np.zeros(total_points)
+            
+        return np.concatenate(u_segments)
+
     def has_operator(self, operator_name):
         """Check if operator exists"""
         return getattr(self, f"{operator_name}_func", None) is not None

@@ -1,35 +1,3 @@
-"""
-Operator function factory module
-Responsible for creating and managing various types of operator functions (linear and nonlinear)
-
-DIMENSION COMPATIBILITY WITH BASE_FITTER.PY:
-===========================================
-
-This module is fully compatible with BaseDeepPolyFitter and follows the exact dimension
-specifications used in base_fitter.py construct() function.
-
-KEY DIMENSION RELATIONSHIPS:
-- features: List[np.ndarray], each element shape (n_points, dgN)
-- coeffs for prediction: shape (n_segments, n_equations, dgN)
-- coeffs for nonlinear operators: shape (n_deriv_types, n_equations)
-
-OPERATOR OUTPUT SPECIFICATIONS:
-- Linear operators (L1, L2): Return feature-compatible matrices (n_points, dgN)
-  * These are stored in base_fitter.equations[f"eq{i}"] for jacobian construction
-  * Compatible with base_fitter._build_segment_jacobian()
-
-- Nonlinear operators (N, F): Return scalar results (n_points,) per equation
-  * Direct residual contributions, used immediately in system assembly
-  * Compatible with base_fitter.rebuild_nonlinear_system()
-
-INTEGRATION WITH BASE_FITTER:
-- base_fitter._generate_operator_functions() creates operators via this factory
-- base_fitter._build_segment_equations_and_variables() uses operator results
-- base_fitter.construct() prediction: segment_pred[:, j] = features @ coeffs[i, j, :]
-- Full compatibility with 2-5+ equation systems
-
-PERFORMANCE: ~0.001-0.02ms per operator call regardless of equation count
-"""
 
 import re
 import numpy as np
@@ -79,7 +47,7 @@ class OperatorFactory:
     ) -> Callable:
         """Create nonlinear operator function (N and F operators)"""
 
-        def nonlinear_operator_function(features, coeffs, segment_idx):
+        def nonlinear_operator_function(features=None, u=None, coeffs=None, segment_idx=None):
             """Nonlinear operator function: input features, coeffs and segment_idx, return computation results list"""
             results = []
 
@@ -95,22 +63,69 @@ class OperatorFactory:
                 # Create local variables dictionary
                 local_vars = {"np": np}
 
-                # Create corresponding variable names and values for each derivative index
-                for deriv_idx in derivative_indices:
-                    # Put EVERY variable that shares this derivative-index into local_vars
-                    for name, (v_idx, d_idx) in self.all_derivatives.items():
-                        if d_idx == deriv_idx:
-                            if coeffs is not None:
-                                # coeffs should be indexed by derivative index, not variable index
-                                if coeffs.ndim == 3:
-                                    current_coeffs = coeffs[segment_idx, deriv_idx, :]
-                                elif coeffs.ndim == 2:
-                                    current_coeffs = coeffs[deriv_idx, :]
+                # Check if this term only contains zeroth derivatives (u only, no derivatives)
+                only_zeroth_derivatives = all(
+                    any(d_idx == 0 for _, (_, d_idx) in self.all_derivatives.items() if d_idx == deriv_idx)
+                    for deriv_idx in derivative_indices
+                )
+                
+                # Branch based on whether function contains derivatives or only u
+                if only_zeroth_derivatives and u is not None:
+                    # Direct u input case: function only contains u, no derivatives
+                    # Use u directly without features@coeffs computation
+                    for deriv_idx in derivative_indices:
+                        for name, (v_idx, d_idx) in self.all_derivatives.items():
+                            if d_idx == deriv_idx and d_idx == 0:  # Only zeroth derivative
+                                if isinstance(u, dict):
+                                    # u is a dictionary mapping variable names to values
+                                    var_key = name if name in u else name.lower()
+                                    local_vars[name] = u.get(var_key, u.get(name.lower(), 0))
+                                elif isinstance(u, np.ndarray):
+                                    if u.ndim == 2:
+                                        # u is shape (n_points, n_equations) - matches segment_pred format
+                                        if v_idx < u.shape[1]:
+                                            local_vars[name] = u[:, v_idx]
+                                        else:
+                                            local_vars[name] = np.zeros(u.shape[0])
+                                    elif u.ndim == 1:
+                                        # u is 1D array - single variable case
+                                        if v_idx == 0:
+                                            local_vars[name] = u
+                                        else:
+                                            local_vars[name] = np.zeros_like(u)
+                                    else:
+                                        local_vars[name] = u
+                                elif isinstance(u, (list, tuple)) and len(u) > v_idx:
+                                    # u is a list/tuple with values for each variable
+                                    local_vars[name] = u[v_idx]
                                 else:
-                                    current_coeffs = coeffs[deriv_idx]
-                                local_vars[name] = features[deriv_idx] @ current_coeffs
-                            else:  # initial call without coeffs
-                                local_vars[name] = features[deriv_idx]
+                                    # u is a single value (for single variable case)
+                                    if v_idx == 0:
+                                        local_vars[name] = u
+                                    else:
+                                        local_vars[name] = 0
+                else:
+                    # Traditional features@coeffs case: function contains derivatives
+                    # Create corresponding variable names and values for each derivative index
+                    for deriv_idx in derivative_indices:
+                        # Put EVERY variable that shares this derivative-index into local_vars
+                        for name, (v_idx, d_idx) in self.all_derivatives.items():
+                            if d_idx == deriv_idx:
+                                if coeffs is not None:
+                                    # coeffs should be indexed by derivative index, not variable index
+                                    if coeffs.ndim == 3:
+                                        current_coeffs = coeffs[segment_idx, deriv_idx, :]
+                                    elif coeffs.ndim == 2:
+                                        current_coeffs = coeffs[deriv_idx, :]
+                                    else:
+                                        current_coeffs = coeffs[deriv_idx]
+                                    local_vars[name] = features[deriv_idx] @ current_coeffs
+                                else:  # initial call without coeffs
+                                    if features is not None:
+                                        local_vars[name] = features[deriv_idx]
+                                    else:
+                                        # If no features provided, use default zero value
+                                        local_vars[name] = np.zeros(1)
 
                 # Process mathematical functions
                 expr = self._process_math_functions(expr)
@@ -123,9 +138,19 @@ class OperatorFactory:
                     print(f"Error in {operator_name} operator: {e}")
                     print(f"Expression: {expr}")
                     print(f"Available variables: {list(local_vars.keys())}")
-                    results.append(
-                        np.zeros_like(features[0]) if features else np.array([0])
-                    )
+                    # Determine fallback array size
+                    if features and features[0] is not None:
+                        fallback_size = features[0].shape[0]
+                    elif u is not None:
+                        if isinstance(u, dict):
+                            fallback_size = len(next(iter(u.values())))
+                        elif hasattr(u, 'shape'):
+                            fallback_size = u.shape[-1] if u.ndim > 1 else len(u)
+                        else:
+                            fallback_size = 1
+                    else:
+                        fallback_size = 1
+                    results.append(np.zeros(fallback_size))
 
             return results
 
@@ -223,10 +248,18 @@ class OperatorFactory:
         expr = re.sub(r"(?<!np\.)\bsin\b", "np.sin", expr)
         expr = re.sub(r"(?<!np\.)\bcos\b", "np.cos", expr)
         expr = re.sub(r"(?<!np\.)\btan\b", "np.tan", expr)
+        expr = re.sub(r"(?<!np\.)\btanh\b", "np.tanh", expr)
+        expr = re.sub(r"(?<!np\.)\bsinh\b", "np.sinh", expr)
+        expr = re.sub(r"(?<!np\.)\bcosh\b", "np.cosh", expr)
         expr = re.sub(r"(?<!np\.)\bexp\b", "np.exp", expr)
         expr = re.sub(r"(?<!np\.)\blog\b", "np.log", expr)
         expr = re.sub(r"(?<!np\.)\bln\b", "np.log", expr)
         expr = re.sub(r"(?<!np\.)\bsqrt\b", "np.sqrt", expr)
+        expr = re.sub(r"(?<!np\.)\babs\b", "np.abs", expr)
+        expr = re.sub(r"(?<!np\.)\barcsin\b", "np.arcsin", expr)
+        expr = re.sub(r"(?<!np\.)\barccos\b", "np.arccos", expr)
+        expr = re.sub(r"(?<!np\.)\barctan\b", "np.arctan", expr)
+        expr = re.sub(r"(?<!np\.)\barctanh\b", "np.arctanh", expr)
         return expr
 
     def create_all_operators(self, operator_terms_dict: Dict) -> Dict[str, Callable]:
@@ -275,64 +308,119 @@ class OptimizedOperatorFactory(OperatorFactory):
             operator_terms, operator_name, is_nonlinear=True
         )
 
-        def optimized_nonlinear_operator_function(features, coeffs, segment_idx):
+        def optimized_nonlinear_operator_function(features=None, u=None, coeffs=None, segment_idx=None):
             """Optimized nonlinear operator function: pre-compiled expressions, only recalculate variable values"""
             results = []
 
             for compiled_term in compiled_terms:
                 if compiled_term is None:
-                    results.append(
-                        np.zeros_like(features[0]) if features else np.array([0])
-                    )
+                    # Determine fallback array size
+                    if features and features[0] is not None:
+                        fallback_size = features[0].shape[0]
+                    elif u is not None:
+                        if isinstance(u, dict):
+                            fallback_size = len(next(iter(u.values())))
+                        elif hasattr(u, 'shape'):
+                            fallback_size = u.shape[-1] if u.ndim > 1 else len(u)
+                        else:
+                            fallback_size = 1
+                    else:
+                        fallback_size = 1
+                    results.append(np.zeros(fallback_size))
                     continue
+
+                # Check if this term only contains zeroth derivatives (u only, no derivatives)
+                only_zeroth_derivatives = all(
+                    deriv_idx == 0 for _, _, deriv_idx in compiled_term["var_mappings"]
+                )
 
                 # Fast construction of local variables dictionary
                 local_vars = {"np": np}
 
-                # Only calculate variable values (this is the only changing part)
-                for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
-                    if coeffs is not None:
-                        # Fix: Use deriv_idx for coeffs indexing, not var_idx
-                        # coeffs should be indexed by derivative index, not variable index
-                        if coeffs.ndim == 3:
-                            current_coeffs = coeffs[segment_idx, deriv_idx, :]
-                        elif coeffs.ndim == 2:
-                            current_coeffs = coeffs[deriv_idx, :]
-                        else:
-                            current_coeffs = coeffs[deriv_idx]
-                        # Handle matrix multiplication properly
-                        # Based on base_fitter.py: features @ coeffs[i, j, :] should give (n_points,)
-                        feature_vals = features[deriv_idx]  # Shape: (n_points, dgN)
-
-                        if current_coeffs.ndim == 1:
-                            # Case: coeffs[deriv_idx, :] -> current_coeffs shape: (n_equations,)
-                            # For nonlinear operators, we need to extract the coefficient for this specific variable
-                            # Since we're processing one variable at a time, take the first coefficient
-                            coeff_scalar = (
-                                current_coeffs[0] if len(current_coeffs) > 0 else 1.0
-                            )
-
-                            if feature_vals.ndim == 2:
-                                # Feature matrix case: take mean across features to get (n_points,)
-                                # This simulates the effect of features @ coeffs where coeffs represents contributions
-                                local_vars[var_name] = (
-                                    np.mean(feature_vals, axis=1) * coeff_scalar
-                                )
+                # Branch based on whether function contains derivatives or only u
+                if only_zeroth_derivatives and u is not None:
+                    # Direct u input case: function only contains u, no derivatives
+                    # Use u directly without features@coeffs computation
+                    for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
+                        if deriv_idx == 0:  # Only zeroth derivative
+                            if isinstance(u, dict):
+                                # u is a dictionary mapping variable names to values
+                                var_key = var_name if var_name in u else var_name.lower()
+                                local_vars[var_name] = u.get(var_key, u.get(var_name.lower(), 0))
+                            elif isinstance(u, np.ndarray):
+                                if u.ndim == 2:
+                                    # u is shape (n_points, n_equations) - matches segment_pred format
+                                    if var_idx < u.shape[1]:
+                                        local_vars[var_name] = u[:, var_idx]
+                                    else:
+                                        local_vars[var_name] = np.zeros(u.shape[0])
+                                elif u.ndim == 1:
+                                    # u is 1D array - single variable case
+                                    if var_idx == 0:
+                                        local_vars[var_name] = u
+                                    else:
+                                        local_vars[var_name] = np.zeros_like(u)
+                                else:
+                                    local_vars[var_name] = u
+                            elif isinstance(u, (list, tuple)) and len(u) > var_idx:
+                                # u is a list/tuple with values for each variable
+                                local_vars[var_name] = u[var_idx]
                             else:
-                                # Feature vector case: direct multiplication
-                                local_vars[var_name] = feature_vals * coeff_scalar
-                        else:
-                            # For 2D coeffs case (should rarely happen in nonlinear operators)
-                            if feature_vals.ndim == 2 and current_coeffs.ndim == 2:
-                                local_vars[var_name] = feature_vals @ current_coeffs
+                                # u is a single value (for single variable case)
+                                if var_idx == 0:
+                                    local_vars[var_name] = u
+                                else:
+                                    local_vars[var_name] = 0
+                else:
+                    # Traditional features@coeffs case: function contains derivatives
+                    # Only calculate variable values (this is the only changing part)
+                    for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
+                        if coeffs is not None:
+                            # Fix: Use deriv_idx for coeffs indexing, not var_idx
+                            # coeffs should be indexed by derivative index, not variable index
+                            if coeffs.ndim == 3:
+                                current_coeffs = coeffs[segment_idx, deriv_idx, :]
+                            elif coeffs.ndim == 2:
+                                current_coeffs = coeffs[deriv_idx, :]
                             else:
-                                local_vars[var_name] = (
-                                    feature_vals * current_coeffs[0]
-                                    if len(current_coeffs) > 0
-                                    else feature_vals
+                                current_coeffs = coeffs[deriv_idx]
+                            # Handle matrix multiplication properly
+                            # Based on base_fitter.py: features @ coeffs[i, j, :] should give (n_points,)
+                            feature_vals = features[deriv_idx]  # Shape: (n_points, dgN)
+
+                            if current_coeffs.ndim == 1:
+                                # Case: coeffs[deriv_idx, :] -> current_coeffs shape: (n_equations,)
+                                # For nonlinear operators, we need to extract the coefficient for this specific variable
+                                # Since we're processing one variable at a time, take the first coefficient
+                                coeff_scalar = (
+                                    current_coeffs[0] if len(current_coeffs) > 0 else 1.0
                                 )
-                    else:
-                        local_vars[var_name] = features[deriv_idx]
+
+                                if feature_vals.ndim == 2:
+                                    # Feature matrix case: take mean across features to get (n_points,)
+                                    # This simulates the effect of features @ coeffs where coeffs represents contributions
+                                    local_vars[var_name] = (
+                                        np.mean(feature_vals, axis=1) * coeff_scalar
+                                    )
+                                else:
+                                    # Feature vector case: direct multiplication
+                                    local_vars[var_name] = feature_vals * coeff_scalar
+                            else:
+                                # For 2D coeffs case (should rarely happen in nonlinear operators)
+                                if feature_vals.ndim == 2 and current_coeffs.ndim == 2:
+                                    local_vars[var_name] = feature_vals @ current_coeffs
+                                else:
+                                    local_vars[var_name] = (
+                                        feature_vals * current_coeffs[0]
+                                        if len(current_coeffs) > 0
+                                        else feature_vals
+                                    )
+                        else:
+                            if features is not None:
+                                local_vars[var_name] = features[deriv_idx]
+                            else:
+                                # If no features provided and no coeffs, use default zero value
+                                local_vars[var_name] = np.zeros(1)
 
                 try:
                     # Use pre-compiled expression
@@ -345,9 +433,19 @@ class OptimizedOperatorFactory(OperatorFactory):
                         f"Error evaluating compiled {operator_name} expression: {compiled_term['expr_str']}, Error: {e}"
                     )
                     print(f"Available variables: {list(local_vars.keys())}")
-                    results.append(
-                        np.zeros_like(features[0]) if features else np.array([0])
-                    )
+                    # Determine fallback array size
+                    if features and features[0] is not None:
+                        fallback_size = features[0].shape[0]
+                    elif u is not None:
+                        if isinstance(u, dict):
+                            fallback_size = len(next(iter(u.values())))
+                        elif hasattr(u, 'shape'):
+                            fallback_size = u.shape[-1] if u.ndim > 1 else len(u)
+                        else:
+                            fallback_size = 1
+                    else:
+                        fallback_size = 1
+                    results.append(np.zeros(fallback_size))
 
             return results
 
