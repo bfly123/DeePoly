@@ -142,6 +142,7 @@ class FuncFittingSolver:
         return train_predictions, test_predictions
 
 
+####### This main is for testing, please use main_solver.py to run the solver##########
 def main():
     """Command line entry function - for direct testing only"""
     # Ensure current path is in Python import path

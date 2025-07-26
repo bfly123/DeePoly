@@ -37,15 +37,6 @@ class TimePDEFitter(BaseDeepPolyFitter):
         self.u_seg_current = None  # List[np.ndarray] - 当前时间步的段级解值
         self.u_seg_prev = None  # List[np.ndarray] - 前一时间步的段级解值
 
-    def init_u_seg(self, u_initial: np.ndarray):
-        """初始化段级解值
-
-        Args:
-            u_initial: 初始全局解值
-        """
-        self.u_seg_current = self.global_to_segments(u_initial)
-        self.u_seg_prev = [seg.copy() for seg in self.u_seg_current]
-
     def imex_rk_time_step(self, u_n: np.ndarray, dt: float) -> np.ndarray:
         """执行IMEX-RK(2,2,2)时间步进 - 基于解值的操作
 
@@ -112,7 +103,6 @@ class TimePDEFitter(BaseDeepPolyFitter):
             "dt": dt,
             "stage": stage,
             "gamma": self.gamma,
-            "operation": "imex_stage",
         }
 
         # 使用base_fitter的fit方法求解阶段系数
@@ -234,7 +224,6 @@ class TimePDEFitter(BaseDeepPolyFitter):
             "dt": dt,
             "stage": stage,
             "gamma": self.gamma,
-            "operation": "imex_stage",
         }
 
         # 使用base_fitter的fit方法求解阶段系数
@@ -245,7 +234,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
             self.data, self._current_model, coeffs_stage
         )
 
-        return u_stage
+        return u_stage,u_stage_segments
 
     def _imex_final_update_u(
         self, u_n: np.ndarray, U_stage1: np.ndarray, U_stage2: np.ndarray, dt: float
@@ -322,17 +311,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
         ne = self.config.n_eqs
         dgN = self.dgN
 
-        # 根据操作类型构造不同的矩阵
-        operation = kwargs.get("operation", "imex_stage")
-
-        if operation == "imex_stage":
-            # IMEX-RK阶段求解
-            L, r = self._build_stage_jacobian(segment_idx, **kwargs)
-        elif operation == "final_update":
-            # 最终更新步骤
-            L, r = self._build_update_jacobian(segment_idx, **kwargs)
-        else:
-            raise ValueError(f"Invalid operation: {operation}")
+        L, r = self._build_stage_jacobian(segment_idx, **kwargs)
 
         return L, r
 
@@ -514,42 +493,6 @@ class TimePDEFitter(BaseDeepPolyFitter):
 
         return rhs
 
-    def _build_update_jacobian(
-        self, segment_idx: int, **kwargs
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """构建最终更新步骤的段雅可比矩阵
-
-        根据Doc/Time_Scheme.md 3.4节实现
-        """
-
-        n_points = len(self.data["x_segments_norm"][segment_idx])
-        ne = self.config.n_eqs
-        dgN = self.dgN
-
-        dt = kwargs.get("dt", 0.01)
-        b_weights = kwargs.get("b_weights", self.b)
-
-        # 特征矩阵
-        features = self._features[segment_idx][0]
-
-        # 构造更新矩阵 (基于权重平均)
-        L = np.zeros((n_points * ne, ne * dgN))
-        r = np.zeros((n_points * ne, 1))
-
-        for eq_idx in range(ne):
-            row_start = eq_idx * n_points
-            row_end = (eq_idx + 1) * n_points
-            col_start = eq_idx * dgN
-            col_end = (eq_idx + 1) * dgN
-
-            # 单位矩阵项 (系数更新)
-            L[row_start:row_end, col_start:col_end] = features
-
-            # 右端向量: 包含所有阶段的加权贡献
-            rhs_seg = self._build_update_rhs(segment_idx, eq_idx, **kwargs)
-            r[row_start:row_end, 0] = rhs_seg
-
-        return L, r
 
     def _build_update_rhs(self, segment_idx: int, eq_idx: int, **kwargs) -> np.ndarray:
         """构建最终更新步骤的右端向量
@@ -632,15 +575,6 @@ class TimePDEFitter(BaseDeepPolyFitter):
         rhs = u_n_seg + dt * total_contribution
 
         return rhs
-
-    def init_coefficents(self) -> np.ndarray:
-        """初始化系数 - 为时间PDE求解器提供初始系数"""
-
-        # 初始化为小的随机值
-        coeffs_shape = (self.ns, self.config.n_eqs, self.dgN)
-        coeffs = np.random.normal(0, 0.01, coeffs_shape)
-
-        return coeffs
 
     def solve_time_step(self, u_n: np.ndarray, dt: float, **kwargs) -> np.ndarray:
         """求解一个时间步 - 使用IMEX-RK(2,2,2)方法"""
