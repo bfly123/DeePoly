@@ -29,7 +29,8 @@ def main():
     
     if DEBUG_MODE:
         # Dynamically construct case path relative to project root
-        case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
+        #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
+        case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "AC_equation")
         #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
     else:
         # Get parameters from command line
@@ -69,7 +70,7 @@ def main():
 
     # Choose solver based on problem type
     if problem_type == "time_pde":
-        config = TimePDEConfig(config_path)
+        config = TimePDEConfig(case_dir=case_dir)
         solver = TimePDESolver(config)
         solver.solve()
 

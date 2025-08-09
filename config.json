@@ -1,0 +1,386 @@
+{
+  "segment_ranges": [
+    [
+      -1.0,
+      -0.8,
+      -0.6,
+      -0.3999999999999999,
+      -0.19999999999999996,
+      0.0,
+      0.20000000000000018,
+      0.40000000000000013,
+      0.6000000000000001,
+      0.8,
+      1.0
+    ]
+  ],
+  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/AC_equation",
+  "vars_list": [
+    "u"
+  ],
+  "spatial_vars": [
+    "x"
+  ],
+  "eq": {
+    "L1": [
+      "0.0001*diff(u,x,2)"
+    ],
+    "L2": [
+      "u"
+    ],
+    "F": [
+      "5-5*u**2"
+    ],
+    "N": []
+  },
+  "eq_nonlinear": [],
+  "const_list": [],
+  "source_term": "False",
+  "n_segments": [
+    "10"
+  ],
+  "poly_degree": [
+    5
+  ],
+  "x_domain": [
+    [
+      -1,
+      1
+    ]
+  ],
+  "method": "hybrid",
+  "hidden_dims": [
+    "12",
+    "32",
+    "32",
+    "25"
+  ],
+  "device": "cuda",
+  "linear_device": "cpu",
+  "learning_rate": "0.001",
+  "training_epochs": "10000",
+  "points_domain": "300",
+  "points_domain_test": [
+    "100"
+  ],
+  "points_boundary": "200",
+  "points_boundary_test": "50",
+  "T": "1",
+  "dt": "0.01",
+  "spotter_skip": "10",
+  "epochs_adam": "5000",
+  "epochs_lbfgs": "300",
+  "max_retries": "1",
+  "DNNtol": "0.0001",
+  "points_per_swap": "1",
+  "Initial_conditions": [
+    {
+      "var": "u",
+      "value": "x**2*cos(pi*x)",
+      "points": "100"
+    }
+  ],
+  "time_scheme": "IMEX_RK_2_2_2",
+  "time_scheme_params": {},
+  "eq_L1": [
+    "0.0001*diff(u,x,2)"
+  ],
+  "eq_L2": [
+    "u"
+  ],
+  "eq_F": [
+    "5-5*u**2"
+  ],
+  "eq_N": [],
+  "seed": "42",
+  "boundary_conditions": [
+    {
+      "region": "left",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": "0",
+      "points": "1"
+    },
+    {
+      "region": "right",
+      "var": [
+        "u"
+      ],
+      "type": "dirichlet",
+      "value": "0",
+      "points": "1"
+    },
+    {
+      "region": "left",
+      "var": [
+        "u"
+      ],
+      "type": "neumann",
+      "value": "0",
+      "points": "1"
+    },
+    {
+      "region": "right",
+      "var": [
+        "u"
+      ],
+      "type": "neumann",
+      "value": "0",
+      "points": "1"
+    }
+  ],
+  "eq_linear_list": [],
+  "deriv_orders": [],
+  "max_deriv_orders": [],
+  "eq_nonlinear_list": [],
+  "all_derivatives": {
+    "U": [
+      "0",
+      "0"
+    ],
+    "U_xx": [
+      "0",
+      "1"
+    ]
+  },
+  "problem_type": "time_pde",
+  "auto_code": "False",
+  "output_module_path": "output.py",
+  "f_L2": [
+    "5-5*u**2"
+  ],
+  "N": [],
+  "gamma": 0.2928932188134524,
+  "max_time_steps": "1000",
+  "time_output_interval": "10",
+  "adaptive_dt": "False",
+  "cfl_number": "0.5",
+  "stability_check": "True",
+  "max_eigenvalue_estimate": "100.0",
+  "n_dim": "1",
+  "n_eqs": "1",
+  "x_min": [
+    [
+      -1.0
+    ],
+    [
+      -0.8
+    ],
+    [
+      -0.6
+    ],
+    [
+      -0.3999999999999999
+    ],
+    [
+      -0.19999999999999996
+    ],
+    [
+      0.0
+    ],
+    [
+      0.20000000000000018
+    ],
+    [
+      0.40000000000000013
+    ],
+    [
+      0.6000000000000001
+    ],
+    [
+      0.8
+    ]
+  ],
+  "x_max": [
+    [
+      -0.8
+    ],
+    [
+      -0.6
+    ],
+    [
+      -0.3999999999999999
+    ],
+    [
+      -0.19999999999999996
+    ],
+    [
+      0.0
+    ],
+    [
+      0.20000000000000018
+    ],
+    [
+      0.40000000000000013
+    ],
+    [
+      0.6000000000000001
+    ],
+    [
+      0.8
+    ],
+    [
+      1.0
+    ]
+  ],
+  "x_min_norm": [
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ]
+  ],
+  "x_max_norm": [
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ]
+  ],
+  "DNN_degree": "25",
+  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/AC_equation/results",
+  "operator_parse": {
+    "derivatives": [
+      [
+        "0"
+      ],
+      [
+        "2"
+      ]
+    ],
+    "all_derivatives": {
+      "U": [
+        "0",
+        "0"
+      ],
+      "U_xx": [
+        "0",
+        "1"
+      ]
+    },
+    "max_derivative_orders": [
+      [
+        "2"
+      ]
+    ],
+    "operator_terms": {
+      "L1": [
+        {
+          "derivative_indices": [
+            "1"
+          ],
+          "symbolic_expr": "0.0001*U_xx"
+        }
+      ],
+      "L2": [
+        {
+          "derivative_indices": [
+            "0"
+          ],
+          "symbolic_expr": "U"
+        }
+      ],
+      "L2F": [
+        {
+          "derivative_indices": [
+            "0"
+          ],
+          "symbolic_expr": "U*(5-5*U**2)"
+        }
+      ]
+    }
+  },
+  "max_derivative_orders": [
+    [
+      "2"
+    ]
+  ],
+  "derivatives": [
+    [
+      "0"
+    ],
+    [
+      "2"
+    ]
+  ],
+  "operator_terms": {
+    "L1": [
+      {
+        "derivative_indices": [
+          "1"
+        ],
+        "symbolic_expr": "0.0001*U_xx"
+      }
+    ],
+    "L2": [
+      {
+        "derivative_indices": [
+          "0"
+        ],
+        "symbolic_expr": "U"
+      }
+    ],
+    "L2F": [
+      {
+        "derivative_indices": [
+          "0"
+        ],
+        "symbolic_expr": "U*(5-5*U**2)"
+      }
+    ]
+  },
+  "export_time": "2025-08-09 10:49:59",
+  "device_info": "cuda"
+}

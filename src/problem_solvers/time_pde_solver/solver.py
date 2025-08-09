@@ -25,10 +25,21 @@ from src.problem_solvers.time_pde_solver.utils.config import TimePDEConfig
 
 
 class TimePDESolver:
-    def __init__(self, config):
+    def __init__(self, config=None, case_dir=None):
         # Initialize config
-        self.config = config
-        self.config.export_to_json("config.json")
+        if config is not None:
+            self.config = config
+        elif case_dir is not None:
+            self.config = TimePDEConfig(case_dir=case_dir)
+        else:
+            raise ValueError("Either config object or case_dir must be provided")
+        
+        # Save case directory
+        self.case_dir = case_dir if case_dir is not None else getattr(self.config, 'case_dir', None)
+        
+        # Export config if it has the method
+        if hasattr(self.config, 'export_to_json'):
+            self.config.export_to_json("config.json")
 
         # Initialize data generator
         self.datagen = TimePDEDataGenerator(self.config)
@@ -101,11 +112,14 @@ class TimePDESolver:
 
         # Initialize fitter with model
         self.fitter.fitter_init(self.model)
+        
+        # Compute initial coefficients from initial data
+        coeffs = self.fitter.fit(u_seg=u_seg, operation="initial_fit")
 
         print("Starting time evolution with IMEX-RK(2,2,2)...")
         self.fitter.print_time_scheme_summary()
 
-        while T < self.config.time:
+        while T < self.config.T:
             # Adaptive time step for first iteration
             if it == 0:
                 dt = self.config.dt / 10
@@ -118,20 +132,20 @@ class TimePDESolver:
                 dt = min(dt, dt_stable)
 
             # Adjust for final time step
-            if T + dt > self.config.time:
-                dt = self.config.time - T
+            if T + dt > self.config.T:
+                dt = self.config.T - T
 
             print(f"Step {it}: T = {T:.6f}, dt = {dt:.6f}")
 
-            # Execute IMEX-RK time step - direct solution value operation
-            u,u_seg,coeffs = self.fitter.solve_time_step(u,u_seg, dt)
+            # Execute time step using configured time scheme
+            u, u_seg, coeffs = self.fitter.solve_time_step(u, u_seg, dt, coeffs_n=coeffs)
 
             # Update time and iteration
             T += dt
             it += 1
 
             # Store data for animation using test points (every animation_skip steps)
-            if it % animation_skip == 0 or T >= self.config.time:
+            if it % animation_skip == 0 or T >= self.config.T:
                 self.time_history.append(T)
                 # Convert current solution to test data points for visualization
                 u_test, _ = self.fitter.construct(self.data_test, self.model, coeffs)

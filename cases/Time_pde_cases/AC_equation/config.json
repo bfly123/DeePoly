@@ -1,25 +1,19 @@
 {
     "problem_type": "time_pde",
     "method": "hybrid",
-    "eq": {},
-    "eq_L1": [
-        "-0.0001*diff(u,x,2)"
-    ],
-    "eq_L2": [
-        "u"
-    ],
-    "f_L2": [
-        "u**2-1"
-    ],
-    "N": [
-    ],
-    "source_term": "0",
-    "eq_nonlinear": [
-        {
-            "coefficient": "5*u",
-            "nonlinear_term": "u**2-1"
-        }
-    ],
+    "auto_code": false,
+    "eq": {
+        "L1": [
+            "0.0001*diff(u,x,2)"
+        ],
+        "L2": [
+            "u"
+        ],
+        "F": [
+            "5-5*u**2"
+        ],
+        "N": []
+    },
     "vars_list": [
         "u"
     ],
@@ -27,11 +21,11 @@
         "x"
     ],
     "Initial_conditions": [
-      {
-        "var": "u",
-        "value": "1/2/(4*pi)**2*sin(4*pi*x)",
-        "points": 100
-      }
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",
+            "points": 100
+        }
     ],
     "boundary_conditions": [
         {
@@ -49,6 +43,24 @@
                 "u"
             ],
             "type": "dirichlet",
+            "value": "0",
+            "points": 1
+        },
+        {
+            "region": "left",
+            "var": [
+                "u"
+            ],
+            "type": "neumann",
+            "value": "0",
+            "points": 1
+        },
+        {
+            "region": "right",
+            "var": [
+                "u"
+            ],
+            "type": "neumann",
             "value": "0",
             "points": 1
         }
@@ -77,18 +89,14 @@
     ],
     "x_domain": [
         [
-            0,
+            -1,
             1
         ]
     ],
     "time_scheme": "IMEX_RK_2_2_2",
-    "time_scheme_params": {
-        "gamma": 0.2928932
-    },
     "T": 1,
     "dt": 0.01,
     "spotter_skip": 10,
-    "auto_code": false,
     "device": "cuda",
     "linear_device": "cpu",
     "seed": 42,

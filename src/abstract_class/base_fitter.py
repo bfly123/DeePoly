@@ -37,10 +37,28 @@ class BaseDeepPolyFitter(ABC):
         self._precompiled = False  # Pre-compilation completion flag
 
         self.feature_generator = FeatureGenerator(self.config.linear_device)
-        self.max_derivatives = config.operator_parse["max_derivative_orders"]
-        self.all_derivatives = config.operator_parse["all_derivatives"]
-        self.derivatives = config.operator_parse["derivatives"]
-        self.operator_terms = config.operator_parse["operator_terms"]
+        
+        # 优先使用config直接属性，回退到operator_parse字典访问
+        if hasattr(config, 'max_derivative_orders'):
+            self.max_derivatives = config.max_derivative_orders
+        else:
+            self.max_derivatives = config.operator_parse["max_derivative_orders"]
+            
+        if hasattr(config, 'all_derivatives'):
+            self.all_derivatives = config.all_derivatives
+        else:
+            self.all_derivatives = config.operator_parse["all_derivatives"]
+            
+        if hasattr(config, 'derivatives'):
+            self.derivatives = config.derivatives
+        else:
+            self.derivatives = config.operator_parse["derivatives"]
+            
+        if hasattr(config, 'operator_terms'):
+            self.operator_terms = config.operator_terms
+        else:
+            self.operator_terms = config.operator_parse["operator_terms"]
+            
         self.L1 = self.operator_terms.get("L1", None)
         self.L2 = self.operator_terms.get("L2", None)
         self.N = self.operator_terms.get("N", None)
@@ -193,11 +211,11 @@ class BaseDeepPolyFitter(ABC):
             col_start = i * ne * dgN
             col_end = (i + 1) * ne * dgN
 
-            L, r = self._build_segment_jacobian(i)
+            L, r = self._build_segment_jacobian(i, **kwargs)
 
             # Fill matrices
             J1[row_start:row_end, col_start:col_end] = L
-            b1[row_start:row_end] = r
+            b1[row_start:row_end, 0] = r
 
             row_start = row_end
 
