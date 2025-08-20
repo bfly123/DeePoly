@@ -1,16 +1,16 @@
 import torch
+import numpy as np
 from typing import Dict
 from src.abstract_class.base_net import BaseNet
 
 class TimePDENet(BaseNet):
     """时间依赖问题的神经网络实现"""
     
-    def physics_loss(self, data_GPU: Dict, data_train: Dict, **kwargs) -> torch.Tensor:
+    def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
         """计算物理损失
         
         Args:
             data_GPU: GPU数据字典，包含训练所需的GPU数据
-            data_train: 训练数据字典，包含训练所需的CPU数据
             **kwargs: 额外参数
                 - dt: 时间步长，默认为0
                 - step: 时间步类型，默认为"pre"
@@ -25,11 +25,12 @@ class TimePDENet(BaseNet):
         # 获取训练数据
         x_train = data_GPU["x_train"]
         x_bd = data_GPU["x_bd"]
-        U_bd = data_GPU["u_bd"]
+        u_bd = data_GPU["u_bd"]
         param = data_GPU["param"]
+        U_n = data_GPU["U_current"]
 
         # 获取模型预测
-        _, output = self(x_train)
+        _, U = self(x_train)
 
         # 获取参数
         Re = param[0]["Re"]
@@ -37,7 +38,7 @@ class TimePDENet(BaseNet):
 
 # auto code begin
         # Extract physical quantities from output
-        u = output[..., 0]
+        u = U[..., 0]
 
         # Calculate derivatives in each direction
         du_x = self.gradients(u, x_train)[0][..., 0]
@@ -45,51 +46,221 @@ class TimePDENet(BaseNet):
         # Calculate 2nd-order derivatives
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
+        # L1 operators
 
-        # Additional L1 operators (implicit linear)
-        L1_extra = [-0.0001*du_xx]
+        L1 = [0.0001*du_xx]
+        L11 = L1[0]
 
-        # Additional L2 operators (semi-implicit linear)
-        L2_extra = [u]
+        # L2 operators
+        L2 = [u]
 
-        # f_L2 functions (nonlinear functions for L2)
-        f_L2 = [u**2-1]
+        # F operators
+        F = [5-5*u**2]
+
+        # N operators
+        N = [
+        ]
 
 # auto code end
 
-        # 根据不同步骤处理数据
-        if step == "1st_order":
-            # 一阶方法
-            u_n = data_train["u_n"][..., 0]
-            # 一阶前向欧拉方法
-            eq0 = u - u_n - dt * (L1_0 + L2_0 * f_L2_0)
+        # 使用一阶前向欧拉格式：u^{n+1} = u^n + dt * [L1(u^{n+1}) + L2(u^n)*F(u^n)]
+        # 对于神经网络训练，我们直接最小化PDE残差
+        # PDE残差: du/dt - L1(u) - L2(u)*F(u) = 0
+        # 使用一阶差分近似: (u^{n+1} - u^n)/dt - L1(u^{n+1}) - L2(u^n)*F(u^n) = 0
+        
+        
+        pde_loss = 0.0
+        
+        # 时间演化格式: (u - u_n)/dt = L1[i] + L2[i]*F[i]  
+        for i in range(self.config.n_eqs):
+            residual_i = (U[:,i] - U_n[:,i])/dt - L1[i] - L2[i]*F[i]
+            pde_loss += torch.mean(residual_i**2)
 
-        elif step == "pre":
-            # 第一阶段：Trapezoidal Rule
-            u_n = data_train["u_n"][..., 0]
-            f_n = data_train["f_n"][..., 0]  # 可能包含右端项
 
-            # u^{n+γ} = u^n + γdt[θF(u^{n+γ}) + (1-θ)F(u^n)]
-            eq0 = u - u_n - 0.5 * dt * (L1_0 + L2_0 * f_L2_0 + f_n)
+        boundary_loss = 0.0
+        boundary_loss_weight = 10.0  # 边界条件权重
+        global_boundary_dict = data_GPU.get("global_boundary_dict", None)
 
-        # 边界条件处理
-        _, output_bd = self(x_bd)
+        # 处理边界条件
+        if global_boundary_dict:
+            # 处理每个变量的边界条件
+            for var in global_boundary_dict:
+                # 处理Dirichlet边界条件
+                if (
+                    "dirichlet" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["dirichlet"]["x"].shape[0] > 0
+                ):
+                    x_bc = global_boundary_dict[var]["dirichlet"]["x"]
+                    u_bc = global_boundary_dict[var]["dirichlet"]["u"]
 
-        # 应用权重到边界误差
-        bc_error = (output_bd[..., 0:2] - U_bd[..., 0:2]) ** 2
-        bc_loss = torch.mean(bc_error)
+                    # 在边界点获取模型预测
+                    _, pred_bc = self(x_bc)
 
+                    # 计算边界损失 (预测值与目标值之间的MSE)
+                    bc_error = (pred_bc - u_bc) ** 2
+                    boundary_loss += torch.mean(bc_error)
+
+                # 处理Neumann边界条件
+                if (
+                    "neumann" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["neumann"]["x"].shape[0] > 0
+                ):
+                    x_bc = global_boundary_dict[var]["neumann"]["x"]
+                    u_bc = global_boundary_dict[var]["neumann"]["u"]
+                    normals = global_boundary_dict[var]["neumann"]["normals"]
+
+                    # 存储所有法向导数误差
+                    all_derivatives_errors = []
+
+                    # 计算每个边界点的法向导数
+                    for i in range(x_bc.shape[0]):
+                        x_point = x_bc[i : i + 1].clone().detach().requires_grad_(True)
+
+                        # 获取预测
+                        _, u_pred = self(x_point)
+
+                        # 计算梯度
+                        grads = self.gradients(u_pred, x_point)[0]
+
+                        # 计算法向导数 (梯度与法向量的点积)
+                        normal = normals[i]
+                        normal_derivative = torch.sum(grads * normal)
+
+                        # 计算误差
+                        bc_error = (normal_derivative - u_bc[i]) ** 2
+                        all_derivatives_errors.append(bc_error)
+
+                    # 计算所有Neumann边界点的MSE
+                    if all_derivatives_errors:
+                        neumann_errors = torch.stack(all_derivatives_errors)
+                        boundary_loss += torch.mean(neumann_errors)
+
+                # 处理Robin边界条件
+                if (
+                    "robin" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["robin"]["x"].shape[0] > 0
+                ):
+                    x_bc = global_boundary_dict[var]["robin"]["x"]
+                    u_bc = global_boundary_dict[var]["robin"]["u"]
+                    normals = global_boundary_dict[var]["robin"]["normals"]
+                    params = global_boundary_dict[var]["robin"]["params"]
+
+                    # 存储所有Robin边界条件误差
+                    all_robin_errors = []
+
+                    # 处理每个Robin边界点
+                    for i in range(x_bc.shape[0]):
+                        x_point = x_bc[i : i + 1].clone().detach().requires_grad_(True)
+
+                        # 获取预测
+                        _, u_pred = self(x_point)
+
+                        # 获取参数
+                        alpha, beta = params[0], params[1]
+
+                        # 如果beta非零则计算梯度
+                        if abs(beta) > 1e-10:
+                            grads = self.gradients(u_pred, x_point)[0]
+
+                            # 计算法向导数
+                            normal = normals[i]
+                            normal_derivative = torch.sum(grads * normal)
+
+                            # Robin条件: alpha*u + beta*du/dn = g
+                            robin_value = alpha * u_pred + beta * normal_derivative
+                            bc_error = (robin_value - u_bc[i]) ** 2
+                        else:
+                            # 如果beta为零，则相当于Dirichlet条件
+                            bc_error = (alpha * u_pred - u_bc[i]) ** 2
+                        
+                        all_robin_errors.append(bc_error)
+                    
+                    # 计算所有Robin边界点的MSE
+                    if all_robin_errors:
+                        robin_errors = torch.stack(all_robin_errors)
+                        boundary_loss += torch.mean(robin_errors)
+        
         # 总损失函数
-        pde_loss = torch.mean(eq0**2)
-        loss = pde_loss + 10 * bc_loss  # 增加边界条件权重
+        total_loss = pde_loss #+ boundary_loss_weight * boundary_loss
 
-        if torch.rand(1).item() < 0.01:  # 1%的概率打印
-            print(f"\nLoss Components ({step} stage):")
-            print(f"PDE Loss: {pde_loss.item():.8f}")
-            print(f"BC Loss: {bc_loss.item():.8f}")
-            print(f"Total Loss: {loss.item():.8f}")
-
-        return loss
+        return total_loss
+    
+    def prepare_gpu_data(self, data: Dict, U_current: np.ndarray = None) -> Dict:
+        """Prepare GPU data for time PDE problems
+        
+        Args:
+            data: Input data dictionary containing training data
+            
+        Returns:
+            gpu_data: Dictionary containing GPU tensors
+        """
+        gpu_data = {}
+        
+        # Transfer coordinate data to GPU
+        gpu_data["x_train"] = torch.tensor(
+            data["x"], dtype=torch.float64, device=self.config.device, requires_grad=True
+        )
+        gpu_data["U_current"] = torch.tensor(
+            U_current, dtype=torch.float64, device=self.config.device
+        )
+        
+        # Transfer boundary data to GPU 
+        if "global_boundary_dict" in data:
+            global_boundary_dict = {}
+            for var in data["global_boundary_dict"]:
+                global_boundary_dict[var] = {}
+                for bc_type in data["global_boundary_dict"][var]:
+                    global_boundary_dict[var][bc_type] = {}
+                    for key, value in data["global_boundary_dict"][var][bc_type].items():
+                        if isinstance(value, np.ndarray) and value.size > 0:
+                            if key == "x":
+                                global_boundary_dict[var][bc_type][key] = torch.tensor(
+                                    value, dtype=torch.float64, device=self.config.device, requires_grad=True
+                                )
+                            else:
+                                global_boundary_dict[var][bc_type][key] = torch.tensor(
+                                    value, dtype=torch.float64, device=self.config.device
+                                )
+                        else:
+                            global_boundary_dict[var][bc_type][key] = value
+            gpu_data["global_boundary_dict"] = global_boundary_dict
+        else:
+            gpu_data["global_boundary_dict"] = {}
+        
+        # Transfer boundary points and values for physics loss computation
+        if "global_boundary_dict" in data and data["global_boundary_dict"]:
+            # Extract boundary data for easier access in physics_loss
+            x_bd_list = []
+            u_bd_list = []
+            for var in data["global_boundary_dict"]:
+                for bc_type in data["global_boundary_dict"][var]:
+                    if "x" in data["global_boundary_dict"][var][bc_type]:
+                        x_bd = data["global_boundary_dict"][var][bc_type]["x"]
+                        u_bd = data["global_boundary_dict"][var][bc_type]["u"]
+                        if isinstance(x_bd, np.ndarray) and x_bd.size > 0:
+                            x_bd_list.append(x_bd)
+                            u_bd_list.append(u_bd)
+            
+            if x_bd_list:
+                gpu_data["x_bd"] = torch.tensor(
+                    np.vstack(x_bd_list), dtype=torch.float64, device=self.config.device, requires_grad=True
+                )
+                gpu_data["u_bd"] = torch.tensor(
+                    np.vstack(u_bd_list), dtype=torch.float64, device=self.config.device
+                )
+            else:
+                # Create empty tensors if no boundary data
+                gpu_data["x_bd"] = torch.zeros((0, self.config.n_dim), dtype=torch.float64, device=self.config.device)
+                gpu_data["u_bd"] = torch.zeros((0, self.config.n_eqs), dtype=torch.float64, device=self.config.device)
+        else:
+            # Create empty tensors if no boundary data
+            gpu_data["x_bd"] = torch.zeros((0, self.config.n_dim), dtype=torch.float64, device=self.config.device)
+            gpu_data["u_bd"] = torch.zeros((0, self.config.n_eqs), dtype=torch.float64, device=self.config.device)
+        
+        # Add parameter data for physics loss
+        gpu_data["param"] = [{"Re": 1.0, "nu": 1.0}]  # Default parameters for time PDE
+        
+        return gpu_data
     
     @staticmethod
     def model_init(config):

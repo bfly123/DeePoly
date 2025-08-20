@@ -6,6 +6,9 @@ from torch import optim
 import os
 import argparse
 import sys
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
 
 # Ensure project modules can be imported
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,8 +19,6 @@ if project_root not in sys.path:
 # Change relative imports to absolute imports
 from src.problem_solvers.time_pde_solver.core.net import TimePDENet
 
-# Import train function
-# from src.abstract_class.base_net import train_net
 from src.problem_solvers.time_pde_solver.core.fitter import TimePDEFitter
 from src.problem_solvers.time_pde_solver.utils.data import TimePDEDataGenerator
 from src.problem_solvers.time_pde_solver.utils.visualize import TimePDEVisualizer
@@ -63,7 +64,7 @@ class TimePDESolver:
         """Main solving function"""
         start_time = time.time()
 
-        u_n, u_n_seg, model, coeffs = self.solve_time_evolution()
+        U_n, U_n_seg, model, coeffs = self.solve_time_evolution()
 
         total_time = time.time() - start_time
         print(f"Total time: {total_time:.2f} seconds")
@@ -76,149 +77,202 @@ class TimePDESolver:
 
         # Save animation with time evolution data
         if hasattr(self, 'time_history') and hasattr(self, 'solution_history'):
-            self.visualizer.save_animation(
-                "results/flow_evolution.gif", 
-                time_history=self.time_history,
-                solution_history=self.solution_history,
-                data=self.data_test,
-                duration=200
-            )
+            self.visualizer.save_animation("results/flow_evolution.gif", duration=200)
         else:
             print("Warning: No time evolution data available for animation")
 
-        return u_n, u_n_seg, model, coeffs
+        return U_n, U_n_seg, model, coeffs
 
-    def solve_time_evolution(
-        self,
-    ) -> Tuple[np.ndarray, list, torch.nn.Module, np.ndarray]:
+    def solve_time_evolution(self) -> Tuple[np.ndarray, list, torch.nn.Module, np.ndarray]:
         """Time evolution solving using IMEX-RK(2,2,2) method"""
-        # Initialize time parameters
-        it = 0
-        T = 0.0
-        dt = self.config.dt
-
-        # Initialize solution values directly
-        u,u_seg = self.data_train["u"],self.data_train["u_seg"]
-
-        u_test,u_seg_test = self.data_test["u"],self.data_test["u_seg"]
-
-        # Initialize storage for animation data - use test data for visualization
-        animation_skip = getattr(self.config, 'animation_skip', 10)  # 每10步保存一次
-        self.time_history = [T]
-        self.solution_history = []
+        # Initialize time evolution
+        it, T, dt, U, U_seg, coeffs = self._initialize_time_evolution()
         
-        # Store initial state using test data points
-        self.solution_history.append(u_test.copy())
-
-        # Initialize fitter with model
-        self.fitter.fitter_init(self.model)
-        
-        # Compute initial coefficients from initial data
-        coeffs = self.fitter.fit(u_seg=u_seg, operation="initial_fit")
-
-        print("Starting time evolution with IMEX-RK(2,2,2)...")
-        self.fitter.print_time_scheme_summary()
-
+        # Main time stepping loop
         while T < self.config.T:
-            # Adaptive time step for first iteration
-            if it == 0:
-                dt = self.config.dt / 10
-            else:
-                dt = self.config.dt
-
-            # Estimate stable time step
-            if hasattr(self.fitter, "estimate_stable_dt"):
-                dt_stable = self.fitter.estimate_stable_dt(u)
-                dt = min(dt, dt_stable)
-
-            # Adjust for final time step
-            if T + dt > self.config.T:
-                dt = self.config.T - T
-
+            # Compute adaptive time step
+            dt = self._compute_adaptive_timestep(it, T, dt, U)
+            
             print(f"Step {it}: T = {T:.6f}, dt = {dt:.6f}")
 
-            # Execute time step using configured time scheme
-            u, u_seg, coeffs = self.fitter.solve_time_step(u, u_seg, dt, coeffs_n=coeffs)
+            # Train neural network and execute time step
+            self._train_neural_network_step(dt, U_current=U)
+            U, U_seg, coeffs = self.fitter.solve_time_step(U, U_seg, dt, coeffs_n=coeffs)
 
             # Update time and iteration
             T += dt
             it += 1
 
-            # Store data for animation using test points (every animation_skip steps)
-            if it % animation_skip == 0 or T >= self.config.T:
-                self.time_history.append(T)
-                # Convert current solution to test data points for visualization
-                u_test, _ = self.fitter.construct(self.data_test, self.model, coeffs)
-                self.solution_history.append(u_test.copy())
-
-            # Optional: monitoring
-            if it % 10 == 0:  # Every 10 steps
-                print(f"  Solution norm: {np.linalg.norm(u):.6e}")
+            # Store animation data and monitoring
+            self._update_animation_data(it, T, coeffs)
+            self._monitor_solution(it, U)
 
         print(f"Time evolution completed. Final time: T = {T:.6f}")
         print(f"Collected {len(self.time_history)} time steps for animation")
 
-        # Convert final solution to coefficients for output compatibility
-        #coeffs = self._solution_to_coefficients(u)
+        return U, U_seg, self.model, coeffs
+
+    def _initialize_time_evolution(self) -> Tuple[int, float, float, np.ndarray, list, np.ndarray]:
+        """Initialize time evolution parameters and solution"""
+        it = 0
+        T = 0.0
+        dt = self.config.dt
+
+        # Initialize solution values directly
+        U, U_seg = self.data_train["U"], self.data_train["U_seg"]
+        U_test, U_seg_test = self.data_test["U"], self.data_test["U_seg"]
+
+        # Initialize storage for animation data
+        animation_skip = getattr(self.config, 'animation_skip', 10)
+        self.time_history = [T]
+        self.solution_history = []
+        self.solution_history.append(U_test.copy())
+
+        # Initialize fitter with model for operator precompilation
+        self.fitter.fitter_init(self.model)
         
-        # Reconstruct segmented solution for output
-        #u_n_seg = self._reconstruct_segmented_solution(u)
+        # Initialize coefficients for time evolution
+        coeffs = None
+        
+        return it, T, dt, U, U_seg, coeffs
 
-        return u, u_seg, self.model, coeffs
+    def _compute_adaptive_timestep(self, it: int, T: float, dt: float, U: np.ndarray) -> float:
+        """Compute adaptive time step based on iteration and stability"""
+        # Adaptive time step for first iteration
+        if it == 0:
+            dt = self.config.dt  #/ 10
+        else:
+            dt = self.config.dt
 
-  #  def _initialize_solution(self) -> np.ndarray:
-  #      """Initialize solution values using initial conditions or neural network prediction"""
-  #      try:
-  #          # Initialize with small random values or use neural network prediction
-  #          total_points = sum(len(seg) for seg in self.data_train["x_segments_norm"])
-  #          
-  #          # Use neural network to generate initial solution
-  #          u_init = np.zeros((total_points, self.config.n_eqs))
-  #          
-  #          start_idx = 0
-  #          for segment_idx in range(len(self.data_train["x_segments_norm"])):
-  #              x_seg = self.data_train["x_segments_norm"][segment_idx]
-  #              n_points = len(x_seg)
-  #              end_idx = start_idx + n_points
-  #              
-  #              # Use neural network prediction as initial condition
-  #              x_tensor = torch.tensor(x_seg, dtype=torch.float64, device=self.config.device)
-  #              with torch.no_grad():
-  #                  _, u_pred = self.model(x_tensor)
-  #                  u_init[start_idx:end_idx, :] = u_pred.cpu().numpy()
-  #              
-  #              start_idx = end_idx
-  #          
-  #          print(f"Initialized solution with norm: {np.linalg.norm(u_init):.6e}")
-  #          return u_init
-  #          
-  #      except Exception as e:
-  #          print(f"Warning: Failed to initialize with neural network: {e}")
-  #          # Fallback: use small random values
-  #          total_points = sum(len(seg) for seg in self.data_train["x_segments_norm"])
-  #          u_init = np.random.normal(0, 0.01, (total_points, self.config.n_eqs))
-  #          return u_init
+        # Estimate stable time step
+        if hasattr(self.fitter, "estimate_stable_dt"):
+            dt_stable = self.fitter.estimate_stable_dt(U)
+            dt = min(dt, dt_stable)
+
+        # Adjust for final time step
+        if T + dt > self.config.T:
+            dt = self.config.T - T
+            
+        return dt
+
+    def _update_animation_data(self, it: int, T: float, coeffs: np.ndarray) -> None:
+        """Update animation data for visualization"""
+        animation_skip = getattr(self.config, 'animation_skip', 10)
+        if it % animation_skip == 0 or T >= self.config.T:
+            self.time_history.append(T)
+            U_test, _ = self.fitter.construct(self.data_test, self.model, coeffs)
+            self.solution_history.append(U_test.copy())
+
+    def _monitor_solution(self, it: int, U: np.ndarray) -> None:
+        """Monitor solution progress"""
+        if it % 10 == 0:  # Every 10 steps
+            print(f"  Solution norm: {np.linalg.norm(U):.6e}")
+
+    def _train_neural_network_step(self, dt: float, U_current: np.ndarray = None) -> None:
+        """Train neural network for current time step following linear PDE solver pattern"""
+        print("  Training neural network for current time step...")
+        data_GPU = self.model.prepare_gpu_data(self.data_train,U_current)
+               
+        self.model.eval()
+        # Pass u_n to train_net
+        self.model.train_net(self.data_train, self.model, data_GPU, dt=dt)
+        final_loss = self.model.physics_loss(data_GPU, dt=dt).item()
+        print(f"  Neural network training completed, loss: {final_loss:.8e}")
+        self.fitter.fitter_init(self.model)
+        
+        # Create scatter plot to visualize neural network predictions
+        self._plot_neural_network_predictions(dt)
+
+    def _plot_neural_network_predictions(self, dt: float) -> None:
+        """Plot neural network predictions as scatter plot"""
+        try:
+            print("  Creating neural network prediction scatter plot...")
+            
+            # Get test data points
+            x_test = self.data_test["x"].flatten()
+            print(f"  Debug: x_test shape: {x_test.shape}, range: [{np.min(x_test):.3f}, {np.max(x_test):.3f}]")
+            
+            # Get neural network predictions on test data
+            x_tensor = torch.tensor(self.data_test["x"], dtype=torch.float64, device=self.config.device)
+            x_tensor.requires_grad_(True)  # Enable gradients for x
+            print(f"  Debug: x_tensor shape: {x_tensor.shape}")
+            
+            # Check network parameters first
+            total_params = sum(p.numel() for p in self.model.parameters())
+            param_norm = sum(p.norm().item() for p in self.model.parameters())
+            print(f"  Debug: Total parameters: {total_params}, Parameter norm: {param_norm:.6e}")
+            
+            # Check input normalization
+            print(f"  Debug: x_tensor stats - mean: {torch.mean(x_tensor):.6f}, std: {torch.std(x_tensor):.6f}")
+            
+            # Don't use no_grad for prediction since we need gradients during forward pass
+            self.model.eval()
+            features, u_pred = self.model(x_tensor)
+            print(f"  Debug: features shape: {features.shape}")
+            print(f"  Debug: u_pred shape: {u_pred.shape}")
+            print(f"  Debug: u_pred range: [{torch.min(u_pred):.6f}, {torch.max(u_pred):.6f}]")
+            print(f"  Debug: features range: [{torch.min(features):.6f}, {torch.max(features):.6f}]")
+            
+            # Check if u_pred is all zeros or very small
+            u_pred_abs_max = torch.max(torch.abs(u_pred))
+            print(f"  Debug: max absolute value of u_pred: {u_pred_abs_max:.6e}")
+            
+            # Check final layer weights
+            if hasattr(self.model, 'out'):
+                out_weight_norm = torch.norm(self.model.out.weight).item()
+                print(f"  Debug: Output layer weight norm: {out_weight_norm:.6e}")
+            
+            u_pred_np = u_pred.detach().cpu().numpy().flatten()
+            
+            # Get target/true values if available
+            u_true = self.data_test["u"].flatten() if "u" in self.data_test else None
+            if u_true is not None:
+                print(f"  Debug: u_true shape: {u_true.shape}, range: [{np.min(u_true):.3f}, {np.max(u_true):.3f}]")
+            
+            # Create scatter plot
+            plt.figure(figsize=(12, 8))
+            
+            # Plot neural network predictions
+            plt.scatter(x_test, u_pred_np, c='red', alpha=0.7, s=30, label='NN Predictions', marker='o')
+            
+            # Plot true values if available
+            if u_true is not None:
+                plt.scatter(x_test, u_true, c='blue', alpha=0.5, s=20, label='True Values', marker='.')
+            
+            # Add labels and formatting
+            plt.xlabel('x')
+            plt.ylabel('u(x)')
+            plt.title(f'Neural Network Predictions vs True Values (dt={dt:.6f})')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            
+            # Save the plot
+            results_dir = os.path.join(self.config.results_dir)
+            os.makedirs(results_dir, exist_ok=True)
+            
+            # Create filename with time step info
+            if hasattr(self, 'time_history') and len(self.time_history) > 0:
+                current_time = self.time_history[-1] if self.time_history else 0.0
+                filename = f"nn_predictions_t_{current_time:.6f}_dt_{dt:.6f}.png"
+            else:
+                filename = f"nn_predictions_dt_{dt:.6f}.png"
+            
+            output_path = os.path.join(results_dir, filename)
+            plt.savefig(output_path, dpi=150, bbox_inches='tight')
+            plt.close()  # Close to free memory
+            
+            print(f"  Neural network prediction plot saved to: {output_path}")
+            
+            # Print some statistics
+            if u_true is not None:
+                mse = np.mean((u_pred_np - u_true)**2)
+                max_error = np.max(np.abs(u_pred_np - u_true))
+                print(f"  MSE between NN and true values: {mse:.6e}")
+                print(f"  Max absolute error: {max_error:.6e}")
+            
+            print(f"  NN prediction range: [{np.min(u_pred_np):.6e}, {np.max(u_pred_np):.6e}]")
+            
+        except Exception as e:
+            print(f"  Warning: Failed to create neural network prediction plot: {e}")
 
 
-######## This main is for testing, please use main_solver.py to run the solver##########
-#def main():
-#    parser = argparse.ArgumentParser(description="Solver entry")
-#    parser.add_argument(
-#        "--case",
-#        type=str,
-#        default="time_dependent",
-#        choices=["time_dependent"],
-#        help="Select the case to run",
-#    )
-#    args = parser.parse_args()
-#
-#    if args.case == "time_dependent":
-#        config = TimePDEConfig()
-#        solver = TimePDESolver(config)
-#        solver.solve()
-#    else:
-#        raise ValueError(f"Unknown case type: {args.case}")
-#
-#
-#if __name__ == "__main__":
-#    main()

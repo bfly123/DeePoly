@@ -112,7 +112,7 @@ class BaseDeepPolyFitter(ABC):
 
     def fitter_init(self, model: nn.Module):
         """Initialize and pre-compile operator matrices"""
-        model = model.to(self.config.linear_device)
+        # 保持模型在原设备上，不要移动到linear_device
         self._current_model = model
         self._precompile_all_operators(model)
         return model
@@ -254,7 +254,7 @@ class BaseDeepPolyFitter(ABC):
 
         if getattr(self.config, "method", "hybrid") == "hybrid":
             X_nn = self.feature_generator.spotter_features(
-                x, x_min, x_max, model, derivative, self.device
+                x, x_min, x_max, model, derivative, self.config.device
             )
             X_poly = np.hstack([X_poly, X_nn])
 
@@ -537,7 +537,8 @@ class BaseDeepPolyFitter(ABC):
         self, data: Dict, model: nn.Module
     ) -> Tuple[np.ndarray, List[np.ndarray]]:
         """Make predictions directly using neural network model"""
-        model.to(self.config.linear_device)
+        # 使用模型的设备，不强制移动到linear_device
+        model_device = next(model.parameters()).device
         x_segments = data["x_segments"]
         ne = self.config.n_eqs
         ns = self.ns
@@ -552,7 +553,7 @@ class BaseDeepPolyFitter(ABC):
             end_idx = start_idx + segment_size
 
             x_in = torch.tensor(
-                x_segments[i], dtype=torch.float64, device=self.config.linear_device
+                x_segments[i], dtype=torch.float64, device=model_device
             )
             _, pred = model(x_in)
             pred = pred.cpu().detach().numpy()

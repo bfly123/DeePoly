@@ -57,7 +57,7 @@
   ],
   "device": "cuda",
   "linear_device": "cpu",
-  "learning_rate": "0.001",
+  "learning_rate": "0.01",
   "training_epochs": "10000",
   "points_domain": "300",
   "points_domain_test": [
@@ -65,10 +65,10 @@
   ],
   "points_boundary": "200",
   "points_boundary_test": "50",
-  "T": "1",
-  "dt": "0.01",
+  "T": "0.2",
+  "dt": "0.1",
   "spotter_skip": "10",
-  "epochs_adam": "5000",
+  "epochs_adam": "10000",
   "epochs_lbfgs": "300",
   "max_retries": "1",
   "DNNtol": "0.0001",
@@ -100,7 +100,7 @@
         "u"
       ],
       "type": "dirichlet",
-      "value": "0",
+      "value": "-1",
       "points": "1"
     },
     {
@@ -109,7 +109,7 @@
         "u"
       ],
       "type": "dirichlet",
-      "value": "0",
+      "value": "-1",
       "points": "1"
     },
     {
@@ -381,6 +381,6 @@
       }
     ]
   },
-  "export_time": "2025-08-09 10:49:59",
+  "export_time": "2025-08-19 23:07:42",
   "device_info": "cuda"
 }

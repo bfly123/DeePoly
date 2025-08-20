@@ -32,37 +32,67 @@ class TimePDEVisualizer(BaseVisualizer):
         u_global = np.vstack(data['u_segments'])
         pred_global = prediction
         
-        # 创建网格
-        x = np.unique(x_global[:, 0])
-        y = np.unique(x_global[:, 1])
-        X, Y = np.meshgrid(x, y)
+        # 检查维度并创建相应的网格
+        if x_global.shape[1] == 1:
+            # 1D情况
+            x = np.unique(x_global[:, 0])
+            X = x
+            Y = None
+        else:
+            # 2D情况
+            x = np.unique(x_global[:, 0])
+            y = np.unique(x_global[:, 1])
+            X, Y = np.meshgrid(x, y)
         
         # 重塑预测结果
-        pred_grid = pred_global.reshape(len(y), len(x))
-        u_grid = u_global.reshape(len(y), len(x))
+        if Y is not None:
+            # 2D情况
+            pred_grid = pred_global.reshape(len(y), len(x))
+            u_grid = u_global.reshape(len(y), len(x))
+        else:
+            # 1D情况
+            pred_grid = pred_global.flatten()
+            u_grid = u_global.flatten()
         
         # 绘制真实解和预测解
         ax1 = fig.add_subplot(121)
-        im1 = ax1.pcolormesh(X, Y, u_grid, cmap='viridis')
+        if Y is not None:
+            # 2D绘图
+            im1 = ax1.pcolormesh(X, Y, u_grid, cmap='viridis')
+            plt.colorbar(im1, ax=ax1)
+        else:
+            # 1D绘图
+            ax1.plot(X, u_grid, 'b-', label='真实解')
+            ax1.legend()
         ax1.set_title('真实解')
-        plt.colorbar(im1, ax=ax1)
         
         ax2 = fig.add_subplot(122)
-        im2 = ax2.pcolormesh(X, Y, pred_grid, cmap='viridis')
+        if Y is not None:
+            # 2D绘图
+            im2 = ax2.pcolormesh(X, Y, pred_grid, cmap='viridis')
+            plt.colorbar(im2, ax=ax2)
+        else:
+            # 1D绘图
+            ax2.plot(X, pred_grid, 'r-', label='预测解')
+            ax2.legend()
         ax2.set_title('预测解')
-        plt.colorbar(im2, ax=ax2)
         
-        # 添加段边界
-        for n in range(self.Ns):
-            boundaries = self._get_segment_boundaries(data, n)
-            x_min, x_max = boundaries['x_min'], boundaries['x_max']
-            
-            # 绘制段边界
-            for ax in [ax1, ax2]:
-                ax.plot([x_min[0], x_max[0]], [x_min[1], x_min[1]], 'k--', alpha=0.5)
-                ax.plot([x_min[0], x_max[0]], [x_max[1], x_max[1]], 'k--', alpha=0.5)
-                ax.plot([x_min[0], x_min[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
-                ax.plot([x_max[0], x_max[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+        # 添加段边界(仅2D情况)
+        if Y is not None and hasattr(self.config, 'x_min') and hasattr(self.config, 'x_max'):
+            for n in range(self.Ns):
+                try:
+                    x_min = self.config.x_min[n]
+                    x_max = self.config.x_max[n]
+                    
+                    # 绘制段边界
+                    for ax in [ax1, ax2]:
+                        ax.plot([x_min[0], x_max[0]], [x_min[1], x_min[1]], 'k--', alpha=0.5)
+                        ax.plot([x_min[0], x_max[0]], [x_max[1], x_max[1]], 'k--', alpha=0.5)
+                        ax.plot([x_min[0], x_min[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+                        ax.plot([x_max[0], x_max[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+                except (IndexError, AttributeError):
+                    # Skip boundary drawing if segment boundaries not available
+                    pass
         
         plt.tight_layout()
         self._save_figure(fig, save_path)
@@ -77,30 +107,53 @@ class TimePDEVisualizer(BaseVisualizer):
         u_global = np.vstack(data['u_segments'])
         error = np.abs(prediction - u_global)
         
-        # 创建网格
-        x = np.unique(x_global[:, 0])
-        y = np.unique(x_global[:, 1])
-        X, Y = np.meshgrid(x, y)
-        
-        # 重塑误差
-        error_grid = error.reshape(len(y), len(x))
-        
-        # 绘制误差分布
-        ax = fig.add_subplot(111)
-        im = ax.pcolormesh(X, Y, error_grid, cmap='hot')
-        plt.colorbar(im, ax=ax)
-        ax.set_title('误差分布')
-        
-        # 添加段边界
-        for n in range(self.Ns):
-            boundaries = self._get_segment_boundaries(data, n)
-            x_min, x_max = boundaries['x_min'], boundaries['x_max']
+        # 检查维度并创建网格
+        if x_global.shape[1] == 1:
+            # 1D情况 - 使用线图显示误差
+            x = x_global[:, 0]
+            sort_idx = np.argsort(x)
+            x_sorted = x[sort_idx]
+            error_sorted = error.flatten()[sort_idx]
             
-            # 绘制段边界
-            ax.plot([x_min[0], x_max[0]], [x_min[1], x_min[1]], 'k--', alpha=0.5)
-            ax.plot([x_min[0], x_max[0]], [x_max[1], x_max[1]], 'k--', alpha=0.5)
-            ax.plot([x_min[0], x_min[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
-            ax.plot([x_max[0], x_max[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+            ax = fig.add_subplot(111)
+            ax.plot(x_sorted, error_sorted, 'r-', linewidth=2, label='误差')
+            ax.set_title('误差分布')
+            ax.set_xlabel('x')
+            ax.set_ylabel('|误差|')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+        else:
+            # 2D情况 - 使用原有的颜色图
+            x = np.unique(x_global[:, 0])
+            y = np.unique(x_global[:, 1])
+            X, Y = np.meshgrid(x, y)
+            
+            # 重塑误差
+            error_grid = error.reshape(len(y), len(x))
+            
+            # 绘制误差分布
+            ax = fig.add_subplot(111)
+            im = ax.pcolormesh(X, Y, error_grid, cmap='hot')
+            plt.colorbar(im, ax=ax)
+            ax.set_title('误差分布')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            
+            # 添加段边界(仅2D情况)
+            if hasattr(self.config, 'x_min') and hasattr(self.config, 'x_max'):
+                for n in range(self.Ns):
+                    try:
+                        x_min = self.config.x_min[n]
+                        x_max = self.config.x_max[n]
+                        
+                        # 绘制段边界
+                        ax.plot([x_min[0], x_max[0]], [x_min[1], x_min[1]], 'k--', alpha=0.5)
+                        ax.plot([x_min[0], x_max[0]], [x_max[1], x_max[1]], 'k--', alpha=0.5)
+                        ax.plot([x_min[0], x_min[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+                        ax.plot([x_max[0], x_max[0]], [x_min[1], x_max[1]], 'k--', alpha=0.5)
+                    except (IndexError, AttributeError):
+                        # Skip boundary drawing if segment boundaries not available
+                        pass
         
         plt.tight_layout()
         self._save_figure(fig, save_path)
@@ -110,22 +163,55 @@ class TimePDEVisualizer(BaseVisualizer):
         """绘制时间演化过程中的单个时间步"""
         self.ax.clear()
         
-        # 绘制3D散点图
-        self.ax.scatter(x[:, 0], x[:, 1], u[:, 0], c=u[:, 0], cmap="RdBu", s=10)
-        
-        # 设置视角和标签
-        self.ax.view_init(elev=30, azim=45)
-        self.ax.set_xlabel("x")
-        self.ax.set_ylabel("y")
-        self.ax.set_zlabel("u")
-        self.ax.set_title(f"T = {T:.3f}")
-        
-        # 设置坐标轴范围
-        self.ax.set_xlim([self.config.x_domain[0, 0], self.config.x_domain[0, 1]])
-        self.ax.set_ylim([self.config.x_domain[1, 0], self.config.x_domain[1, 1]])
-        zmin, zmax = u[:, 0].min(), u[:, 0].max()
-        margin = (zmax - zmin) * 0.1
-        self.ax.set_zlim([zmin - margin, zmax + margin])
+        # 检查维度并选择合适的绘图方式
+        if x.shape[1] == 1:
+            # 1D情况 - 使用线图
+            # 重新初始化为2D图
+            if hasattr(self.ax, 'zaxis'):
+                plt.close(self.fig)
+                self.fig = plt.figure(figsize=(10, 6))
+                self.ax = self.fig.add_subplot(111)
+            
+            # 排序以便正确绘制线图
+            sort_idx = np.argsort(x[:, 0])
+            x_sorted = x[sort_idx, 0]
+            u_sorted = u[sort_idx, 0] if u.ndim > 1 else u[sort_idx]
+            
+            self.ax.plot(x_sorted, u_sorted, 'b-', linewidth=2)
+            self.ax.set_xlabel("x")
+            self.ax.set_ylabel("u")
+            self.ax.set_title(f"T = {T:.3f}")
+            self.ax.grid(True, alpha=0.3)
+            
+            # 设置坐标轴范围
+            if hasattr(self.config, 'x_domain'):
+                self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
+        else:
+            # 2D情况 - 使用3D散点图
+            # 重新初始化为3D图(如果需要)
+            if not hasattr(self.ax, 'zaxis'):
+                plt.close(self.fig)
+                self.fig = plt.figure(figsize=(10, 10))
+                self.ax = self.fig.add_subplot(111, projection="3d")
+            
+            # 绘制3D散点图
+            u_vals = u[:, 0] if u.ndim > 1 else u
+            self.ax.scatter(x[:, 0], x[:, 1], u_vals, c=u_vals, cmap="RdBu", s=10)
+            
+            # 设置视角和标签
+            self.ax.view_init(elev=30, azim=45)
+            self.ax.set_xlabel("x")
+            self.ax.set_ylabel("y")
+            self.ax.set_zlabel("u")
+            self.ax.set_title(f"T = {T:.3f}")
+            
+            # 设置坐标轴范围
+            if hasattr(self.config, 'x_domain'):
+                self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
+                self.ax.set_ylim([self.config.x_domain[1][0], self.config.x_domain[1][1]])
+                zmin, zmax = u_vals.min(), u_vals.max()
+                margin = (zmax - zmin) * 0.1
+                self.ax.set_zlim([zmin - margin, zmax + margin])
         
         plt.tight_layout()
         if save_path:

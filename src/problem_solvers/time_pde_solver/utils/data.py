@@ -65,7 +65,7 @@ class TimePDEDataGenerator(BaseDataGenerator):
             mode: Data mode, "train" or "test"
 
         Returns:
-            data: Data dictionary containing x (coordinates) and u (values)
+            data: Data dictionary containing x (coordinates) and U (values)
         """
         # Generate domain points
         x_global = self._generate_global_points(mode)
@@ -102,8 +102,9 @@ class TimePDEDataGenerator(BaseDataGenerator):
         return {
             "x": np.vstack(x_segments),
             "x_segments": x_segments,
-            "u": np.vstack(initial_segments),  # 初始条件数据 (兼容旧接口)
-            "u_seg": initial_segments,         # 分段初始条件数据 (兼容旧接口)
+            "U": np.vstack(initial_segments),  # 初始条件数据 (兼容旧接口)
+            "U_seg": initial_segments,         # 分段初始条件数据 (兼容旧接口)
+            "u_segments": initial_segments,    # 可视化兼容
             "initial": np.vstack(initial_segments),
             "initial_segments": initial_segments,
             "global_boundary_dict": global_boundary_dict,

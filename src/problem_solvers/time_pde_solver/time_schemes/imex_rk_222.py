@@ -129,6 +129,7 @@ class ImexRK222(BaseTimeScheme):
                 ]
             ):
                 stage_contribution = np.zeros_like(u_n_seg_current)
+                print(f"Debug stage_contribution.shape={stage_contribution.shape}")
 
                 # Extract coefficients for current segment
                 ne = self.config.n_eqs
@@ -136,7 +137,18 @@ class ImexRK222(BaseTimeScheme):
 
                 for eq_idx in range(ne):
                     # Get coefficients for current segment and equation
-                    beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
+                    print(f"Debug coeffs: stage_idx={stage_idx}, coeffs_stage.shape={coeffs_stage.shape}")
+                    
+                    # 处理不同的系数格式
+                    if coeffs_stage.ndim == 3:  # (ns, ne, dgN)
+                        beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
+                    elif coeffs_stage.ndim == 1:  # 展平的系数
+                        start_idx = (segment_idx * ne + eq_idx) * dgN
+                        end_idx = start_idx + dgN
+                        beta_seg_stage = coeffs_stage[start_idx:end_idx]
+                    else:
+                        print(f"Unexpected coeffs_stage shape: {coeffs_stage.shape}")
+                        beta_seg_stage = np.zeros(dgN)
 
                     # L1 term: L1 @ β^(i)
                     if self.fitter.has_operator("L1"):
@@ -144,7 +156,17 @@ class ImexRK222(BaseTimeScheme):
                             "L1", None
                         )
                         if L1_seg is not None:
-                            stage_contribution += L1_seg @ beta_seg_stage
+                            print(f"Debug final: L1_seg.shape={L1_seg.shape}, beta_seg_stage.shape={beta_seg_stage.shape}")
+                            # 如果L1_seg是3D，取第一个切片
+                            if L1_seg.ndim == 3:
+                                L1_seg_2d = L1_seg[0]  # 取第一个切片，变成2D
+                            else:
+                                L1_seg_2d = L1_seg
+                            result = L1_seg_2d @ beta_seg_stage
+                            # 确保结果维度与stage_contribution兼容
+                            if result.ndim == 1 and stage_contribution.ndim == 2:
+                                result = result.reshape(-1, 1)
+                            stage_contribution += result
 
                 # N term: N(u^(i)) - nonlinear, directly using u values as input
                 if self.fitter.has_operator("N"):
