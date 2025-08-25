@@ -293,17 +293,17 @@ class BaseDeepPolyFitter(ABC):
 
             segment_boundaries = self.data["boundary_segments_dict"][i]
 
-            for var_idx, var in enumerate(self.config.vars_list):
-                if var not in segment_boundaries:
+            for var_idx in range(len(self.config.vars_list)):
+                if var_idx not in segment_boundaries:
                     continue
 
                 # Process Dirichlet boundary conditions
                 if (
-                    "dirichlet" in segment_boundaries[var]
-                    and len(segment_boundaries[var]["dirichlet"]["x"]) > 0
+                    "dirichlet" in segment_boundaries[var_idx]
+                    and len(segment_boundaries[var_idx]["dirichlet"]["x"]) > 0
                 ):
-                    x_bd = segment_boundaries[var]["dirichlet"]["x"]
-                    u_bd = segment_boundaries[var]["dirichlet"]["u"]
+                    x_bd = segment_boundaries[var_idx]["dirichlet"]["x"]
+                    U_bd = segment_boundaries[var_idx]["dirichlet"]["values"]
 
                     features = self._get_segment_features(
                         x_bd,
@@ -318,16 +318,16 @@ class BaseDeepPolyFitter(ABC):
                     constraint[:, start_idx : start_idx + self.dgN] = features
 
                     self.A.append(10 * constraint)
-                    self.b.append(10 * u_bd.flatten())
+                    self.b.append(10 * U_bd.flatten())
 
                 # Process Neumann boundary conditions
                 if (
-                    "neumann" in segment_boundaries[var]
-                    and len(segment_boundaries[var]["neumann"]["x"]) > 0
+                    "neumann" in segment_boundaries[var_idx]
+                    and len(segment_boundaries[var_idx]["neumann"]["x"]) > 0
                 ):
-                    x_bd = segment_boundaries[var]["neumann"]["x"]
-                    u_bd = segment_boundaries[var]["neumann"]["u"]
-                    normals = segment_boundaries[var]["neumann"]["normals"]
+                    x_bd = segment_boundaries[var_idx]["neumann"]["x"]
+                    U_bd = segment_boundaries[var_idx]["neumann"]["values"]
+                    normals = segment_boundaries[var_idx]["neumann"]["normals"]
 
                     for pt_idx in range(x_bd.shape[0]):
                         point = x_bd[pt_idx : pt_idx + 1]
@@ -355,17 +355,17 @@ class BaseDeepPolyFitter(ABC):
                             )
 
                             self.A.append(10 * constraint)
-                            self.b.append(10 * np.array([u_bd[pt_idx, 0]]))
+                            self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
 
                 # Process Robin boundary conditions
                 if (
-                    "robin" in segment_boundaries[var]
-                    and len(segment_boundaries[var]["robin"]["x"]) > 0
+                    "robin" in segment_boundaries[var_idx]
+                    and len(segment_boundaries[var_idx]["robin"]["x"]) > 0
                 ):
-                    x_bd = segment_boundaries[var]["robin"]["x"]
-                    u_bd = segment_boundaries[var]["robin"]["u"]
-                    normals = segment_boundaries[var]["robin"]["normals"]
-                    params = segment_boundaries[var]["robin"]["params"]
+                    x_bd = segment_boundaries[var_idx]["robin"]["x"]
+                    U_bd = segment_boundaries[var_idx]["robin"]["values"]
+                    normals = segment_boundaries[var_idx]["robin"]["normals"]
+                    params = segment_boundaries[var_idx]["robin"]["params"]
 
                     if not isinstance(params, list) or len(params) < 2:
                         params = [1.0, 0.0]
@@ -376,7 +376,7 @@ class BaseDeepPolyFitter(ABC):
                         point = x_bd[pt_idx : pt_idx + 1]
                         normal = normals[pt_idx]
 
-                        features_u = self._get_segment_features(
+                        features_U = self._get_segment_features(
                             point,
                             self.config.x_min[i],
                             self.config.x_max[i],
@@ -384,7 +384,7 @@ class BaseDeepPolyFitter(ABC):
                             [0] * self.config.n_dim,
                         )
 
-                        features_du_dn = np.zeros_like(features_u)
+                        features_dU_dn = np.zeros_like(features_U)
 
                         for dim in range(self.config.n_dim):
                             if abs(normal[dim]) < 1e-10:
@@ -401,16 +401,16 @@ class BaseDeepPolyFitter(ABC):
                                 derivative,
                             )
 
-                            features_du_dn += normal[dim] * features_dim
+                            features_dU_dn += normal[dim] * features_dim
 
                         constraint = np.zeros((1, self.dgN * self.ns * ne))
                         start_idx = i * self.dgN * ne + self.dgN * var_idx
                         constraint[:, start_idx : start_idx + self.dgN] = (
-                            alpha * features_u + beta * features_du_dn
+                            alpha * features_U + beta * features_dU_dn
                         )
 
                         self.A.append(10 * constraint)
-                        self.b.append(10 * np.array([u_bd[pt_idx, 0]]))
+                        self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
 
     def _add_swap_conditions(self, model: nn.Module):
         """Add interface continuity conditions"""
@@ -511,8 +511,8 @@ class BaseDeepPolyFitter(ABC):
             derivative = [0] * self.config.n_dim
 
         total_size = sum(seg.shape[0] for seg in x_segments)
-        u_pred = np.zeros((total_size, ne))
-        pred_segments = []
+        U_pred = np.zeros((total_size, ne))
+        U_segments = []
 
         start_idx = 0
         for i in range(ns):
@@ -527,85 +527,53 @@ class BaseDeepPolyFitter(ABC):
             for j in range(ne):
                 segment_pred[:, j] = features @ coeffs[i, j, :]
 
-            u_pred[start_idx:end_idx, :] = segment_pred
-            pred_segments.append(segment_pred)
+            U_pred[start_idx:end_idx, :] = segment_pred
+            U_segments.append(segment_pred)
             start_idx = end_idx
 
-        return u_pred, pred_segments
+        return U_pred, U_segments
 
-    def predict_segment(
-        self, data: Dict, model: nn.Module
-    ) -> Tuple[np.ndarray, List[np.ndarray]]:
-        """Make predictions directly using neural network model"""
-        # 使用模型的设备，不强制移动到linear_device
-        model_device = next(model.parameters()).device
-        x_segments = data["x_segments"]
-        ne = self.config.n_eqs
-        ns = self.ns
-
-        total_size = sum(seg.shape[0] for seg in x_segments)
-        u_pred = np.zeros((total_size, ne))
-        pred_segments = []
-
-        start_idx = 0
-        for i in range(ns):
-            segment_size = x_segments[i].shape[0]
-            end_idx = start_idx + segment_size
-
-            x_in = torch.tensor(
-                x_segments[i], dtype=torch.float64, device=model_device
-            )
-            _, pred = model(x_in)
-            pred = pred.cpu().detach().numpy()
-
-            u_pred[start_idx:end_idx, :] = pred
-            pred_segments.append(np.array(pred))
-
-            start_idx = end_idx
-
-        return u_pred, pred_segments
-
-    def global_to_segments(self, u_global: np.ndarray) -> List[np.ndarray]:
-        """将全局u数组转换为段级列表
+    def global_to_segments(self, U_global: np.ndarray) -> List[np.ndarray]:
+        """将全局U数组转换为段级列表
         
         Args:
-            u_global: 全局解数组，形状为 (total_points,) 或 (total_points, n_eqs)
+            U_global: 全局解数组，形状为 (total_points,) 或 (total_points, n_eqs)
             
         Returns:
             List[np.ndarray]: 段级解值列表，每个元素对应一个段的解值
         """
-        if u_global is None:
+        if U_global is None:
             return [None] * self.ns
             
-        u_segments = []
+        U_segments = []
         start_idx = 0
         for seg_idx in range(self.ns):
             n_points = len(self.data["x_segments_norm"][seg_idx])
             end_idx = start_idx + n_points
             
-            if u_global.ndim == 1:
-                u_segments.append(u_global[start_idx:end_idx].copy())
+            if U_global.ndim == 1:
+                U_segments.append(U_global[start_idx:end_idx].copy())
             else:
-                u_segments.append(u_global[start_idx:end_idx, :].copy())
+                U_segments.append(U_global[start_idx:end_idx, :].copy())
                 
             start_idx = end_idx
             
-        return u_segments
+        return U_segments
 
-    def segments_to_global(self, u_segments: List[np.ndarray]) -> np.ndarray:
-        """将段级列表转换为全局u数组
+    def segments_to_global(self, U_segments: List[np.ndarray]) -> np.ndarray:
+        """将段级列表转换为全局U数组
         
         Args:
-            u_segments: 段级解值列表
+            U_segments: 段级解值列表
             
         Returns:
             np.ndarray: 全局解数组
         """
-        if not u_segments or u_segments[0] is None:
+        if not U_segments or U_segments[0] is None:
             total_points = sum(len(self.data["x_segments_norm"][i]) for i in range(self.ns))
             return np.zeros(total_points)
             
-        return np.concatenate(u_segments)
+        return np.concatenate(U_segments)
 
     def has_operator(self, operator_name):
         """Check if operator exists"""

@@ -26,25 +26,25 @@ class LinearPDENet(BaseNet):
             data["source"], dtype=torch.float64, device=self.config.device
         )
 
-        # Transfer global_boundary_dict data to GPU
+        # Transfer global_boundary_dict data to GPU - 纯抽象U处理
         global_boundary_dict = {}
-        for var in data["global_boundary_dict"]:
-            global_boundary_dict[var] = {}
-            for bc_type in data["global_boundary_dict"][var]:
-                global_boundary_dict[var][bc_type] = {}
-                for key, value in data["global_boundary_dict"][var][bc_type].items():
+        for var_idx in data["global_boundary_dict"]:
+            global_boundary_dict[var_idx] = {}
+            for bc_type in data["global_boundary_dict"][var_idx]:
+                global_boundary_dict[var_idx][bc_type] = {}
+                for key, value in data["global_boundary_dict"][var_idx][bc_type].items():
                     if isinstance(value, np.ndarray) and value.size > 0:
                         # 边界条件点可能也需要梯度，特别是用于Neumann或Robin条件
                         if key == "x":
-                            global_boundary_dict[var][bc_type][key] = torch.tensor(
+                            global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
                                 value, dtype=torch.float64, device=self.config.device, requires_grad=True
                             )
                         else:
-                            global_boundary_dict[var][bc_type][key] = torch.tensor(
+                            global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
                                 value, dtype=torch.float64, device=self.config.device
                             )
                     else:
-                        global_boundary_dict[var][bc_type][key] = value
+                        global_boundary_dict[var_idx][bc_type][key] = value
 
         gpu_data["global_boundary_dict"] = global_boundary_dict
 
@@ -89,17 +89,17 @@ class LinearPDENet(BaseNet):
         boundary_loss = 0.0
         boundary_loss_weight = 10.0  # Weight for boundary conditions
 
-        # Process boundary conditions if they exist
+        # Process boundary conditions if they exist - 纯抽象U处理
         if global_boundary_dict:
-            # Process each variable in the boundary conditions
-            for var in global_boundary_dict:
+            # Process each U component in the boundary conditions
+            for var_idx in global_boundary_dict:
                 # Process Dirichlet boundary conditions
                 if (
-                    "dirichlet" in global_boundary_dict[var]
-                    and global_boundary_dict[var]["dirichlet"]["x"].shape[0] > 0
+                    "dirichlet" in global_boundary_dict[var_idx]
+                    and global_boundary_dict[var_idx]["dirichlet"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var]["dirichlet"]["x"]
-                    u_bc = global_boundary_dict[var]["dirichlet"]["u"]
+                    x_bc = global_boundary_dict[var_idx]["dirichlet"]["x"]
+                    u_bc = global_boundary_dict[var_idx]["dirichlet"]["values"]
 
                     # Get model predictions at boundary points
                     _, pred_bc = self(x_bc)
@@ -110,12 +110,12 @@ class LinearPDENet(BaseNet):
 
                 # Process Neumann boundary conditions
                 if (
-                    "neumann" in global_boundary_dict[var]
-                    and global_boundary_dict[var]["neumann"]["x"].shape[0] > 0
+                    "neumann" in global_boundary_dict[var_idx]
+                    and global_boundary_dict[var_idx]["neumann"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var]["neumann"]["x"]
-                    u_bc = global_boundary_dict[var]["neumann"]["u"]
-                    normals = global_boundary_dict[var]["neumann"]["normals"]
+                    x_bc = global_boundary_dict[var_idx]["neumann"]["x"]
+                    u_bc = global_boundary_dict[var_idx]["neumann"]["values"]
+                    normals = global_boundary_dict[var_idx]["neumann"]["normals"]
 
                     # Store all normal derivative errors for all boundary points
                     all_derivatives_errors = []
@@ -145,13 +145,13 @@ class LinearPDENet(BaseNet):
 
                 # Process Robin boundary conditions
                 if (
-                    "robin" in global_boundary_dict[var]
-                    and global_boundary_dict[var]["robin"]["x"].shape[0] > 0
+                    "robin" in global_boundary_dict[var_idx]
+                    and global_boundary_dict[var_idx]["robin"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var]["robin"]["x"]
-                    u_bc = global_boundary_dict[var]["robin"]["u"]
-                    normals = global_boundary_dict[var]["robin"]["normals"]
-                    params = global_boundary_dict[var]["robin"]["params"]
+                    x_bc = global_boundary_dict[var_idx]["robin"]["x"]
+                    u_bc = global_boundary_dict[var_idx]["robin"]["values"]
+                    normals = global_boundary_dict[var_idx]["robin"]["normals"]
+                    params = global_boundary_dict[var_idx]["robin"]["params"]
 
                     # Store all Robin boundary condition errors
                     all_robin_errors = []
@@ -187,6 +187,51 @@ class LinearPDENet(BaseNet):
                     if all_robin_errors:
                         robin_errors = torch.stack(all_robin_errors)
                         boundary_loss += torch.mean(robin_errors)
+                
+                # Process periodic boundary conditions
+                if 'periodic' in global_boundary_dict[var_idx] and global_boundary_dict[var_idx]['periodic']['pairs']:
+                    for pair in global_boundary_dict[var_idx]['periodic']['pairs']:
+                        x_bc_1 = pair['x_1']
+                        x_bc_2 = pair['x_2']
+                        constraint_type = pair['constraint_type']
+                        
+                        # Get model predictions at both boundary regions
+                        _, pred_bc_1 = self(x_bc_1)
+                        _, pred_bc_2 = self(x_bc_2)
+                        
+                        if constraint_type == 'dirichlet':
+                            # Periodic Dirichlet: U(x1) = U(x2)
+                            periodic_error = (pred_bc_1 - pred_bc_2) ** 2
+                            boundary_loss += torch.mean(periodic_error)
+                        elif constraint_type == 'neumann':
+                            # Periodic Neumann: ∂U/∂n(x1) = ∂U/∂n(x2)
+                            normals_1 = pair['normals_1']
+                            normals_2 = pair['normals_2']
+                            
+                            # Calculate normal derivatives at both boundary regions
+                            all_periodic_errors = []
+                            for i in range(x_bc_1.shape[0]):
+                                x_point_1 = x_bc_1[i:i+1].clone().detach().requires_grad_(True)
+                                x_point_2 = x_bc_2[i:i+1].clone().detach().requires_grad_(True)
+                                
+                                _, u_pred_1 = self(x_point_1)
+                                _, u_pred_2 = self(x_point_2)
+                                
+                                grads_1 = self.gradients(u_pred_1, x_point_1)[0]
+                                grads_2 = self.gradients(u_pred_2, x_point_2)[0]
+                                
+                                normal_1 = normals_1[i]
+                                normal_2 = normals_2[i]
+                                
+                                normal_deriv_1 = torch.sum(grads_1 * normal_1)
+                                normal_deriv_2 = torch.sum(grads_2 * normal_2)
+                                
+                                periodic_error = (normal_deriv_1 - normal_deriv_2) ** 2
+                                all_periodic_errors.append(periodic_error)
+                            
+                            if all_periodic_errors:
+                                periodic_errors = torch.stack(all_periodic_errors)
+                                boundary_loss += torch.mean(periodic_errors)
 
         # Combine losses with appropriate weights
         total_loss = pde_loss + boundary_loss_weight * boundary_loss

@@ -223,6 +223,10 @@ class TimePDEConfig(BaseConfig):
             if self.eq_L2:
                 operators_dict['L2'] = self.eq_L2
             
+            # 添加F算子（IMEX-RK需要单独的F函数）
+            if self.eq_F:
+                operators_dict['F'] = self.eq_F
+            
             # 处理半隐式项 L2 * F
             if self.eq_L2 and self.eq_F:
                 semi_implicit_terms = []

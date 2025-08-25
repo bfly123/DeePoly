@@ -184,7 +184,7 @@ Current version: v0.2
 - Segment-wise computation involves matrix multiplication:
   ```python
   for j in range(ne):
-      u_seg[:, j] = features @ coeffs[i, j, :]
+      U_seg[:, j] = features @ coeffs[i, j, :]
   ```
   This means for each equation, the features are multiplied by the corresponding coefficients to compute segment-wise values.
 
@@ -198,4 +198,9 @@ Current version: v0.2
 - `build_segment_jacobian` 中的L维度和features相同，b尺寸为(ne,n_points)
 
 ### Memory Notes
-- `u_seg`维度为`(n_points,ne)`
+- `U_seg`维度为`(n_points,ne)`
+- 代码风格保持纯净，易读和高效，避免过多的通用性检测和分支
+- 运行代码需要
+- source ~/anaconda3/etc/profile.d/conda.sh && conda activate ML
+
+- 针对抽象变量 U编程，其中U=[...] 代表抽象的方程变量，包含具体物理量，u可能包含在物理量中，可能没有

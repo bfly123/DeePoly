@@ -141,7 +141,7 @@ class EquationProcessor:
         derivatives_code.append("        # Extract physical quantities from output")
         for i, var in enumerate(self.vars_list):
             if any(key.startswith(var) for key in used_derivatives.keys()):
-                derivatives_code.append(f"        {var} = output[..., {i}]")
+                derivatives_code.append(f"        {var} = U[..., {i}]")
         
         # 生成一阶导数代码
         first_order_added = False

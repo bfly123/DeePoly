@@ -172,100 +172,102 @@ class BaseDataGenerator(ABC):
         return np.zeros((x_global.shape[0], 1))
 
     def read_boundary_conditions(self) -> Dict:
-        """Read and process boundary conditions from configuration
-        
-        Returns:
-            Dict: Dictionary containing processed boundary conditions
-        """
-        boundary_dict = {}
-        
+        """纯抽象U边界条件读取 - 不包含任何物理变量引用"""
         if not hasattr(self.config, 'boundary_conditions') or not self.config.boundary_conditions:
-            return boundary_dict
+            return {}
             
-        # Initialize boundary condition dictionary
-        for var in self.config.vars_list:
-            boundary_dict[var] = {
-                'dirichlet': {'x': [], 'u': []},
-                'neumann': {'x': [], 'u': [], 'normals': []},
-                'robin': {'x': [], 'u': [], 'params': [], 'normals': []}
+        # 为每个U分量索引初始化边界条件存储 - 纯抽象结构
+        boundary_data = {}
+        for var_idx in range(len(self.config.vars_list)):
+            boundary_data[var_idx] = {
+                'dirichlet': {'x': [], 'values': []},
+                'neumann': {'x': [], 'values': [], 'normals': []},
+                'robin': {'x': [], 'values': [], 'params': [], 'normals': []},
+                'periodic': {'pairs': []}  # 通用周期边界条件对
             }
         
-        # Process each boundary condition
+        # 简化的边界条件处理逻辑 - 基于U向量索引
         for bc in self.config.boundary_conditions:
-            regions = bc['region']
+            region = bc['region']
             bc_type = bc['type'].lower()
-            value = bc['value']
             points = bc['points']
             
-            # 处理单个region或region列表
-            if isinstance(regions, str):
-                regions = [regions]  # 转换为列表
-            elif not isinstance(regions, list):
-                print(f"Warning: region should be string or list, got {type(regions)}")
+            # 处理周期边界条件
+            if bc_type == 'periodic':
+                # 周期边界条件需要配对信息
+                if 'pair_with' not in bc:
+                    continue
+                pair_region = bc['pair_with']
+                constraint_type = bc.get('constraint', 'dirichlet')  # 默认为dirichlet周期
+                
+                # 生成两个边界的点
+                x_boundary_1 = self._generate_boundary_points(region, points)
+                x_boundary_2 = self._generate_boundary_points(pair_region, points)
+                
+                if x_boundary_1.size == 0 or x_boundary_2.size == 0:
+                    continue
+                
+                # 添加周期边界条件对
+                for var_idx in range(len(self.config.vars_list)):
+                    periodic_pair = {
+                        'region_1': region,
+                        'region_2': pair_region,
+                        'x_1': x_boundary_1,
+                        'x_2': x_boundary_2,
+                        'constraint_type': constraint_type  # 'dirichlet' 或 'neumann'
+                    }
+                    
+                    if constraint_type == 'neumann':
+                        # 对于Neumann周期条件，还需要法向量
+                        normals_1 = self._get_boundary_normals(region, x_boundary_1.shape[0])
+                        normals_2 = self._get_boundary_normals(pair_region, x_boundary_2.shape[0])
+                        periodic_pair['normals_1'] = normals_1
+                        periodic_pair['normals_2'] = normals_2
+                    
+                    boundary_data[var_idx]['periodic']['pairs'].append(periodic_pair)
                 continue
             
-            # 为所有region生成边界点
-            all_x_boundary = []
-            all_normals = []
+            # 处理常规边界条件
+            value = bc['value']
             
-            for region in regions:
-                x_boundary = self._generate_boundary_points(region, points)
-                if x_boundary.size > 0:  # 只添加有效的边界点
-                    normals = self._get_boundary_normals(region, x_boundary.shape[0])
-                    all_x_boundary.append(x_boundary)
-                    all_normals.append(normals)
+            # 生成边界点和法向量
+            x_boundary = self._generate_boundary_points(region, points)
+            if x_boundary.size == 0:
+                continue
+                
+            normals = self._get_boundary_normals(region, x_boundary.shape[0]) if bc_type != 'dirichlet' else None
             
-            # 合并所有边界点
-            if all_x_boundary:
-                x_boundary = np.vstack(all_x_boundary)
-                normals = np.vstack(all_normals)
+            # 计算边界值
+            if isinstance(value, str):
+                boundary_values = self._parse_math_expression(value, x_boundary)
             else:
-                continue  # 跳过无效的边界条件
+                boundary_values = np.full((x_boundary.shape[0], 1), float(value))
             
-            for var in self.config.vars_list:
-                if bc_type == 'dirichlet':
-                    boundary_dict[var]['dirichlet']['x'].append(x_boundary)
-                    if isinstance(value, dict) and value.get('type') == 'piecewise':
-                        u_values = self._parse_piecewise_expression(value, x_boundary)
-                    else:
-                        u_values = (self._parse_math_expression(value, x_boundary) 
-                                  if isinstance(value, str) 
-                                  else np.ones((x_boundary.shape[0], 1)) * value)
-                    boundary_dict[var]['dirichlet']['u'].append(u_values)
-                
-                elif bc_type == 'neumann':
-                    boundary_dict[var]['neumann']['x'].append(x_boundary)
-                    u_values = (self._parse_math_expression(value, x_boundary) 
-                              if isinstance(value, str) 
-                              else np.ones((x_boundary.shape[0], 1)) * value)
-                    boundary_dict[var]['neumann']['u'].append(u_values)
-                    boundary_dict[var]['neumann']['normals'].append(normals)
-                
-                elif bc_type == 'robin':
-                    boundary_dict[var]['robin']['x'].append(x_boundary)
-                    u_values = (self._parse_math_expression(value, x_boundary) 
-                              if isinstance(value, str) 
-                              else np.ones((x_boundary.shape[0], 1)) * value)
-                    boundary_dict[var]['robin']['u'].append(u_values)
-                    boundary_dict[var]['robin']['normals'].append(normals)
-                    params = bc.get('params', [1.0, 0.0])
-                    boundary_dict[var]['robin']['params'].append(params)
+            # 添加到所有U分量的边界条件（默认所有分量使用相同边界条件）
+            for var_idx in range(len(self.config.vars_list)):
+                boundary_data[var_idx][bc_type]['x'].append(x_boundary)
+                boundary_data[var_idx][bc_type]['values'].append(boundary_values)
+                if normals is not None:
+                    boundary_data[var_idx][bc_type]['normals'].append(normals)
         
-        # Combine boundary data
-        for var in boundary_dict:
-            for bc_type in boundary_dict[var]:
-                if boundary_dict[var][bc_type]['x']:
-                    boundary_dict[var][bc_type]['x'] = np.vstack(boundary_dict[var][bc_type]['x'])
-                    boundary_dict[var][bc_type]['u'] = np.vstack(boundary_dict[var][bc_type]['u'])
-                    if bc_type in ['neumann', 'robin'] and boundary_dict[var][bc_type]['normals']:
-                        boundary_dict[var][bc_type]['normals'] = np.vstack(boundary_dict[var][bc_type]['normals'])
+        # 合并边界数据 - 纯抽象处理
+        for var_idx in boundary_data:
+            for bc_type in boundary_data[var_idx]:
+                if bc_type == 'periodic':
+                    # 周期边界条件不需要合并，保持pairs列表结构
+                    continue
+                elif boundary_data[var_idx][bc_type]['x']:
+                    boundary_data[var_idx][bc_type]['x'] = np.vstack(boundary_data[var_idx][bc_type]['x'])
+                    boundary_data[var_idx][bc_type]['values'] = np.vstack(boundary_data[var_idx][bc_type]['values'])
+                    if bc_type in ['neumann', 'robin'] and boundary_data[var_idx][bc_type]['normals']:
+                        boundary_data[var_idx][bc_type]['normals'] = np.vstack(boundary_data[var_idx][bc_type]['normals'])
                 else:
-                    boundary_dict[var][bc_type]['x'] = np.array([])
-                    boundary_dict[var][bc_type]['u'] = np.array([])
+                    boundary_data[var_idx][bc_type]['x'] = np.array([])
+                    boundary_data[var_idx][bc_type]['values'] = np.array([])
                     if bc_type in ['neumann', 'robin']:
-                        boundary_dict[var][bc_type]['normals'] = np.array([])
+                        boundary_data[var_idx][bc_type]['normals'] = np.array([])
         
-        return boundary_dict
+        return boundary_data
 
     def _generate_boundary_points(self, region: str, points: int) -> np.ndarray:
         """Generate points for specified boundary region
@@ -616,51 +618,82 @@ class BaseDataGenerator(ABC):
                 )
         return x_swap_norm
 
-    def _process_segment_boundary(self, global_boundary_dict: Dict, segment_idx: int) -> Dict:
-        """Process boundary conditions for a segment
+    def _process_segment_boundary(self, global_boundary_data: Dict, segment_idx: int) -> Dict:
+        """Process boundary conditions for a segment - 纯抽象U处理
         
         Args:
-            global_boundary_dict: Global boundary conditions
+            global_boundary_data: Global boundary conditions (indexed by var_idx)
             segment_idx: Segment index
             
         Returns:
-            Dict: Processed segment boundary conditions
+            Dict: Processed segment boundary conditions (indexed by var_idx)
         """
-        segment_boundary_dict = {}
+        segment_boundary_data = {}
         x_min, x_max = self.config.x_min, self.config.x_max
         
-        for var in global_boundary_dict:
-            segment_boundary_dict[var] = {
-                'dirichlet': {'x': [], 'u': []},
-                'neumann': {'x': [], 'u': [], 'normals': []},
-                'robin': {'x': [], 'u': [], 'params': [], 'normals': []}
+        for var_idx in global_boundary_data:
+            segment_boundary_data[var_idx] = {
+                'dirichlet': {'x': [], 'values': []},
+                'neumann': {'x': [], 'values': [], 'normals': []},
+                'robin': {'x': [], 'values': [], 'params': [], 'normals': []},
+                'periodic': {'pairs': []}
             }
             
-            for bc_type in global_boundary_dict[var]:
-                if len(global_boundary_dict[var][bc_type]['x']) == 0:
+            for bc_type in global_boundary_data[var_idx]:
+                if bc_type == 'periodic':
+                    # 周期边界条件特殊处理
+                    segment_boundary_data[var_idx][bc_type]['pairs'] = []
+                    for pair in global_boundary_data[var_idx][bc_type]['pairs']:
+                        # 处理第一组边界点
+                        x_boundary_1 = pair['x_1']
+                        mask_1 = self._create_segment_mask(x_boundary_1, segment_idx)
+                        
+                        # 处理第二组边界点
+                        x_boundary_2 = pair['x_2']
+                        mask_2 = self._create_segment_mask(x_boundary_2, segment_idx)
+                        
+                        # 如果该段有周期边界点，则处理
+                        if np.any(mask_1) or np.any(mask_2):
+                            segment_pair = pair.copy()
+                            if np.any(mask_1):
+                                x_seg_1 = x_boundary_1[mask_1]
+                                x_seg_1_norm = self._normalize_data(x_seg_1, x_min[segment_idx], x_max[segment_idx])
+                                segment_pair['x_1'] = x_seg_1_norm
+                                if 'normals_1' in pair:
+                                    segment_pair['normals_1'] = pair['normals_1'][mask_1]
+                            if np.any(mask_2):
+                                x_seg_2 = x_boundary_2[mask_2]
+                                x_seg_2_norm = self._normalize_data(x_seg_2, x_min[segment_idx], x_max[segment_idx])
+                                segment_pair['x_2'] = x_seg_2_norm
+                                if 'normals_2' in pair:
+                                    segment_pair['normals_2'] = pair['normals_2'][mask_2]
+                            
+                            segment_boundary_data[var_idx][bc_type]['pairs'].append(segment_pair)
+                    continue
+                elif 'x' not in global_boundary_data[var_idx][bc_type] or len(global_boundary_data[var_idx][bc_type]['x']) == 0:
                     continue
                     
-                x_boundary = global_boundary_dict[var][bc_type]['x']
+                x_boundary = global_boundary_data[var_idx][bc_type]['x']
                 mask = self._create_segment_mask(x_boundary, segment_idx)
                 
                 if not np.any(mask):
                     continue
                     
                 x_seg = x_boundary[mask]
-                u_seg = global_boundary_dict[var][bc_type]['u'][mask]
+                values_seg = global_boundary_data[var_idx][bc_type]['values'][mask]
                 x_seg_norm = self._normalize_data(x_seg, x_min[segment_idx], x_max[segment_idx])
                 
-                segment_boundary_dict[var][bc_type]['x'] = x_seg_norm
-                segment_boundary_dict[var][bc_type]['u'] = u_seg
+                segment_boundary_data[var_idx][bc_type]['x'] = x_seg_norm
+                segment_boundary_data[var_idx][bc_type]['values'] = values_seg
                 
-                if bc_type in ['neumann', 'robin'] and 'normals' in global_boundary_dict[var][bc_type]:
-                    normals_seg = global_boundary_dict[var][bc_type]['normals'][mask]
-                    segment_boundary_dict[var][bc_type]['normals'] = normals_seg
+                if bc_type in ['neumann', 'robin'] and 'normals' in global_boundary_data[var_idx][bc_type]:
+                    normals_seg = global_boundary_data[var_idx][bc_type]['normals'][mask]
+                    segment_boundary_data[var_idx][bc_type]['normals'] = normals_seg
                     
-                if bc_type == 'robin' and 'params' in global_boundary_dict[var][bc_type]:
-                    segment_boundary_dict[var][bc_type]['params'] = global_boundary_dict[var][bc_type]['params']
+                if bc_type == 'robin' and 'params' in global_boundary_data[var_idx][bc_type]:
+                    segment_boundary_data[var_idx][bc_type]['params'] = global_boundary_data[var_idx][bc_type]['params']
         
-        return segment_boundary_dict
+        return segment_boundary_data
 
     @abstractmethod
     def generate_global_field(self, x_global: np.ndarray) -> np.ndarray:

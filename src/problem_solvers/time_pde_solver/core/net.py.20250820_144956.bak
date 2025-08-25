@@ -47,6 +47,7 @@ class TimePDENet(BaseNet):
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
         # L1 operators
+
         L1 = [0.0001*du_xx]
 
         # L2 operators
@@ -79,17 +80,17 @@ class TimePDENet(BaseNet):
         boundary_loss_weight = 10.0  # 边界条件权重
         global_boundary_dict = data_GPU.get("global_boundary_dict", None)
 
-        # 处理边界条件 - 纯抽象U处理
+        # 处理边界条件
         if global_boundary_dict:
-            # 处理每个U分量的边界条件
-            for var_idx in global_boundary_dict:
+            # 处理每个变量的边界条件
+            for var in global_boundary_dict:
                 # 处理Dirichlet边界条件
                 if (
-                    "dirichlet" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["dirichlet"]["x"].shape[0] > 0
+                    "dirichlet" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["dirichlet"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var_idx]["dirichlet"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["dirichlet"]["values"]
+                    x_bc = global_boundary_dict[var]["dirichlet"]["x"]
+                    u_bc = global_boundary_dict[var]["dirichlet"]["u"]
 
                     # 在边界点获取模型预测
                     _, pred_bc = self(x_bc)
@@ -100,12 +101,12 @@ class TimePDENet(BaseNet):
 
                 # 处理Neumann边界条件
                 if (
-                    "neumann" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["neumann"]["x"].shape[0] > 0
+                    "neumann" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["neumann"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var_idx]["neumann"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["neumann"]["values"]
-                    normals = global_boundary_dict[var_idx]["neumann"]["normals"]
+                    x_bc = global_boundary_dict[var]["neumann"]["x"]
+                    u_bc = global_boundary_dict[var]["neumann"]["u"]
+                    normals = global_boundary_dict[var]["neumann"]["normals"]
 
                     # 存储所有法向导数误差
                     all_derivatives_errors = []
@@ -135,13 +136,13 @@ class TimePDENet(BaseNet):
 
                 # 处理Robin边界条件
                 if (
-                    "robin" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["robin"]["x"].shape[0] > 0
+                    "robin" in global_boundary_dict[var]
+                    and global_boundary_dict[var]["robin"]["x"].shape[0] > 0
                 ):
-                    x_bc = global_boundary_dict[var_idx]["robin"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["robin"]["values"]
-                    normals = global_boundary_dict[var_idx]["robin"]["normals"]
-                    params = global_boundary_dict[var_idx]["robin"]["params"]
+                    x_bc = global_boundary_dict[var]["robin"]["x"]
+                    u_bc = global_boundary_dict[var]["robin"]["u"]
+                    normals = global_boundary_dict[var]["robin"]["normals"]
+                    params = global_boundary_dict[var]["robin"]["params"]
 
                     # 存储所有Robin边界条件误差
                     all_robin_errors = []
@@ -177,54 +178,9 @@ class TimePDENet(BaseNet):
                     if all_robin_errors:
                         robin_errors = torch.stack(all_robin_errors)
                         boundary_loss += torch.mean(robin_errors)
-                
-                # 处理周期边界条件
-                if 'periodic' in global_boundary_dict[var_idx] and global_boundary_dict[var_idx]['periodic']['pairs']:
-                    for pair in global_boundary_dict[var_idx]['periodic']['pairs']:
-                        x_bc_1 = pair['x_1']
-                        x_bc_2 = pair['x_2']
-                        constraint_type = pair['constraint_type']
-                        
-                        # 在两组边界点获取模型预测
-                        _, pred_bc_1 = self(x_bc_1)
-                        _, pred_bc_2 = self(x_bc_2)
-                        
-                        if constraint_type == 'dirichlet':
-                            # 周期Dirichlet: U(x1) = U(x2)
-                            periodic_error = (pred_bc_1 - pred_bc_2) ** 2
-                            boundary_loss += torch.mean(periodic_error)
-                        elif constraint_type == 'neumann':
-                            # 周期Neumann: ∂U/∂n(x1) = ∂U/∂n(x2)
-                            normals_1 = pair['normals_1']
-                            normals_2 = pair['normals_2']
-                            
-                            # 计算两组边界点的法向导数
-                            all_periodic_errors = []
-                            for i in range(x_bc_1.shape[0]):
-                                x_point_1 = x_bc_1[i:i+1].clone().detach().requires_grad_(True)
-                                x_point_2 = x_bc_2[i:i+1].clone().detach().requires_grad_(True)
-                                
-                                _, u_pred_1 = self(x_point_1)
-                                _, u_pred_2 = self(x_point_2)
-                                
-                                grads_1 = self.gradients(u_pred_1, x_point_1)[0]
-                                grads_2 = self.gradients(u_pred_2, x_point_2)[0]
-                                
-                                normal_1 = normals_1[i]
-                                normal_2 = normals_2[i]
-                                
-                                normal_deriv_1 = torch.sum(grads_1 * normal_1)
-                                normal_deriv_2 = torch.sum(grads_2 * normal_2)
-                                
-                                periodic_error = (normal_deriv_1 - normal_deriv_2) ** 2
-                                all_periodic_errors.append(periodic_error)
-                            
-                            if all_periodic_errors:
-                                periodic_errors = torch.stack(all_periodic_errors)
-                                boundary_loss += torch.mean(periodic_errors)
         
         # 总损失函数
-        total_loss = pde_loss + boundary_loss_weight * boundary_loss
+        total_loss = pde_loss #+ boundary_loss_weight * boundary_loss
 
         return total_loss
     
@@ -247,60 +203,39 @@ class TimePDENet(BaseNet):
             U_current, dtype=torch.float64, device=self.config.device
         )
         
-        # Transfer boundary data to GPU - 纯抽象U处理
+        # Transfer boundary data to GPU 
         if "global_boundary_dict" in data:
             global_boundary_dict = {}
-            for var_idx in data["global_boundary_dict"]:
-                global_boundary_dict[var_idx] = {}
-                for bc_type in data["global_boundary_dict"][var_idx]:
-                    global_boundary_dict[var_idx][bc_type] = {}
-                    
-                    if bc_type == 'periodic':
-                        # 处理周期边界条件的pairs
-                        global_boundary_dict[var_idx][bc_type]['pairs'] = []
-                        for pair in data["global_boundary_dict"][var_idx][bc_type]['pairs']:
-                            gpu_pair = {}
-                            for pair_key, pair_value in pair.items():
-                                if isinstance(pair_value, np.ndarray) and pair_value.size > 0:
-                                    if 'x_' in pair_key:  # x_1, x_2
-                                        gpu_pair[pair_key] = torch.tensor(
-                                            pair_value, dtype=torch.float64, device=self.config.device, requires_grad=True
-                                        )
-                                    else:  # normals_1, normals_2等
-                                        gpu_pair[pair_key] = torch.tensor(
-                                            pair_value, dtype=torch.float64, device=self.config.device
-                                        )
-                                else:
-                                    gpu_pair[pair_key] = pair_value
-                            global_boundary_dict[var_idx][bc_type]['pairs'].append(gpu_pair)
-                    else:
-                        # 处理常规边界条件
-                        for key, value in data["global_boundary_dict"][var_idx][bc_type].items():
-                            if isinstance(value, np.ndarray) and value.size > 0:
-                                if key == "x":
-                                    global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                        value, dtype=torch.float64, device=self.config.device, requires_grad=True
-                                    )
-                                else:
-                                    global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                        value, dtype=torch.float64, device=self.config.device
-                                    )
+            for var in data["global_boundary_dict"]:
+                global_boundary_dict[var] = {}
+                for bc_type in data["global_boundary_dict"][var]:
+                    global_boundary_dict[var][bc_type] = {}
+                    for key, value in data["global_boundary_dict"][var][bc_type].items():
+                        if isinstance(value, np.ndarray) and value.size > 0:
+                            if key == "x":
+                                global_boundary_dict[var][bc_type][key] = torch.tensor(
+                                    value, dtype=torch.float64, device=self.config.device, requires_grad=True
+                                )
                             else:
-                                global_boundary_dict[var_idx][bc_type][key] = value
+                                global_boundary_dict[var][bc_type][key] = torch.tensor(
+                                    value, dtype=torch.float64, device=self.config.device
+                                )
+                        else:
+                            global_boundary_dict[var][bc_type][key] = value
             gpu_data["global_boundary_dict"] = global_boundary_dict
         else:
             gpu_data["global_boundary_dict"] = {}
         
         # Transfer boundary points and values for physics loss computation
         if "global_boundary_dict" in data and data["global_boundary_dict"]:
-            # Extract boundary data for easier access in physics_loss - 纯抽象U处理
+            # Extract boundary data for easier access in physics_loss
             x_bd_list = []
             u_bd_list = []
-            for var_idx in data["global_boundary_dict"]:
-                for bc_type in data["global_boundary_dict"][var_idx]:
-                    if "x" in data["global_boundary_dict"][var_idx][bc_type]:
-                        x_bd = data["global_boundary_dict"][var_idx][bc_type]["x"]
-                        u_bd = data["global_boundary_dict"][var_idx][bc_type]["values"]
+            for var in data["global_boundary_dict"]:
+                for bc_type in data["global_boundary_dict"][var]:
+                    if "x" in data["global_boundary_dict"][var][bc_type]:
+                        x_bd = data["global_boundary_dict"][var][bc_type]["x"]
+                        u_bd = data["global_boundary_dict"][var][bc_type]["u"]
                         if isinstance(x_bd, np.ndarray) and x_bd.size > 0:
                             x_bd_list.append(x_bd)
                             u_bd_list.append(u_bd)

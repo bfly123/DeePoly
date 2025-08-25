@@ -1,0 +1,31 @@
+{
+  "problem_type": "func_fitting",
+  "method": "hybrid",
+  "spatial_vars": ["x"],
+  "vars_list": ["u"],
+  "x_domain": [[-1.0, 1.0]],
+  "hidden_dims": [32, 32],
+  "epochs_adam": 1000,
+  "device": "cuda",
+  "linear_device": "cpu",
+  "points_domain": 1000,
+  "n_segments": [5],
+  "poly_degree": [3],
+  
+  "boundary_conditions": [
+    {
+      "type": "periodic",
+      "region": "x=-1",
+      "pair_with": "x=1", 
+      "constraint": "dirichlet",
+      "points": 20
+    },
+    {
+      "type": "periodic", 
+      "region": "x=-1",
+      "pair_with": "x=1",
+      "constraint": "neumann", 
+      "points": 20
+    }
+  ]
+}
