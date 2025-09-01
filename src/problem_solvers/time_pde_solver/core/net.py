@@ -68,6 +68,7 @@ class TimePDENet(BaseNet):
         
         
         pde_loss = 0.0
+        dt = 0.01
         
         # 时间演化格式: (u - u_n)/dt = L1[i] + L2[i]*F[i]  
         for i in range(self.config.n_eqs):

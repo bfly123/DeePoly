@@ -2,6 +2,7 @@
   "segment_ranges": [
     [
       -1.0,
+      0.0,
       1.0
     ]
   ],
@@ -28,10 +29,10 @@
   "const_list": [],
   "source_term": "False",
   "n_segments": [
-    "1"
+    "2"
   ],
   "poly_degree": [
-    5
+    10
   ],
   "x_domain": [
     [
@@ -56,11 +57,11 @@
   ],
   "points_boundary": "200",
   "points_boundary_test": "50",
-  "T": "0.2",
+  "T": "0.01",
   "dt": "0.1",
   "spotter_skip": "10",
-  "epochs_adam": "10000",
-  "epochs_lbfgs": "300",
+  "epochs_adam": "1000",
+  "epochs_lbfgs": "1",
   "max_retries": "1",
   "DNNtol": "0.0001",
   "points_per_swap": "1",
@@ -90,13 +91,6 @@
       "region": "left",
       "pair_with": "right",
       "constraint": "dirichlet",
-      "points": "1"
-    },
-    {
-      "type": "periodic",
-      "region": "left",
-      "pair_with": "right",
-      "constraint": "neumann",
       "points": "1"
     }
   ],
@@ -133,9 +127,15 @@
   "x_min": [
     [
       -1.0
+    ],
+    [
+      0.0
     ]
   ],
   "x_max": [
+    [
+      0.0
+    ],
     [
       1.0
     ]
@@ -143,9 +143,15 @@
   "x_min_norm": [
     [
       0.0
+    ],
+    [
+      0.0
     ]
   ],
   "x_max_norm": [
+    [
+      1.0
+    ],
     [
       1.0
     ]
@@ -258,6 +264,6 @@
       }
     ]
   },
-  "export_time": "2025-08-25 15:41:01",
+  "export_time": "2025-09-01 17:30:04",
   "device_info": "cuda"
 }

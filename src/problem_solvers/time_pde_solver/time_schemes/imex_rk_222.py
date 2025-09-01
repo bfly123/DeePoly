@@ -72,6 +72,7 @@ class ImexRK222(BaseTimeScheme):
 
         # Convert back to global array
         U_new = self.fitter.segments_to_global(U_seg_new)
+        #U_new = self.fitter.segments_to_global(U_seg_stage1)
 
         return (
             U_new,
@@ -122,6 +123,7 @@ class ImexRK222(BaseTimeScheme):
         coeffs_stage2: np.ndarray,
     ) -> List[np.ndarray]:
         """IMEX-RK最终更新步骤 - 直接使用段级解值和系数"""
+        dt = 0.01
 
         U_seg_new = []
 
@@ -188,23 +190,53 @@ class ImexRK222(BaseTimeScheme):
                     else:
                         stage_contribution += N_vals
 
-                # L2⊙F term: L2 @ (F(U^(i)) * β^(i))
+                # L2⊙F term: diag(F) @ L2 @ β^(i) - 统一使用矩阵乘法方式
                 if self.fitter.has_operator("L2") and self.fitter.has_operator("F"):
                     L2_seg = self.fitter._linear_operators[segment_idx].get("L2", None)
                     if L2_seg is not None:
+                        # 如果L2_seg是3D，取第一个切片
+                        if L2_seg.ndim == 3:
+                            L2_seg_2d = L2_seg[0]  # 取第一个切片，变成2D
+                        else:
+                            L2_seg_2d = L2_seg
+                            
                         F_vals = self.fitter.F_func(
                             self.fitter._features[segment_idx], U_seg_stage
                         )
 
+                        # 处理F_vals的格式
+                        if isinstance(F_vals, list):
+                            F_vals = np.array(F_vals[0] if len(F_vals) == 1 else F_vals).T
+                        elif F_vals.ndim == 1:
+                            F_vals = F_vals.reshape(-1, 1)
+
                         for eq_idx in range(ne):
-                            beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
-                            L2_beta = L2_seg @ beta_seg_stage  # (n_points,)
-                            if hasattr(F_vals, "__len__") and len(F_vals) == n_points:
-                                # F_vals is (n_points,), beta_seg_stage is (dgN,)
-                                stage_contribution += (F_vals * L2_beta).reshape(-1, 1)
+                            # 处理不同的系数格式
+                            if coeffs_stage.ndim == 3:  # (ns, ne, dgN)
+                                beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
+                            elif coeffs_stage.ndim == 1:  # 展平格式
+                                start_idx = (segment_idx * ne + eq_idx) * dgN
+                                end_idx = start_idx + dgN
+                                beta_seg_stage = coeffs_stage[start_idx:end_idx]
                             else:
-                                # F_vals is scalar
-                                stage_contribution += (F_vals * L2_beta).reshape(-1, 1)
+                                beta_seg_stage = np.zeros(dgN)
+                            
+                            # 取当前方程的F值
+                            if F_vals.ndim > 1 and F_vals.shape[1] > eq_idx:
+                                F_eq = F_vals[:, eq_idx]
+                            else:
+                                F_eq = F_vals.flatten()
+                            
+                            # 统一计算方式: diag(F) @ L2 @ β - 与雅可比矩阵一致
+                            L2F_contrib = np.diag(F_eq) @ L2_seg_2d @ beta_seg_stage  # (n_points,)
+                            
+                            # 确保维度兼容
+                            if stage_contribution.ndim == 2 and L2F_contrib.ndim == 1:
+                                L2F_contrib = L2F_contrib.reshape(-1, 1)
+                            elif stage_contribution.ndim == 1 and L2F_contrib.ndim == 2:
+                                L2F_contrib = L2F_contrib.flatten()
+                                
+                            stage_contribution += L2F_contrib
 
                 # Weighted accumulation
                 total_contribution += weight * stage_contribution
@@ -231,6 +263,8 @@ class ImexRK222(BaseTimeScheme):
         stage = kwargs.get("stage", 1)
         dt = kwargs.get("dt", 0.01)
         gamma = kwargs.get("gamma", self.gamma)
+        #gamma = 1
+        dt = 0.01
 
         # 获取预编译算子和特征矩阵
         L1_operators = self.fitter._linear_operators[segment_idx].get("L1", None)
@@ -286,9 +320,12 @@ class ImexRK222(BaseTimeScheme):
             
             # 减去隐式L1项: -γΔt*L1
             if L1_2d is not None:
+              if stage == 1:
                 J_eq -= gamma * dt * L1_2d
+              elif stage == 2:
+                J_eq -= (1-gamma) * dt * L1_2d
             
-            # 减去隐式L2⊙F项: -γΔt*L2⊙F
+            # 减去隐式L2⊙F项: -γΔt*diag(F)*L2 (统一使用逐点相乘方式的线性化形式)
             if L2_2d is not None and self.fitter.has_operator("F"):
                 # 获取当前U值
                 U_n_seg_list = kwargs.get("U_n_seg", [])
@@ -316,7 +353,8 @@ class ImexRK222(BaseTimeScheme):
                     else:
                         F_eq = F_vals.flatten()
                     
-                    # 应用L2⊙F: -γΔt * diag(F) @ L2
+                    # 统一的L2⊙F项线性化: -γΔt * diag(F_eq) @ L2_2d
+                    # 这对应于 (L2@β) ⊙ F 的雅可比矩阵形式
                     L2F_term = gamma * dt * np.diag(F_eq) @ L2_2d
                     J_eq -= L2F_term
             
@@ -342,6 +380,7 @@ class ImexRK222(BaseTimeScheme):
         n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
         ne = self.config.n_eqs
         dt = kwargs.get("dt", 0.01)
+        dt = 0.01
         gamma = kwargs.get("gamma", self.gamma)
         stage = kwargs.get("stage", 1)
 
@@ -418,9 +457,9 @@ class ImexRK222(BaseTimeScheme):
                         # L1项: Δt(1-2γ)*L1*β^(1)
                         if L1_2d is not None:
                             L1_contrib = L1_2d @ beta_1  # (n_points,)
-                            rhs[:, eq_idx] += dt * (1 - 2 * gamma) * L1_contrib
+                            rhs[:, eq_idx] += dt * (1-2*gamma) * L1_contrib
                         
-                        # L2⊙F项: Δt(1-2γ)*L2*β^(1)*F(U^(1))
+                        # L2⊙F项: Δt(1-2γ)*diag(F(U^(1)))*L2*β^(1) - 统一矩阵乘法方式
                         if L2_2d is not None and self.fitter.has_operator("F"):
                             F_vals = self.fitter.F_func(features, U_seg_stage1)  # (n_points, ne)
                             
@@ -436,13 +475,14 @@ class ImexRK222(BaseTimeScheme):
                             else:
                                 F_eq = F_vals.flatten()
                             
-                            L2_contrib = L2_2d @ beta_1  # (n_points,)
-                            rhs[:, eq_idx] += dt * (1 - 2 * gamma) * L2_contrib * F_eq
+                            # 统一计算方式: diag(F) @ L2 @ β - 与雅可比矩阵一致
+                            L2F_contrib = np.diag(F_eq) @ L2_2d @ beta_1  # (n_points,)
+                            rhs[:, eq_idx] += dt * (1-2*gamma) * L2F_contrib
                     
                     # N项: Δt(1-γ)*N(U^(1)) - 对所有方程一起计算
                     if self.fitter.has_operator("N"):
                         N_vals = self.fitter.N_func(features, U_seg_stage1)  # (n_points, ne)
-                        rhs += dt * (1 - gamma) * N_vals
+                        rhs += dt * (1-gamma) * N_vals
 
         return rhs
 

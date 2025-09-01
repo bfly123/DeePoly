@@ -97,6 +97,7 @@ class TimePDESolver:
 
             # Train neural network and execute time step
             self._train_neural_network_step(dt, U_current=U)
+            
             U, U_seg, coeffs = self.fitter.solve_time_step(U, U_seg, dt, coeffs_n=coeffs)
 
             # Update time and iteration

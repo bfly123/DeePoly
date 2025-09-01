@@ -1,54 +1,134 @@
+
 # IMEX-RK(2,2,2) 时间积分格式实现文档
 
-## 数学公式
+## 通用IMEX-RK公式
 
-### 阶段 1 (Stage 1)
-隐式求解系数 $\boldsymbol{\beta}^{(1)}$：
 
-$$\left[\mathbf{V} - \gamma \Delta t \mathbf{L}_1 - \gamma \Delta t \mathbf{L}_2 \odot \mathbf{F}(\mathbf{U}^n)\right] \boldsymbol{\beta}^{(1)} = \mathbf{U}^n + \gamma\Delta t \mathbf{N}(\mathbf{U}^n)$$
 
-计算阶段解：
-$$\mathbf{U}^{(1)} = \mathbf{V} \boldsymbol{\beta}^{(1)}$$
+求解ODE系统：$\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U})$（通用形式）
 
-### 阶段 2 (Stage 2)
-隐式求解系数 $\boldsymbol{\beta}^{(2)}$：
+### 纯显式SSP2格式
 
-$$\begin{aligned}
-\left[\mathbf{V} - \gamma \Delta t \mathbf{L}_1 - \gamma \Delta t \mathbf{L}_2 \odot \mathbf{F}(\mathbf{U}^{(1)})\right] \boldsymbol{\beta}^{(2)} = \mathbf{U}^n &+ \Delta t(1-2\gamma) \left[\mathbf{L}_1 + \mathbf{L}_2 \odot \mathbf{F}(\mathbf{U}^{(1)}) \right] \boldsymbol{\beta}^{(1)}\\
-&+ \Delta t(1-\gamma) \mathbf{N}(\mathbf{U}^{(1)})
-\end{aligned}$$
+**Butcher表（显式部分）：**
+```
+c | A
+--|------
+0 | 0   0
+1 | 1   0
+--|------
+  |1/2 1/2
+```
 
-计算阶段解：
-$$\mathbf{U}^{(2)} = \mathbf{V} \boldsymbol{\beta}^{(2)}$$
+**时间推进公式：** 针对方程 $\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U})$
 
-## 变量维度说明
+**阶段1：** 
+$$\mathbf{U}^{(1)} = \mathbf{U}^n + \Delta t \cdot \mathbf{A}(\mathbf{U}^n)$$
 
-对于段索引 `segment_idx`：
+**阶段2：** 
+$$\mathbf{U}^{(2)} = \mathbf{U}^n + \Delta t \cdot \mathbf{A}(\mathbf{U}^{(1)})$$
 
-| 变量 | 程序名称 | 维度 | 说明 |
-|------|----------|------|------|
-| $\mathbf{V}$ | `features[segment_idx]` | `[n_points, dgN]` | 特征矩阵（基函数） |
-| $\mathbf{L}_1$ | `L1_operators[segment_idx]` | `[n_points, dgN]` | 线性算子1（如扩散项） |
-| $\mathbf{L}_2$ | `L2_operators[segment_idx]` | `[n_points, dgN]` | 线性算子2（半隐式项） |
-| $\mathbf{U}$ | `U_seg[segment_idx]` | `[n_points, n_eqs]` | 解变量 |
-| $\mathbf{F}(\mathbf{U})$ | `F_func(features, U_seg)` | `[n_points, n_eqs]` | 非线性函数 |
-| $\mathbf{N}(\mathbf{U})$ | `N_func(features, U_seg)` | `[n_points, n_eqs]` | 非线性算子 |
-| $\boldsymbol{\beta}$ | `coeffs` | `[n_eqs, dgN]` | 展开系数 |
+**最终更新：**
+$$\mathbf{U}^{n+1} = \frac{1}{2}\mathbf{U}^n + \frac{1}{2}\mathbf{U}^{(2)}$$
 
-## 实现要点
+**等价形式：**
+$$\mathbf{U}^{n+1} = \mathbf{U}^n + \frac{\Delta t}{2} \mathbf{A}(\mathbf{U}^n) + \frac{\Delta t}{2} \mathbf{A}(\mathbf{U}^{(1)})$$
 
-### 1. 算子特性
-- **L1, L2算子**：与特征矩阵 $\mathbf{V}$ 维度相同，对所有方程通用
-- **F, N算子**：输出维度与解变量 $\mathbf{U}$ 相同
-- **系数矩阵**：按方程分组，维度为 `[n_eqs, dgN]`
+**稳定性：** CFL条件 $\Delta t \leq \frac{1}{|\lambda_{max}|}$（强稳定保持性质）
 
-### 2. 特殊处理
-由于 $(\mathbf{L}_2 \boldsymbol{\beta}) \odot \mathbf{F}$ 中无法直接提取 $\boldsymbol{\beta}$，需要：
-- 对每个方程 `eq_idx` 单独处理
-- 分别计算每个方程的系数和非线性项
+### 纯隐式SSP2格式
 
-### 3. 矩阵构建
-雅可比矩阵的构建形式：
-$$\mathbf{J} = \mathbf{V} - \gamma \Delta t \mathbf{L}_1 - \gamma \Delta t \mathbf{L}_2 \odot \text{diag}(\mathbf{F})$$
+**Butcher表（隐式部分）：**
+```
+c   | A
+----|------
+γ   | γ   0
+1-γ | 1-2γ γ
+----|------
+    |1/2 1/2
+```
 
-其中 $\text{diag}(\mathbf{F})$ 表示将 $\mathbf{F}$ 的值作为对角矩阵处理。
+**时间推进公式：** 针对方程 $\frac{d\mathbf{U}}{dt} = \mathbf{B}(\mathbf{U})$
+
+**阶段1：** 
+$$\mathbf{U}^{(1)} = \mathbf{U}^n + \gamma \Delta t \cdot \mathbf{B}(\mathbf{U}^{(1)})$$
+
+**阶段2：** 
+$$\mathbf{U}^{(2)} = \mathbf{U}^n + (1-2\gamma) \Delta t \cdot \mathbf{B}(\mathbf{U}^{(1)}) + \gamma \Delta t \cdot \mathbf{B}(\mathbf{U}^{(2)})$$
+
+**最终更新：**
+$$\mathbf{U}^{n+1} = \mathbf{U}^n + \frac{\Delta t}{2} \left[\mathbf{B}(\mathbf{U}^{(1)}) + \mathbf{B}(\mathbf{U}^{(2)})\right]$$
+
+**参数：** $\gamma = 1 - \frac{1}{\sqrt{2}} \approx 0.2929$
+
+**稳定性：** L-stable（无条件稳定，适合刚性问题）
+
+
+**时间推进公式：** 针对方程 $\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U}) \mathbf{B}(\mathbf{U})$
+
+**阶段1：**
+$$\mathbf{U}^{(1)} = \mathbf{U}^n + \gamma \Delta t \cdot \mathbf{B}(\mathbf{U}^{(1)}) \cdot \mathbf{A}(\mathbf{U}^n)$$
+
+**阶段2：**
+$$\mathbf{U}^{(2)} = \mathbf{U}^n + (1-2\gamma) \Delta t \cdot \mathbf{B}(\mathbf{U}^{(1)}) \cdot \mathbf{A}(\mathbf{U}^n) + \gamma \Delta t \cdot \mathbf{B}(\mathbf{U}^{(2)}) \cdot \mathbf{A}(\mathbf{U}^{(1)})$$
+
+**最终更新：**
+$$\mathbf{U}^{n+1} = \mathbf{U}^n + \frac{\Delta t}{2} \left[\mathbf{B}(\mathbf{U}^{(1)}) \cdot \mathbf{A}(\mathbf{U}^n) + \mathbf{B}(\mathbf{U}^{(2)}) \cdot \mathbf{A}(\mathbf{U}^{(2)})\right]$$
+
+**参数：** $\gamma = 1 - \frac{1}{\sqrt{2}} \approx 0.2929$
+
+**特点：**
+- 这是一个IMEX格式，其中$\mathbf{B}(\mathbf{U})$采用隐式处理，$\mathbf{A}(\mathbf{U})$采用显式处理
+- 保持了二阶精度
+- 适合处理刚性问题
+
+
+
+
+### IMEX-RK(2,2,2)格式
+
+**通用IMEX-RK格式：**
+$$\mathbf{U}^{(k)} = \mathbf{U}^n - \Delta t \sum_{l=1}^{k-1} \tilde{a}_{kl} \mathbf{F}(t^n + \tilde{c}_l \Delta t, \mathbf{U}^{(l)}) + \Delta t \sum_{l=1}^{\rho} a_{kl} \mathbf{S}(t^n + c_l \Delta t, \mathbf{U}^{(l)})$$
+
+$$\mathbf{U}^{n+1} = \mathbf{U}^n - \Delta t \sum_{k=1}^{\rho} \tilde{\omega}_k \mathbf{F}(t^n + \tilde{c}_k \Delta t, \mathbf{U}^{(k)}) + \Delta t \sum_{k=1}^{\rho} \omega_k \mathbf{S}(t^n + c_k \Delta t, \mathbf{U}^{(k)})$$
+
+
+
+
+### 乘法系统分析：$\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U}) \cdot \mathbf{B}(\mathbf{U})$
+
+对于系统 $\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U}) \cdot \mathbf{B}(\mathbf{U})$，其中：
+- $\mathbf{A}(\mathbf{U})$ 需要**显式处理**
+- $\mathbf{B}(\mathbf{U})$ 需要**隐式处理**
+
+**可能的形式：**
+1. **标量相乘**：$\frac{d\mathbf{U}}{dt} = A(\mathbf{U}) \cdot B(\mathbf{U})$
+2. **矩阵-向量**：$\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U}) \cdot \mathbf{B}(\mathbf{U})$
+
+**IMEX分离策略：**
+
+**策略1 - 直接分离：**
+$$\frac{d\mathbf{U}}{dt} = \overbrace{\mathbf{A}(\mathbf{U})}^{\mathbf{F}(\mathbf{U})} \cdot \overbrace{\mathbf{B}(\mathbf{U})}^{\mathbf{S}(\mathbf{U})}$$
+
+**策略2 - 线性化分离：**
+$$\frac{d\mathbf{U}}{dt} = \mathbf{A}(\mathbf{U}^n) \cdot \mathbf{B}(\mathbf{U}) + \mathbf{A}(\mathbf{U}) \cdot \mathbf{B}(\mathbf{U}^n) - \mathbf{A}(\mathbf{U}^n) \cdot \mathbf{B}(\mathbf{U}^n)$$
+
+**策略3 - 近似分离：**
+$$\frac{d\mathbf{U}}{dt} \approx \mathbf{A}(\mathbf{U}^n) \cdot \mathbf{B}(\mathbf{U}) + [\mathbf{A}(\mathbf{U}) - \mathbf{A}(\mathbf{U}^n)] \cdot \mathbf{B}(\mathbf{U}^n)$$
+
+**应用IMEX-RK(2,2,2)：**
+
+以策略1为例：
+**阶段1：**
+$$\mathbf{U}^{(1)} = \mathbf{U}^n + \gamma \Delta t \cdot \mathbf{A}(\mathbf{U}^n) \cdot \mathbf{B}(\mathbf{U}^{(1)})$$
+
+**阶段2：**
+$$\mathbf{U}^{(2)} = \mathbf{U}^n + (1-2\gamma) \Delta t \cdot \mathbf{A}(\mathbf{U}^{(1)}) \cdot \mathbf{B}(\mathbf{U}^{(1)}) + \gamma \Delta t \cdot \mathbf{A}(\mathbf{U}^{(1)}) \cdot \mathbf{B}(\mathbf{U}^{(2)})$$
+
+**最终更新：**
+$$\mathbf{U}^{n+1} = \mathbf{U}^n + \frac{\Delta t}{2} \left[ \mathbf{A}(\mathbf{U}^{(1)}) \cdot \mathbf{B}(\mathbf{U}^{(1)}) + \mathbf{A}(\mathbf{U}^{(2)}) \cdot \mathbf{B}(\mathbf{U}^{(2)}) \right]$$ 
+
+for
+
+$$\frac{\partial{U}}{\partial t} = L1(U) + L2(U)F(U)+ N(U)$$
+
+其中 L1(U)和L2(U)采用隐式二阶，而 F(U)和N(U)采用显式，基于上述公式
