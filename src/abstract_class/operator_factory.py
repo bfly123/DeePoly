@@ -139,7 +139,7 @@ class OperatorFactory:
                     print(f"Expression: {expr}")
                     print(f"Available variables: {list(local_vars.keys())}")
                     # Determine fallback array size
-                    if features and features[0] is not None:
+                    if features is not None and features[0] is not None:
                         fallback_size = features[0].shape[0]
                     elif u is not None:
                         if isinstance(u, dict):
@@ -152,6 +152,23 @@ class OperatorFactory:
                         fallback_size = 1
                     results.append(np.zeros(fallback_size))
 
+            # 确保返回标准格式 (n_points, ne)
+            if operator_name == "F":
+                n_points = u.shape[0]
+                
+                # 确定方程数量
+                ne = self.n_eqs
+                
+                # 标准化输出格式
+                output = np.zeros((n_points, ne))
+                for i, result in enumerate(results):
+                    if i < ne and hasattr(result, '__len__'):
+                        output[:, i] = np.array(result).flatten()[:n_points]
+                    elif i < ne:
+                        output[:, i] = result
+                        
+                return output
+            
             return results
 
         # Add metadata
@@ -177,8 +194,8 @@ class OperatorFactory:
                 np.ndarray: Shape (ne, n_points, ne*dgN) for direct use in _build_segment_jacobian
             """
             # Get dimension information
-            n_points = features[0].shape[0] if features else 0
-            dgN = features[0].shape[1] if features else 0
+            n_points = features[0].shape[0] if features is not None else 0
+            dgN = features[0].shape[1] if features is not None else 0
             
             # Assume number of equations equals number of operator terms, or get from config
             ne = len(operator_terms)  # Each term corresponds to one equation
@@ -315,7 +332,7 @@ class OptimizedOperatorFactory(OperatorFactory):
             for compiled_term in compiled_terms:
                 if compiled_term is None:
                     # Determine fallback array size
-                    if features and features[0] is not None:
+                    if features is not None and features[0] is not None:
                         fallback_size = features[0].shape[0]
                     elif u is not None:
                         if isinstance(u, dict):
@@ -434,7 +451,7 @@ class OptimizedOperatorFactory(OperatorFactory):
                     )
                     print(f"Available variables: {list(local_vars.keys())}")
                     # Determine fallback array size
-                    if features and features[0] is not None:
+                    if features is not None and features[0] is not None:
                         fallback_size = features[0].shape[0]
                     elif u is not None:
                         if isinstance(u, dict):
@@ -447,6 +464,41 @@ class OptimizedOperatorFactory(OperatorFactory):
                         fallback_size = 1
                     results.append(np.zeros(fallback_size))
 
+            # 确保返回标准格式 (n_points, ne)
+            if operator_name == "F":
+                # 获取维度信息 - 直接从u获取，因为u的维度最可靠
+                n_points = u.shape[0] if u is not None and hasattr(u, 'shape') else 0
+                
+                # 确定方程数量
+                ne = len(results) if results else 1
+                
+                # 标准化输出格式
+                output = np.zeros((n_points, ne))
+                for i, result in enumerate(results):
+                    if i < ne and hasattr(result, '__len__'):
+                        output[:, i] = np.array(result).flatten()[:n_points]
+                    elif i < ne:
+                        output[:, i] = result
+                        
+                print(f"Debug F_func optimized: operator_name={operator_name}")
+                print(f"Debug F_func optimized: features type={type(features)}")
+                if isinstance(features, list):
+                    print(f"Debug F_func optimized: features length={len(features)}")
+                    for i, feat in enumerate(features):
+                        print(f"Debug F_func optimized: features[{i}] shape={feat.shape if hasattr(feat, 'shape') else type(feat)}")
+                else:
+                    print(f"Debug F_func optimized: features shape={features.shape if hasattr(features, 'shape') else type(features)}")
+                
+                print(f"Debug F_func optimized: u shape={u.shape if u is not None and hasattr(u, 'shape') else type(u)}")
+                print(f"Debug F_func optimized: results length={len(results)}")
+                for i, result in enumerate(results):
+                    print(f"Debug F_func optimized: results[{i}] shape={result.shape if hasattr(result, 'shape') else type(result)} len={len(result) if hasattr(result, '__len__') else 'N/A'}")
+                
+                print(f"Debug F_func optimized: calculated n_points={n_points}, ne={ne}")
+                print(f"Debug F_func optimized: final output shape={output.shape}")
+                
+                return output
+                
             return results
 
         # Add metadata and cache
@@ -476,8 +528,8 @@ class OptimizedOperatorFactory(OperatorFactory):
                 np.ndarray: Shape (ne, n_points, ne*dgN) for direct use in _build_segment_jacobian
             """
             # 获取维度信息
-            n_points = features[0].shape[0] if features else 0
-            dgN = features[0].shape[1] if features else 0
+            n_points = features[0].shape[0] if features is not None else 0
+            dgN = features[0].shape[1] if features is not None else 0
             
             # 方程数等于编译项数
             ne = len(compiled_terms)

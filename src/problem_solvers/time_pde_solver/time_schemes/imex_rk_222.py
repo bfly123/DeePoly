@@ -15,6 +15,7 @@ class ImexRK222(BaseTimeScheme):
 
         # IMEX-RK(2,2,2) parameters (according to formula 3.3)
         self.gamma = (2 - np.sqrt(2)) / 2  # ≈ 0.2928932
+        #self.gamma = 1
 
         # Butcher tableau coefficients
         self.A_imp = np.array([[self.gamma, 0], [1 - 2 * self.gamma, self.gamma]])
@@ -33,7 +34,7 @@ class ImexRK222(BaseTimeScheme):
         )
 
     def time_step(
-        self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float, coeffs_n: np.ndarray = None, current_time: float = 0.0
+        self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float, coeffs_n: np.ndarray = None, current_time: float = 0.0,step: int = 0
     ) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
         """Execute IMEX-RK(2,2,2) time step"""
         
@@ -41,29 +42,49 @@ class ImexRK222(BaseTimeScheme):
         self._current_time = current_time
 
         # Initialize or update current segment-level solution values
-        self.U_seg_current = U_seg.copy()
+        self.U_seg_n = U_seg.copy()
 
         # Stage 1: Solve U^(1)
+        args={
+          "dt": dt,
+          "stage": 1,
+          "step": step,
+          "U_n_seg": self.U_seg_n
+        #  "coeffs_n": coeffs_n,
+        }
         U_seg_stage1, coeffs_stage1 = self._solve_imex_stage_U_seg(
-            self.U_seg_current, None, dt, stage=1, coeffs_n=coeffs_n
+          **args
         )
+
+        args={
+          "dt": dt,
+          "stage": 2,
+          "step": step,
+          "U_n_seg": self.U_seg_n,
+          "U_1_seg": U_seg_stage1,
+          "coeffs_1": coeffs_stage1,
+        }
+
         
         # Plot Stage 1 intermediate solution (disable for performance)
         # self._plot_stage_solution(U_seg_stage1, stage=1, dt=dt)
 
         # Stage 2: Solve U^(2)
         U_seg_stage2, coeffs_stage2 = self._solve_imex_stage_U_seg(
-            self.U_seg_current, U_seg_stage1, dt, stage=2, coeffs_n=coeffs_stage1
+          **args
         )
 
         # Final update: Calculate U^{n+1} (according to formula 3.4)
+        args={
+          "U_n_seg": self.U_seg_n,
+          "U_1_seg": U_seg_stage1,
+          "U_2_seg": U_seg_stage2,
+          "dt": dt,
+          "coeffs_1": coeffs_stage1,
+          "coeffs_2": coeffs_stage2,
+        }
         U_seg_new = self._imex_final_update_U_seg(
-            self.U_seg_current,
-            U_seg_stage1,
-            U_seg_stage2,
-            dt,
-            coeffs_stage1,
-            coeffs_stage2,
+            **args
         )
 
         # Update maintained segment-level solution values
@@ -71,36 +92,30 @@ class ImexRK222(BaseTimeScheme):
         # self.U_seg_current = U_seg_new
 
         # Convert back to global array
-        U_new = self.fitter.segments_to_global(U_seg_new)
+        U_new = self.fitter.segments_to_global(U_seg_stage1)
         #U_new = self.fitter.segments_to_global(U_seg_stage1)
 
         return (
             U_new,
-            U_seg_new,
-            coeffs_stage2,
+            U_seg_stage1,
+            coeffs_stage1,
         )  # Return coefficients from the last stage
 
     def _solve_imex_stage_U_seg(
         self,
-        U_n_seg: List[np.ndarray],
-        U_prev_seg: List[np.ndarray],
-        dt: float,
-        stage: int,
-        coeffs_n: np.ndarray = None,
+        **kwargs
     ) -> Tuple[List[np.ndarray], np.ndarray]:
         """求解IMEX-RK阶段 - 直接使用段级解值操作"""
 
         # 准备阶段数据 - 直接传递段级数据
         stage_data = {
-            "U_n_seg": U_n_seg,
-            "U_prev_seg": U_prev_seg,
-            "U_seg_current": U_n_seg,  # 当前段级解值
-            "U_seg_stage1": U_prev_seg,  # 第一阶段结果（对于stage 2）
-            "dt": dt,
-            "stage": stage,
-            "gamma": self.gamma,
+            "U_n_seg": kwargs.get("U_n_seg"),
+            "U_1_seg": kwargs.get("U_1_seg",None),
+            "dt": kwargs.get("dt"),
+            "stage": kwargs.get("stage"),
             "operation": "imex_stage",
-            "coeffs_n": coeffs_n,
+            "coeffs_1": kwargs.get("coeffs_1",None),
+            "step": kwargs.get("step"),
         }
 
         # 使用base_fitter的fit方法求解阶段系数
@@ -116,131 +131,77 @@ class ImexRK222(BaseTimeScheme):
     def _imex_final_update_U_seg(
         self,
         U_n_seg: List[np.ndarray],
-        U_seg_stage1: List[np.ndarray],
-        U_seg_stage2: List[np.ndarray],
+        U_1_seg: List[np.ndarray],
+        U_2_seg: List[np.ndarray],
         dt: float,
-        coeffs_stage1: np.ndarray,
-        coeffs_stage2: np.ndarray,
+        coeffs_1: np.ndarray,
+        coeffs_2: np.ndarray,
     ) -> List[np.ndarray]:
-        """IMEX-RK最终更新步骤 - 直接使用段级解值和系数"""
-        dt = 0.01
-
+        """IMEX-RK最终更新步骤 - 根据公式3.4计算U^{n+1}"""
+        
+        # Initialize parameters
+        ne = self.config.n_eqs
+        dgN = self.fitter.dgN
         U_seg_new = []
 
+        # Process each segment
         for segment_idx in range(self.fitter.ns):
+            # Get segment dimensions and current solution
             n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
             U_n_seg_current = U_n_seg[segment_idx]
-
-            # Calculate operator contributions from each stage
+            
+            # Get precompiled operators and features
+            L1_operators = self.fitter._linear_operators[segment_idx].get("L1", None)
+            L2_operators = self.fitter._linear_operators[segment_idx].get("L2", None)
+            features_list = self.fitter._features[segment_idx]
+            features = features_list[0]
+            
+            # Get stage solutions for current segment
+            U_1_seg_current = U_1_seg[segment_idx]
+            U_2_seg_current = U_2_seg[segment_idx]
+            
+            # Calculate total contribution from all stages
             total_contribution = np.zeros_like(U_n_seg_current)
-
-            for stage_idx, (U_seg_stage, coeffs_stage, weight) in enumerate(
-                [
-                    (U_seg_stage1[segment_idx], coeffs_stage1, self.b[0]),
-                    (U_seg_stage2[segment_idx], coeffs_stage2, self.b[1]),
-                ]
-            ):
+            
+            # Stage data: (U_stage, coeffs, weight)
+            stage_data = [
+                (U_1_seg_current, coeffs_1, self.b[0]),
+                (U_2_seg_current, coeffs_2, self.b[1])
+            ]
+            
+            for U_seg_stage, coeffs_stage, weight in stage_data:
                 stage_contribution = np.zeros_like(U_n_seg_current)
-                print(f"Debug stage_contribution.shape={stage_contribution.shape}")
-
-                # Extract coefficients for current segment
-                ne = self.config.n_eqs
-                dgN = self.fitter.dgN
-
+                
+                # Calculate operator contributions for each equation
                 for eq_idx in range(ne):
-                    # Get coefficients for current segment and equation
-                    print(f"Debug coeffs: stage_idx={stage_idx}, coeffs_stage.shape={coeffs_stage.shape}")
+                    # Extract coefficients for current segment and equation
+                    beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
                     
-                    # 处理不同的系数格式
-                    if coeffs_stage.ndim == 3:  # (ns, ne, dgN)
-                        beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
-                    elif coeffs_stage.ndim == 1:  # 展平的系数
-                        start_idx = (segment_idx * ne + eq_idx) * dgN
-                        end_idx = start_idx + dgN
-                        beta_seg_stage = coeffs_stage[start_idx:end_idx]
-                    else:
-                        print(f"Unexpected coeffs_stage shape: {coeffs_stage.shape}")
-                        beta_seg_stage = np.zeros(dgN)
-
-                    # L1 term: L1 @ β^(i)
-                    if self.fitter.has_operator("L1"):
-                        L1_seg = self.fitter._linear_operators[segment_idx].get(
-                            "L1", None
-                        )
-                        if L1_seg is not None:
-                            print(f"Debug final: L1_seg.shape={L1_seg.shape}, beta_seg_stage.shape={beta_seg_stage.shape}")
-                            # 如果L1_seg是3D，取第一个切片
-                            if L1_seg.ndim == 3:
-                                L1_seg_2d = L1_seg[0]  # 取第一个切片，变成2D
-                            else:
-                                L1_seg_2d = L1_seg
-                            result = L1_seg_2d @ beta_seg_stage
-                            # 确保结果维度与stage_contribution兼容
-                            if result.ndim == 1 and stage_contribution.ndim == 2:
-                                result = result.reshape(-1, 1)
-                            stage_contribution += result
-
-                # N term: N(U^(i)) - nonlinear, directly using U values as input
+                    # L1 contribution: L1 @ β^(i)
+                    if L1_operators is not None:
+                        L1_seg = L1_operators[eq_idx]
+                        L1_contrib = L1_seg @ beta_seg_stage
+                        L1_contrib = L1_contrib.reshape(-1, 1)
+                        stage_contribution += L1_contrib
+                    
+                    # L2⊙F contribution: diag(F) @ L2 @ β^(i)
+                    if L2_operators is not None and self.fitter.has_operator("F"):
+                        L2_seg = L2_operators[eq_idx]
+                        F_vals = self.fitter.F_func(features, U_seg_stage)
+                        F_eq = F_vals[:, eq_idx]
+                        
+                        L2F_contrib = np.diag(F_eq) @ L2_seg @ beta_seg_stage
+                        L2F_contrib = L2F_contrib.reshape(-1, 1)
+                        stage_contribution += L2F_contrib
+                
+                # N contribution: N(U^(i))
                 if self.fitter.has_operator("N"):
-                    N_vals = self.fitter.N_func(
-                        self.fitter._features[segment_idx], U_seg_stage
-                    )
-                    if hasattr(N_vals, "__len__") and len(N_vals) == n_points:
-                        stage_contribution += N_vals
-                    else:
-                        stage_contribution += N_vals
-
-                # L2⊙F term: diag(F) @ L2 @ β^(i) - 统一使用矩阵乘法方式
-                if self.fitter.has_operator("L2") and self.fitter.has_operator("F"):
-                    L2_seg = self.fitter._linear_operators[segment_idx].get("L2", None)
-                    if L2_seg is not None:
-                        # 如果L2_seg是3D，取第一个切片
-                        if L2_seg.ndim == 3:
-                            L2_seg_2d = L2_seg[0]  # 取第一个切片，变成2D
-                        else:
-                            L2_seg_2d = L2_seg
-                            
-                        F_vals = self.fitter.F_func(
-                            self.fitter._features[segment_idx], U_seg_stage
-                        )
-
-                        # 处理F_vals的格式
-                        if isinstance(F_vals, list):
-                            F_vals = np.array(F_vals[0] if len(F_vals) == 1 else F_vals).T
-                        elif F_vals.ndim == 1:
-                            F_vals = F_vals.reshape(-1, 1)
-
-                        for eq_idx in range(ne):
-                            # 处理不同的系数格式
-                            if coeffs_stage.ndim == 3:  # (ns, ne, dgN)
-                                beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
-                            elif coeffs_stage.ndim == 1:  # 展平格式
-                                start_idx = (segment_idx * ne + eq_idx) * dgN
-                                end_idx = start_idx + dgN
-                                beta_seg_stage = coeffs_stage[start_idx:end_idx]
-                            else:
-                                beta_seg_stage = np.zeros(dgN)
-                            
-                            # 取当前方程的F值
-                            if F_vals.ndim > 1 and F_vals.shape[1] > eq_idx:
-                                F_eq = F_vals[:, eq_idx]
-                            else:
-                                F_eq = F_vals.flatten()
-                            
-                            # 统一计算方式: diag(F) @ L2 @ β - 与雅可比矩阵一致
-                            L2F_contrib = np.diag(F_eq) @ L2_seg_2d @ beta_seg_stage  # (n_points,)
-                            
-                            # 确保维度兼容
-                            if stage_contribution.ndim == 2 and L2F_contrib.ndim == 1:
-                                L2F_contrib = L2F_contrib.reshape(-1, 1)
-                            elif stage_contribution.ndim == 1 and L2F_contrib.ndim == 2:
-                                L2F_contrib = L2F_contrib.flatten()
-                                
-                            stage_contribution += L2F_contrib
-
+                    N_vals = self.fitter.N_func(features, U_seg_stage)
+                    stage_contribution += N_vals
+                
                 # Weighted accumulation
                 total_contribution += weight * stage_contribution
-
+            
             # Final update: U^{n+1} = U^n + Δt * total_contribution
             U_seg_new.append(U_n_seg_current + dt * total_contribution)
 
@@ -260,53 +221,60 @@ class ImexRK222(BaseTimeScheme):
         ne = self.config.n_eqs
         dgN = self.fitter.dgN
 
-        stage = kwargs.get("stage", 1)
-        dt = kwargs.get("dt", 0.01)
-        gamma = kwargs.get("gamma", self.gamma)
-        #gamma = 1
-        dt = 0.01
+        stage = kwargs.get("stage")
+        dt = kwargs.get("dt")
+        gamma = self.gamma
+        #dt = 0.01
 
         # 获取预编译算子和特征矩阵
         L1_operators = self.fitter._linear_operators[segment_idx].get("L1", None)
         L2_operators = self.fitter._linear_operators[segment_idx].get("L2", None)
-        features_list = self.fitter._features[segment_idx]  # 可能是列表格式
-        
-        # 处理features的不同格式
-        if isinstance(features_list, list):
-            features = features_list[0]  # 取第一个元素作为特征矩阵
-        else:
-            features = features_list
-        
-        # 检查L1算子实际结构并适配
-        
-        if L1_operators is not None:
-            if L1_operators.ndim == 3:
-                # 如果是3D，取第一个切片作为通用L1算子
-                L1_2d = L1_operators[0]  # (n_points, dgN)
-            else:
-                L1_2d = L1_operators
-        else:
-            L1_2d = None
-            
-        if L2_operators is not None:
-            if L2_operators.ndim == 3:
-                L2_2d = L2_operators[0]  # (n_points, dgN)
-            else:
-                L2_2d = L2_operators
-        else:
-            L2_2d = None
+        features_list = self.fitter._features[segment_idx]
+        features = features_list[0] #0 order derivative
 
+        U_n_seg_list = kwargs.get("U_n_seg", [])
+        U_n_seg = U_n_seg_list[segment_idx]
+        U_prev_seg_list = kwargs.get("U_prev_seg", [])
+        U_prev_seg = U_prev_seg_list[segment_idx] if U_prev_seg_list else None
+
+        F_n = self.fitter.F_func(features, U_n_seg)
+        F_prev = self.fitter.F_func(features, U_prev_seg) if U_prev_seg is not None else None
+
+        N_n = self.fitter.N_func(features, U_n_seg) if self.fitter.has_operator("N") else None
+        N_prev = self.fitter.N_func(features, U_prev_seg) if U_prev_seg is not None and self.fitter.has_operator("N") else None
+
+        beta = kwargs.get("coeffs_n", None)
+        beta_prev = beta[segment_idx, :, :] if beta is not None else None
+
+        # 处理features的不同格式
+        V = features_list[0]  #所有导数信息都在这里 
+       
         # 构建系统矩阵和右端向量
         L_final = np.zeros((ne * n_points, ne * dgN))
         b_final = []
 
         # 构造右端向量 - 移除重复的stage参数
-        kwargs_rhs = kwargs.copy()
-        kwargs_rhs['stage'] = stage  # 确保使用正确的stage值
+        kwargs_rhs = {
+          "L1_operators": L1_operators,
+          "L2_operators": L2_operators,
+          "U_n_seg": U_n_seg,
+          "U_prev_seg": U_prev_seg,
+          "F_n": F_n,
+          "F_prev": F_prev,
+          "features": features,
+          "N_n": N_n,
+          "N_prev": N_prev,
+          "beta_prev": beta_prev,
+          "stage": stage,
+          "dt": dt
+        }
+
         rhs = self._build_stage_rhs(segment_idx, **kwargs_rhs)
 
         # 对每个方程构建雅可比矩阵
         for eq_idx in range(ne):
+            L1  = L1_operators[eq_idx]
+            L2  = L2_operators[eq_idx]
             # 行索引范围
             row_start = eq_idx * n_points
             row_end = (eq_idx + 1) * n_points
@@ -316,57 +284,37 @@ class ImexRK222(BaseTimeScheme):
             col_end = (eq_idx + 1) * dgN
             
             # 构建该方程的雅可比矩阵: V - γΔt*L1 - γΔt*L2⊙F
-            J_eq = features.copy()  # 从特征矩阵V开始
+            J_eq = V.copy()  # 从特征矩阵V开始
             
             # 减去隐式L1项: -γΔt*L1
-            if L1_2d is not None:
-              if stage == 1:
-                J_eq -= gamma * dt * L1_2d
-              elif stage == 2:
-                J_eq -= (1-gamma) * dt * L1_2d
+            if L1 is not None:
+              if stage == 2 and step > 0:
+                J_eq -= 0.5* dt * L1
+              else:
+                J_eq -=  dt * L1
             
             # 减去隐式L2⊙F项: -γΔt*diag(F)*L2 (统一使用逐点相乘方式的线性化形式)
-            if L2_2d is not None and self.fitter.has_operator("F"):
-                # 获取当前U值
-                U_n_seg_list = kwargs.get("U_n_seg", [])
-                U_prev_seg_list = kwargs.get("U_prev_seg", [])
-                
-                # 根据阶段选择U值
+            if L2 is not None:
                 if stage == 1:
-                    U_seg_for_F = U_n_seg_list[segment_idx] if U_n_seg_list else None
+                  F_vals = F_n
+                elif stage == 2:
+                  F_vals = (F_prev + F_n)/2
                 else:
-                    U_seg_for_F = U_prev_seg_list[segment_idx] if U_prev_seg_list else None
+                  raise ValueError(f"Invalid stage: {stage}")
                 
-                if U_seg_for_F is not None:
-                    # 计算F值: (n_points, ne)
-                    F_vals = self.fitter.F_func(features, U_seg_for_F)
-                    
-                    # Convert F_vals to numpy array if it's a list
-                    if isinstance(F_vals, list):
-                        F_vals = np.array(F_vals[0] if len(F_vals) == 1 else F_vals).T  # Transpose to get (n_points, ne)
-                    elif F_vals.ndim == 1:
-                        F_vals = F_vals.reshape(-1, 1)
-                    
-                    # 取当前方程的F值
-                    if F_vals.ndim > 1 and F_vals.shape[1] > eq_idx:
-                        F_eq = F_vals[:, eq_idx]  # (n_points,)
-                    else:
-                        F_eq = F_vals.flatten()
-                    
-                    # 统一的L2⊙F项线性化: -γΔt * diag(F_eq) @ L2_2d
-                    # 这对应于 (L2@β) ⊙ F 的雅可比矩阵形式
-                    L2F_term = gamma * dt * np.diag(F_eq) @ L2_2d
-                    J_eq -= L2F_term
-            
+                F_eq = F_vals[:, eq_idx]
+                # 统一的L2⊙F项线性化: -γΔt * diag(F_eq) @ L2_2d
+                # 这对应于 (L2@β) ⊙ F 的雅可比矩阵形式
+                L2F_term = dt * np.diag(F_eq) @ L2
+                if stage == 2 and step > 0:
+                  L2F_term *= 0.5
+                J_eq -= L2F_term
             # 将该方程的雅可比矩阵放入最终矩阵
             L_final[row_start:row_end, col_start:col_end] = J_eq
-            
             # 添加对应的右端项
             b_final.append(rhs[:, eq_idx])
-
         # 展平右端向量
         b_vector = np.concatenate(b_final)
-
         return L_final, b_vector
 
     def _build_stage_rhs(self, segment_idx: int, **kwargs) -> np.ndarray:
@@ -377,112 +325,48 @@ class ImexRK222(BaseTimeScheme):
         阶段2 RHS: U^n + Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
         """
 
-        n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
         ne = self.config.n_eqs
-        dt = kwargs.get("dt", 0.01)
-        dt = 0.01
-        gamma = kwargs.get("gamma", self.gamma)
-        stage = kwargs.get("stage", 1)
+        dt = kwargs.get("dt")
+        gamma = self.gamma
+        stage = kwargs.get("stage")
 
-        # 获取算子并处理3D情况
-        L1_operators = self.fitter._linear_operators[segment_idx].get("L1", None)
-        L2_operators = self.fitter._linear_operators[segment_idx].get("L2", None)
-        features_list = self.fitter._features[segment_idx]
-        
-        # 处理features的不同格式
-        if isinstance(features_list, list):
-            features = features_list[0]  # 取第一个元素作为特征矩阵
-        else:
-            features = features_list
+        # 从kwargs获取预传递的参数
+        U_n_seg = kwargs.get("U_n_seg")
+        N_n = kwargs.get("N_n")
+        N_prev = kwargs.get("N_prev")
+        F_prev = kwargs.get("F_prev")
+        F_n = kwargs.get("F_n")
+        beta_prev = kwargs.get("beta_prev")
+        beta_n = kwargs.get("beta_n")
 
-        # 适配L1, L2算子维度
-        if L1_operators is not None and L1_operators.ndim == 3:
-            L1_2d = L1_operators[0]  # (n_points, dgN)
-        else:
-            L1_2d = L1_operators
-            
-        if L2_operators is not None and L2_operators.ndim == 3:
-            L2_2d = L2_operators[0]  # (n_points, dgN) 
-        else:
-            L2_2d = L2_operators
+        # 获取维度信息
+        n_points = U_n_seg.shape[0]
 
         # 初始化右端向量: (n_points, ne)
         rhs = np.zeros((n_points, ne))
 
         if stage == 1:
             # 阶段1 RHS: U^n + γΔt*N(U^n)
-            U_n_seg_list = kwargs.get("U_n_seg", [])
+            # 基础项: U^n
+            rhs[:, :] = U_n_seg
             
-            if U_n_seg_list and len(U_n_seg_list) > segment_idx:
-                U_n_seg = U_n_seg_list[segment_idx]  # (n_points, ne)
-                
-                # 基础项: U^n
-                rhs[:, :] = U_n_seg
-                
-                # 添加非线性项: γΔt*N(U^n)
-                if self.fitter.has_operator("N"):
-                    N_vals = self.fitter.N_func(features, U_n_seg)  # (n_points, ne)
-                    rhs += gamma * dt * N_vals
+            # 添加非线性项: γΔt*N(U^n)
+            if N_n is not None:
+                rhs += gamma * dt * N_n
 
         elif stage == 2:
             # 阶段2 RHS: U^n + Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
-            U_n_seg_list = kwargs.get("U_n_seg", [])
-            U_seg_stage1_list = kwargs.get("U_seg_stage1", [])
-            coeffs_stage1 = kwargs.get("coeffs_n", None)  # 阶段1的系数
+            # 基础项: U^n
+            rhs[:, :] = U_n_seg
+
+            if F_prev is not None:
             
-            if U_n_seg_list and len(U_n_seg_list) > segment_idx:
-                U_n_seg = U_n_seg_list[segment_idx]
-                
-                # 基础项: U^n
-                rhs[:, :] = U_n_seg
-                
-                # 如果有阶段1的数据，计算显式项
-                if (U_seg_stage1_list and len(U_seg_stage1_list) > segment_idx and 
-                    coeffs_stage1 is not None):
-                    
-                    U_seg_stage1 = U_seg_stage1_list[segment_idx]
-                    
-                    # 对每个方程处理显式项
-                    for eq_idx in range(ne):
-                        # 提取阶段1系数 β^(1)
-                        if coeffs_stage1.ndim == 3:  # (ns, ne, dgN)
-                            beta_1 = coeffs_stage1[segment_idx, eq_idx, :]
-                        elif coeffs_stage1.ndim == 1:  # 展平格式
-                            start_idx = (segment_idx * ne + eq_idx) * self.fitter.dgN
-                            end_idx = start_idx + self.fitter.dgN
-                            beta_1 = coeffs_stage1[start_idx:end_idx]
-                        else:
-                            beta_1 = np.zeros(self.fitter.dgN)
-                        
-                        # L1项: Δt(1-2γ)*L1*β^(1)
-                        if L1_2d is not None:
-                            L1_contrib = L1_2d @ beta_1  # (n_points,)
-                            rhs[:, eq_idx] += dt * (1-2*gamma) * L1_contrib
-                        
-                        # L2⊙F项: Δt(1-2γ)*diag(F(U^(1)))*L2*β^(1) - 统一矩阵乘法方式
-                        if L2_2d is not None and self.fitter.has_operator("F"):
-                            F_vals = self.fitter.F_func(features, U_seg_stage1)  # (n_points, ne)
-                            
-                            # Convert F_vals to numpy array if it's a list
-                            if isinstance(F_vals, list):
-                                F_vals = np.array(F_vals[0] if len(F_vals) == 1 else F_vals).T  # Transpose to get (n_points, ne)
-                            elif F_vals.ndim == 1:
-                                F_vals = F_vals.reshape(-1, 1)
-                            
-                            # 取当前方程的F值
-                            if F_vals.ndim > 1 and F_vals.shape[1] > eq_idx:
-                                F_eq = F_vals[:, eq_idx]
-                            else:
-                                F_eq = F_vals.flatten()
-                            
-                            # 统一计算方式: diag(F) @ L2 @ β - 与雅可比矩阵一致
-                            L2F_contrib = np.diag(F_eq) @ L2_2d @ beta_1  # (n_points,)
-                            rhs[:, eq_idx] += dt * (1-2*gamma) * L2F_contrib
-                    
-                    # N项: Δt(1-γ)*N(U^(1)) - 对所有方程一起计算
-                    if self.fitter.has_operator("N"):
-                        N_vals = self.fitter.N_func(features, U_seg_stage1)  # (n_points, ne)
-                        rhs += dt * (1-gamma) * N_vals
+            # 添加隐式项的显式贡献: Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1)
+            # 这部分需要从stage 1的系数β^(1)计算得出，此处简化为仅包含N项
+            
+            if N_prev is not None:
+                # N项: Δt(1-γ)*N(U^(1))
+                rhs += dt * (1-gamma) * N_prev
 
         return rhs
 
@@ -572,13 +456,11 @@ class ImexRK222(BaseTimeScheme):
         """Debug L2*F term to check if it's working correctly"""
         print(f"\n=== Debugging L2⊙F Term (Stage {stage}, Segment {segment_idx}) ===")
         
-        # Get L2 operator
+        # Get L2 operator - 3D格式取第一个切片
         L2_operators = self.fitter._linear_operators[segment_idx].get("L2", None)
-        if L2_operators is not None:
-            if L2_operators.ndim == 3:
-                L2_seg = L2_operators[0]  # (n_points, dgN)
-            else:
-                L2_seg = L2_operators
+        L2_seg = L2_operators[0] if L2_operators is not None else None
+        
+        if L2_seg is not None:
             print(f"L2 operator shape: {L2_seg.shape}")
             print(f"L2 operator range: [{L2_seg.min():.6e}, {L2_seg.max():.6e}]")
             print(f"L2 operator norm: {np.linalg.norm(L2_seg):.6e}")
@@ -610,11 +492,7 @@ class ImexRK222(BaseTimeScheme):
             
             F_vals = self.fitter.F_func(features, U_seg)
             
-            # Convert F_vals to numpy array if it's a list
-            if isinstance(F_vals, list):
-                F_vals = np.array(F_vals[0] if len(F_vals) == 1 else F_vals).T  # Transpose to get (n_points, ne)
-            elif F_vals.ndim == 1:
-                F_vals = F_vals.reshape(-1, 1)
+            # F_func返回标准格式 (n_points, ne)
             
             print(f"F function values shape: {F_vals.shape}")
             print(f"F function values range: [{F_vals.min():.6e}, {F_vals.max():.6e}]")
@@ -623,10 +501,10 @@ class ImexRK222(BaseTimeScheme):
             expected_F = 5 - 5 * U_seg**2
             print(f"Expected F = 5-5*U^2 range: [{expected_F.min():.6e}, {expected_F.max():.6e}]")
             
-            if np.allclose(F_vals, expected_F.flatten() if F_vals.ndim == 1 else expected_F):
+            if np.allclose(F_vals, expected_F):
                 print("✓ F function matches expected formula 5-5*U^2")
             else:
-                diff_norm = np.linalg.norm(F_vals - expected_F.flatten() if F_vals.ndim == 1 else expected_F)
+                diff_norm = np.linalg.norm(F_vals - expected_F)
                 print(f"✗ F function differs from expected! Diff norm: {diff_norm:.6e}")
             
             # Test L2⊙F operation
@@ -640,11 +518,8 @@ class ImexRK222(BaseTimeScheme):
                 L2_beta = L2_seg @ beta_test
                 print(f"L2 @ β (test) range: [{L2_beta.min():.6e}, {L2_beta.max():.6e}]")
                 
-                # Get F for current equation
-                if F_vals.ndim > 1 and F_vals.shape[1] > eq_idx:
-                    F_eq = F_vals[:, eq_idx]
-                else:
-                    F_eq = F_vals.flatten()
+                # Get F for current equation - 标准格式 (n_points, ne)
+                F_eq = F_vals[:, eq_idx]
                 
                 # Calculate L2⊙F contribution
                 L2F_contrib = L2_beta * F_eq

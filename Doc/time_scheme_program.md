@@ -129,6 +129,13 @@ $$\mathbf{U}^{n+1} = \mathbf{U}^n + \frac{\Delta t}{2} \left[ \mathbf{A}(\mathbf
 
 for
 
-$$\frac{\partial{U}}{\partial t} = L1(U) + L2(U)F(U)+ N(U)$$
+$$\frac{\partial{U}}{\partial t} = L_1(U) + L_2(U)F(U)+ N(U)$$
 
-其中 L1(U)和L2(U)采用隐式二阶，而 F(U)和N(U)采用显式，基于上述公式
+
+
+其中 $L_1(U)$和 $L_2(U)$采用隐式二阶，而 F(U)和N(U)采用显式，基于上述公式
+
+第一步：
+$$U^1 = U^n + dt [L_1(U^1) + L_2(U^1)F(U^n) + N(U^n)] $$
+
+$$U^2 = U^n + dt\frac{[L(U^{n+1}) + L(U^n)]}{2} + dt \frac{L_2(U^{n+1})+L_2(U^n)}{2} \frac{F(U^1)+F(U^n)}{2} + \frac{N(U^1)+N(U^n)}{2} $$

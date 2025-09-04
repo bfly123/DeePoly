@@ -204,3 +204,6 @@ Current version: v0.2
 - source ~/anaconda3/etc/profile.d/conda.sh && conda activate ML
 
 - 针对抽象变量 U编程，其中U=[...] 代表抽象的方程变量，包含具体物理量，u可能包含在物理量中，可能没有
+
+
+-重要：通过打印确认不同矩阵维度,而不是通过大量分支判断保证正确
