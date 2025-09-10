@@ -22,32 +22,44 @@ if current_dir not in sys.path:
 from src.problem_solvers.time_pde_solver.solver import TimePDESolver
 from src.problem_solvers.time_pde_solver.utils.config import TimePDEConfig
 from ac_reference_solver import ACReferenceSolver
+from highres_reference_solver import HighResACReferenceSolver
 from scipy.interpolate import interp1d
 
 def test_training_vs_fitting_errors():
     """Test neural network training error vs fitting error"""
-    print("=== Testing Training vs Fitting Errors at T=0.01 ===")
+    print("=== Testing Training vs Fitting Errors at T=0.005 ===")
     
     # Load DeePoly solver
     case_dir = os.path.join(current_dir, "cases", "Time_pde_cases", "AC_equation")
     config = TimePDEConfig(case_dir=case_dir)
     solver = TimePDESolver(config)
     
-    # Get reference solution
-    ref_solver = ACReferenceSolver(current_dir)
-    T = 0.01
-    ref_data = ref_solver.solve_reference(T=T, dt=0.01, N_points=512)
+    # Get high-resolution reference solution
+    highres_ref_solver = HighResACReferenceSolver(current_dir)
+    T = 0.005  # 降低时间到0.005，测试更短时间步的精度
+    ref_data = highres_ref_solver.solve_reference(T=T, interpolation_method='spline')
     
-    # Interpolate reference to test points
-    test_data = solver.data_test
+    # Interpolate reference to training points (not test points!)
+    train_data = solver.data_train
     x_domain = config.x_domain[0]
     x_min, x_max = x_domain[0], x_domain[1]
-    x_test_global = test_data['x']
-    x_test_phys = x_test_global * (x_max - x_min) / 2 + (x_max + x_min) / 2
-    x_test_phys = x_test_phys.flatten()
+    x_train_global = train_data['x']
+    x_train_phys = x_train_global * (x_max - x_min) / 2 + (x_max + x_min) / 2
+    x_train_phys = x_train_phys.flatten()
     
-    ref_interpolator = interp1d(ref_data['x'], ref_data['u'], kind='cubic', bounds_error=False, fill_value='extrapolate')
-    ref_at_test = ref_interpolator(x_test_phys)
+    # Use high-precision spline interpolation for reference solution
+    from scipy.interpolate import UnivariateSpline
+    ref_spline = UnivariateSpline(ref_data['x'], ref_data['u'], s=0)  # s=0 for interpolating spline
+    ref_at_train = ref_spline(x_train_phys)
+    
+    # Print interpolation quality info
+    if ref_data.get('is_highres', False):
+        print(f"Using high-resolution reference data:")
+        print(f"  Reference grid: {len(ref_data['x'])} points")
+        print(f"  Training points: {len(x_train_phys)} points")
+        print(f"  Interpolation: {ref_data.get('interpolation_method', 'spline')}")
+    else:
+        print("Warning: Using standard-resolution reference data")
     
     print("Running solver with intermediate error analysis...")
     
@@ -70,24 +82,24 @@ def test_training_vs_fitting_errors():
     solver._train_neural_network_step(dt, U_current=U)
     model = solver.model  # Use the trained model from solver
     
-    # Get neural network prediction (before polynomial fitting)
+    # Get neural network prediction (before polynomial fitting) on training points
     print("  Evaluating neural network prediction...")
-    x_test_tensor = torch.tensor(
-        test_data["x"], dtype=torch.float64, device=model.config.device, requires_grad=True
+    x_train_tensor = torch.tensor(
+        train_data["x"], dtype=torch.float64, device=model.config.device, requires_grad=True
     )
     with torch.no_grad():
-        model_output = model(x_test_tensor)
+        model_output = model(x_train_tensor)
         # Handle tuple output (features, prediction) 
         if isinstance(model_output, tuple):
             nn_prediction = model_output[1].cpu().numpy().flatten()  # Use prediction part
         else:
             nn_prediction = model_output.cpu().numpy().flatten()
     
-    # Calculate NN error
-    nn_error = nn_prediction - ref_at_test
+    # Calculate NN error on training points
+    nn_error = nn_prediction - ref_at_train
     nn_abs_error = np.abs(nn_error)
     nn_l2_error = np.linalg.norm(nn_error)
-    nn_rel_l2_error = nn_l2_error / np.linalg.norm(ref_at_test)
+    nn_rel_l2_error = nn_l2_error / np.linalg.norm(ref_at_train)
     
     results['neural_network'] = {
         'prediction': nn_prediction,
@@ -107,17 +119,14 @@ def test_training_vs_fitting_errors():
     solver.fitter.fitter_init(model)
     U_new, U_seg_new, coeffs = solver.fitter.solve_time_step(U, U_seg, dt, coeffs_n=coeffs)
     
-    # Get final prediction after polynomial fitting at test points
-    final_test_prediction, final_test_segments = solver.fitter.construct(
-        test_data, model, coeffs
-    )
-    final_prediction = final_test_prediction.flatten()
+    # Use U_new directly (the result from time stepping on training points)
+    final_prediction = U_new.flatten()
     
-    # Calculate final error
-    final_error = final_prediction - ref_at_test
+    # Calculate final error on training points using U_new
+    final_error = final_prediction - ref_at_train
     final_abs_error = np.abs(final_error)
     final_l2_error = np.linalg.norm(final_error)
-    final_rel_l2_error = final_l2_error / np.linalg.norm(ref_at_test)
+    final_rel_l2_error = final_l2_error / np.linalg.norm(ref_at_train)
     
     results['polynomial_fitting'] = {
         'prediction': final_prediction,
@@ -163,36 +172,36 @@ def test_training_vs_fitting_errors():
         print(f"  ⚠ Polynomial fitting did not improve the solution")
     
     # Create detailed visualization
-    create_error_comparison_plot(x_test_phys, ref_at_test, results, case_dir)
+    create_error_comparison_plot(x_train_phys, ref_at_train, results, case_dir)
     
-    return results, x_test_phys, ref_at_test
+    return results, x_train_phys, ref_at_train
 
-def create_error_comparison_plot(x_test, ref_solution, results, case_dir):
+def create_error_comparison_plot(x_train, ref_solution, results, case_dir):
     """Create detailed comparison plot"""
     
     fig, axes = plt.subplots(3, 2, figsize=(15, 18))
-    fig.suptitle('Neural Network vs Polynomial Fitting Error Analysis at T=0.01', fontsize=16)
+    fig.suptitle('Neural Network vs U_new Error Analysis on Training Points at T=0.01', fontsize=16)
     
     nn_pred = results['neural_network']['prediction']
     final_pred = results['polynomial_fitting']['prediction']
     nn_abs_err = results['neural_network']['abs_error']
     final_abs_err = results['polynomial_fitting']['abs_error']
     
-    # Plot 1: All solutions comparison
+    # Plot 1: All solutions comparison (all scatter plots for random training points)
     ax1 = axes[0, 0]
-    ax1.plot(x_test, ref_solution, 'k-', linewidth=2, label='Reference', alpha=0.8)
-    ax1.scatter(x_test, nn_pred, c='blue', s=8, alpha=0.7, label='Neural Network')
-    ax1.scatter(x_test, final_pred, c='red', s=8, alpha=0.7, label='Final (NN+Poly)')
+    ax1.scatter(x_train, ref_solution, c='black', s=15, alpha=0.8, label='Reference', marker='o')
+    ax1.scatter(x_train, nn_pred, c='blue', s=12, alpha=0.7, label='Neural Network', marker='s')
+    ax1.scatter(x_train, final_pred, c='red', s=12, alpha=0.7, label='Final (U_new)', marker='^')
     ax1.set_xlabel('x')
     ax1.set_ylabel('u(x,t)')
-    ax1.set_title('Solution Comparison')
+    ax1.set_title('Solution Comparison (Random Training Points)')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
     # Plot 2: Error comparison
     ax2 = axes[0, 1]
-    ax2.scatter(x_test, nn_abs_err, c='blue', s=8, alpha=0.7, label='NN Error')
-    ax2.scatter(x_test, final_abs_err, c='red', s=8, alpha=0.7, label='Final Error')
+    ax2.scatter(x_train, nn_abs_err, c='blue', s=8, alpha=0.7, label='NN Error')
+    ax2.scatter(x_train, final_abs_err, c='red', s=8, alpha=0.7, label='U_new Error')
     ax2.set_xlabel('x')
     ax2.set_ylabel('|Error|')
     ax2.set_title('Absolute Error Comparison')
@@ -202,7 +211,7 @@ def create_error_comparison_plot(x_test, ref_solution, results, case_dir):
     
     # Plot 3: Neural network error details
     ax3 = axes[1, 0]
-    scatter1 = ax3.scatter(x_test, nn_abs_err, c=nn_abs_err, s=20, cmap='Blues', alpha=0.8)
+    scatter1 = ax3.scatter(x_train, nn_abs_err, c=nn_abs_err, s=20, cmap='Blues', alpha=0.8)
     ax3.set_xlabel('x')
     ax3.set_ylabel('|u_NN - u_ref|')
     ax3.set_title(f'Neural Network Error (L2={results["neural_network"]["l2_error"]:.3e})')
@@ -212,22 +221,22 @@ def create_error_comparison_plot(x_test, ref_solution, results, case_dir):
     
     # Plot 4: Final error details
     ax4 = axes[1, 1]
-    scatter2 = ax4.scatter(x_test, final_abs_err, c=final_abs_err, s=20, cmap='Reds', alpha=0.8)
+    scatter2 = ax4.scatter(x_train, final_abs_err, c=final_abs_err, s=20, cmap='Reds', alpha=0.8)
     ax4.set_xlabel('x')
-    ax4.set_ylabel('|u_Final - u_ref|')
-    ax4.set_title(f'Final Error (L2={results["polynomial_fitting"]["l2_error"]:.3e})')
+    ax4.set_ylabel('|u_new - u_ref|')
+    ax4.set_title(f'U_new Error (L2={results["polynomial_fitting"]["l2_error"]:.3e})')
     ax4.set_yscale('log')
     ax4.grid(True, alpha=0.3)
-    plt.colorbar(scatter2, ax=ax4, label='Final Error')
+    plt.colorbar(scatter2, ax=ax4, label='U_new Error')
     
     # Plot 5: Error improvement
     ax5 = axes[2, 0]
     error_improvement = nn_abs_err - final_abs_err
     colors = ['green' if x > 0 else 'orange' for x in error_improvement]
-    ax5.scatter(x_test, error_improvement, c=colors, s=15, alpha=0.8)
+    ax5.scatter(x_train, error_improvement, c=colors, s=15, alpha=0.8)
     ax5.axhline(y=0, color='black', linestyle='--', alpha=0.5)
     ax5.set_xlabel('x')
-    ax5.set_ylabel('Error_NN - Error_Final')
+    ax5.set_ylabel('Error_NN - Error_U_new')
     ax5.set_title('Error Improvement (Green=Better, Orange=Worse)')
     ax5.grid(True, alpha=0.3)
     

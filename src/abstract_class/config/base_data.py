@@ -20,6 +20,7 @@ class BaseDataGenerator(ABC):
             config: Configuration object containing problem parameters
         """
         self.config = config
+        self.n_segments = config.n_segments  # Segment configuration 
         self.Ns = np.prod(config.n_segments)  # Total number of segments
         self.Nw = config.points_per_swap  # Number of boundary points per swap
         self.n_dim = config.n_dim
@@ -207,11 +208,15 @@ class BaseDataGenerator(ABC):
                 if x_boundary_1.size == 0 or x_boundary_2.size == 0:
                     continue
                 
+                # 转换region为segment索引
+                segment_1 = self._region_to_segment(region)
+                segment_2 = self._region_to_segment(pair_region)
+                
                 # 添加周期边界条件对
                 for var_idx in range(len(self.config.vars_list)):
                     periodic_pair = {
-                        'region_1': region,
-                        'region_2': pair_region,
+                        'segment_1': segment_1,  # 直接存储segment索引
+                        'segment_2': segment_2,  # 直接存储segment索引
                         'x_1': x_boundary_1,
                         'x_2': x_boundary_2,
                         'constraint_type': constraint_type  # 'dirichlet' 或 'neumann'
@@ -347,6 +352,62 @@ class BaseDataGenerator(ABC):
         
         print(f"Warning: Boundary region '{region}' not supported for {self.n_dim}D")
         return np.array([])
+    
+    def _region_to_segment(self, region: str) -> int:
+        """Convert region name to segment index
+        
+        Args:
+            region: Region name like 'left', 'right', 'dim0_min', 'dim0_max'
+            
+        Returns:
+            int: Segment index
+        """
+        if region.startswith('dim'):
+            try:
+                parts = region.split('_')
+                dim_idx = int(parts[0][3:])
+                is_max = parts[1] == 'max'
+                
+                # 计算segment索引：对于边界，是该维度的最小或最大segment
+                segment_coords = [0] * self.n_dim
+                if is_max:
+                    segment_coords[dim_idx] = self.n_segments[dim_idx] - 1
+                else:
+                    segment_coords[dim_idx] = 0
+                    
+                return self._coords_to_segment_index(segment_coords)
+                
+            except (ValueError, IndexError):
+                return 0
+        
+        # Legacy support for named boundaries
+        if self.n_dim == 1:
+            if region == 'left':
+                return 0  # 第一个segment
+            elif region == 'right':
+                return self.n_segments[0] - 1  # 最后一个segment
+        
+        elif self.n_dim == 2:
+            if region == 'left':
+                return 0  # segment (0, *)
+            elif region == 'right':
+                return self.n_segments[0] - 1  # segment (nx-1, *)
+            elif region == 'bottom':
+                return 0  # segment (*, 0)  
+            elif region == 'top':
+                return (self.n_segments[1] - 1) * self.n_segments[0]  # segment (*, ny-1)
+        
+        return 0  # 默认返回第一个segment
+    
+    def _coords_to_segment_index(self, coords: list) -> int:
+        """Convert segment coordinates to linear index"""
+        idx = 0
+        for i, coord in enumerate(coords):
+            if i == 0:
+                idx += coord
+            else:
+                idx += coord * np.prod(self.n_segments[:i])
+        return idx
 
     def _get_boundary_normals(self, region: str, num_points: int) -> np.ndarray:
         """Get normal vectors for boundary

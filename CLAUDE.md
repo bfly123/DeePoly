@@ -1,209 +1,356 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with the DeePoly codebase.
 
 ## Overview
 
-DeePoly is a high-order accuracy neural network framework for function approximation and PDE solving. It implements a hybrid approach combining traditional polynomials with neural networks to achieve both high accuracy and computational efficiency. The core innovation is the "Scoper + Sniper" two-phase approach: neural networks provide global approximation (Scoper), followed by polynomial refinement for high-order accuracy (Sniper).
+DeePoly is a high-order accuracy neural network framework for function approximation and PDE solving. It implements a hybrid "Scoper + Sniper" approach:
+- **Scoper**: Neural networks provide global approximation
+- **Sniper**: Polynomials refine for high-order accuracy
 
-## Architecture
+Key features:
+- Hybrid neural network + polynomial methods
+- Domain decomposition with segment-wise solving
+- Auto-coding capability for PDEs
+- GPU acceleration support
+- Abstract variable U programming paradigm
 
-### Entry Point
-- Main entry: `src/main_solver.py`
-- Usage: `python src/main_solver.py --case_path cases/[category]/[case_name]`
+## Project Structure
 
-### Core Components
-- **BaseDeepPolyFitter** (`src/abstract_class/base_fitter.py`): Core fitting algorithm with hierarchical pre-compilation
-- **Problem Solvers** (`src/problem_solvers/`): Specialized solvers for different problem types
-- **LinearSolver** (`src/algebraic_solver/linear_solver.py`): GPU-accelerated linear algebra backend
-- **OperatorFactory** (`src/abstract_class/operator_factory.py`): Automatic differential operator generation
-- **FeatureGenerator** (`src/abstract_class/features_generator.py`): Polynomial and neural network feature generation
+```
+DeePoly/
+├── src/
+│   ├── main_solver.py                 # Main entry point
+│   ├── abstract_class/                # Core abstractions
+│   │   ├── base_fitter.py            # Base fitting algorithm
+│   │   ├── base_net.py               # Neural network base class
+│   │   ├── operator_factory.py       # Differential operator generation
+│   │   ├── features_generator.py     # Feature generation
+│   │   ├── boundary_constraint.py    # Boundary condition handling
+│   │   └── config/
+│   │       ├── base_data.py          # Data configuration
+│   │       └── base_visualize.py     # Visualization base
+│   ├── problem_solvers/              # Problem-specific solvers
+│   │   ├── func_fitting_solver/      # Function approximation
+│   │   ├── linear_pde_solver/        # Linear PDEs
+│   │   └── time_pde_solver/          # Time-dependent PDEs
+│   │       ├── solver.py             # Main time PDE solver
+│   │       ├── core/
+│   │       │   ├── net.py            # Neural network implementation
+│   │       │   └── fitter.py         # Time-stepping fitter
+│   │       ├── time_schemes/         # Time integration schemes
+│   │       │   ├── imex_rk_222.py    # IMEX-RK(2,2,2) scheme
+│   │       │   └── imex_1st.py       # First-order IMEX
+│   │       └── utils/
+│   │           └── visualize.py      # Time evolution visualization
+│   ├── algebraic_solver/             # Linear algebra backend
+│   │   └── linear_solver.py          # GPU-accelerated solver
+│   └── meta_coding/                  # Auto-coding utilities
+│       └── auto_spotter.py           # Automatic code generation
+├── cases/                            # Test cases and examples
+│   ├── func_fitting_cases/
+│   ├── linear_pde_cases/
+│   └── time_pde_cases/
+└── CLAUDE.md                         # This file
+```
 
-### Problem Types
-- **func_fitting**: Function approximation problems
-- **linear_pde**: Linear PDEs with auto-coding capability
-- **time_pde**: Time-dependent PDEs
+## Quick Start
 
-## Development Commands
-
-### Running Cases
+### Basic Usage
 ```bash
-# Run function fitting example
+# Activate environment
+source ~/anaconda3/etc/profile.d/conda.sh && conda activate ML
+
+# Run a case
+python src/main_solver.py --case_path cases/[category]/[case_name]
+
+# Examples
 python src/main_solver.py --case_path cases/func_fitting_cases/case_2d
-
-# Run PDE solving example
-python src/main_solver.py --case_path cases/linear_pde_cases/poisson_2d_sinpixsinpiy
-
-# For new linear PDE cases: Set auto_code=true in config.json on first run, then rerun with auto_code=false
+python src/main_solver.py --case_path cases/linear_pde_cases/poisson_2d
+python src/main_solver.py --case_path cases/time_pde_cases/AC_equation
 ```
 
-### Testing and Validation
-```bash
-# Quick test with minimal epochs
-python src/main_solver.py --case_path cases/func_fitting_cases/test_sin
+### Creating New Cases
 
-# Check CUDA availability
-python -c "import torch; print(torch.cuda.is_available())"
-
-# Validate configuration
-python -c "import json; print(json.load(open('cases/your_case/config.json')))"
+1. **Directory Structure**
+```
+cases/[category]/[case_name]/
+├── config.json         # Configuration (REQUIRED)
+├── data_generate.py    # Data generation
+├── output.py          # Visualization
+└── results/           # Output directory
 ```
 
-## Configuration Management
+2. **Configuration Template**
+```json
+{
+    "problem_type": "time_pde",
+    "method": "hybrid", 
+    "auto_code": false,
+    "eq": {
+        "L1": ["diff(u,x,2)"],
+        "L2": ["u"],
+        "F": ["1"],
+        "N": []
+    },
+    "vars_list": ["u"],
+    "spatial_vars": ["x"],
+    "Initial_conditions": [
+        {
+            "var": "u", 
+            "value": "sin(pi*x)",
+            "points": 100
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "dirichlet",
+            "region": "left",
+            "value": "0",
+            "points": 1
+        }
+    ],
+    "hidden_dims": [32, 64, 32],
+    "epochs_adam": 10000,
+    "n_segments": [10],
+    "poly_degree": [5], 
+    "x_domain": [[-1.0, 1.0]],
+    "time_scheme": "IMEX_RK_2_2_2",
+    "T": 1.0,
+    "dt": 0.01,
+    "device": "cuda",
+    "linear_device": "cpu"
+}
+```
 
-### Essential Config Fields
-Every `config.json` must contain:
-- `problem_type`: "func_fitting", "linear_pde", or "time_pde"
-- `method`: "hybrid" (neural + polynomial), "poly" (polynomial only), or "dnn" (neural only)
-- `spatial_vars`: Array of spatial variables (e.g., ["x", "y"])
-- `hidden_dims`: Neural network architecture (e.g., [32, 64, 32])
-- `epochs_adam`: Training epochs (start with 10000-30000)
-- `x_domain`: Domain boundaries for each dimension
-- `device`: "cuda" or "cpu" for neural networks
-- `linear_device`: "cpu" recommended for linear algebra stability
+## Core Concepts
 
-### Problem-Specific Fields
-- Function fitting: `points_domain`, `poly_degree`, `n_segments`
-- Linear PDE: `auto_code`, `pde_equation`, `boundary_conditions`
-- Time PDE: `time_domain`, `dt`, `time_scheme`
+### Abstract Variable U Programming
 
-## Code Patterns
+The framework uses abstract variable U to represent solution vectors:
+- U represents all equation variables abstractly
+- Physical quantities (u, v, p, etc.) are components of U
+- Operators work on U uniformly without physical interpretation
 
-### Configuration Loading
 ```python
-@dataclass
-class BaseConfig:
-    problem_type: str
-    method: str
-    spatial_vars: List[str]
-    x_domain: List[List[float]]
-    device: str
-    
-    def __post_init__(self):
-        self.n_dim = len(self.spatial_vars)
-        self.validate()
+# Example: U = [u] for scalar equation
+# Example: U = [u, v, p] for Navier-Stokes
+U_seg[:, j] = features @ coeffs[i, j, :]  # Uniform computation
+```
+
+### Domain Decomposition
+
+Solutions are computed segment-wise:
+```python
+# Each segment has independent polynomial and neural features
+for segment_idx in range(n_segments):
+    features = self._get_features(segment_idx, model)
+    U_segment = solve_segment(features, coeffs)
 ```
 
 ### Operator Factory Pattern
+
+Automatic generation of differential operators:
 ```python
 operator_factory = create_operator_factory(
     all_derivatives=config.all_derivatives,
     constants=config.constants,
     optimized=True
 )
-operators = operator_factory.create_all_operators(operator_terms)
+L1, L2, N, F = operator_factory.create_all_operators(operator_terms)
 ```
 
-### Feature Generation
-```python
-# Get features for segment (returns [polynomial_features, neural_features])
-features = self._get_features(segment_idx, model)
+## Time PDE Solver
+
+### IMEX Time Stepping
+
+The solver uses IMEX (Implicit-Explicit) schemes for time integration:
+- **L1**: Linear stiff terms (implicit)
+- **L2**: Linear multiplicative terms
+- **F**: Source terms
+- **N**: Nonlinear terms (explicit)
+
+Time evolution equation:
+```
+∂U/∂t = L1(U) + L2(U)*F(U) + N(U)
 ```
 
-## Adding New Cases
+### Key Features
 
-### Case Structure
+1. **Reference Solution Comparison**
+   - Load MATLAB `.mat` reference data
+   - Real-time error monitoring
+   - Comprehensive error analysis
+
+2. **Spotter Skip Optimization**
+   - Skip neural network training at specified intervals
+   - Reuse previous network parameters
+   - Accelerate time stepping
+
+3. **Boundary Conditions**
+   - Dirichlet, Neumann, Robin, Periodic
+   - Modular implementation in `net.py`
+   - Cross-segment constraints for periodic BC
+
+### Configuration for Time PDEs
+```json
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "auto_code": false,
+    "eq": {
+        "L1": ["0.0001*diff(u,x,2)"],
+        "L2": ["u"],
+        "F": ["5-5*u**2"],
+        "N": []
+    },
+    "vars_list": ["u"],
+    "spatial_vars": ["x"],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",
+            "points": 100
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",
+            "region": "left", 
+            "pair_with": "right",
+            "constraint": "dirichlet",
+            "points": 1
+        }
+    ],
+    "time_scheme": "IMEX_RK_2_2_2",
+    "T": 0.5,
+    "dt": 0.1,
+    "spotter_skip": 1,
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "realtime_visualization": "True",
+    "animation_skip": 1
+}
 ```
-cases/[category]/[case_name]/
-├── config.json         # Configuration (REQUIRED)
-├── data_generate.py    # Data generation script
-├── output.py          # Output and visualization
-├── run_experiments.py # Experiment runner
-└── results/           # Generated results
-```
 
-### Required Functions
-- `data_generate.py`: Must define `target_function(x)` and `generate_data()`
-- `output.py`: Must define `output_results(solver, config)`
+## Performance Guidelines
 
-### Workflow
-1. Create directory structure
-2. Copy template files from similar case
-3. Modify config.json with problem parameters
-4. Update data_generate.py with target function/PDE
-5. For linear PDEs: Set `auto_code: true` on first run
+### Memory Management
+- **Tensor Dimensions**:
+  - `features`: `(n_points, dgN)` per segment
+  - `coeffs`: `(ns, n_eqs, dgN)`
+  - `U_seg`: `(n_points, n_eqs)`
+- **Avoid dimension branching**: Use consistent tensor operations
+- **Print dimensions for debugging**: Don't use excessive type checking
+
+### Device Configuration
+- **Neural Networks**: `"device": "cuda"` (GPU preferred)
+- **Linear Algebra**: `"linear_device": "cpu"` (stability)
+- **Memory Limits**: Monitor GPU usage, adjust batch sizes
+
+### Optimization Tips
+1. Start with small `epochs_adam` (1000-5000) for testing
+2. Use `spotter_skip` for time PDEs to reduce training overhead
+3. Adjust `n_segments` based on solution complexity
+4. Keep `poly_degree` moderate (5-7) for stability
 
 ## Common Issues and Solutions
 
-### Configuration Errors
-- **Missing fields**: Ensure all required fields are present
-- **Dimension mismatch**: `len(x_domain) == len(spatial_vars)`
-- **Invalid problem_type**: Must be one of the three supported types
-
 ### Training Issues
-- **Loss not converging**: Check boundary conditions, reduce learning rate, try "poly" method
-- **NaN values**: Reduce learning rate, use `"linear_device": "cpu"`
-- **CUDA out of memory**: Reduce `points_domain` or `hidden_dims`, use CPU
+| Issue | Solution |
+|-------|----------|
+| Loss not converging | Reduce learning rate, check boundary conditions |
+| NaN values | Use CPU for linear algebra, reduce learning rate |
+| CUDA out of memory | Reduce `points_domain`, use smaller `hidden_dims` |
+| Slow convergence | Increase polynomial degree, add more segments |
 
-### Performance Optimization
-- Use `"device": "cuda"` for neural networks when available
-- Use `"linear_device": "cpu"` for numerical stability
-- Start with small epochs for testing
-- Use appropriate `n_segments` for domain complexity
+### Configuration Errors
+- Ensure `len(x_domain) == len(spatial_vars)`
+- Check `problem_type` is valid: `func_fitting`, `linear_pde`, or `time_pde`
+- Verify all required fields are present in `config.json`
 
-## Mathematical Equation Format
+### Debugging Commands
+```bash
+# Check CUDA availability
+python -c "import torch; print(torch.cuda.is_available())"
 
-### Supported PDE Operators
-- `d2u/dx2`: Second derivative in x
-- `du/dx`: First derivative in x
-- `u`: Function value
-- Constants: `pi`, `e`, numbers
+# Validate configuration
+python -c "import json; json.load(open('config.json'))"
 
-### Boundary Conditions
-- Dirichlet: `{"type": "dirichlet", "values": {"x=0": 0, "x=1": 0}}`
-- Neumann: `{"type": "neumann", "values": {"x=0": "cos(pi*y)"}}`
-- Mixed: `{"type": "mixed", "dirichlet": {...}, "neumann": {...}}`
+# Test import
+python -c "from src.abstract_class.base_fitter import BaseDeepPolyFitter"
+```
 
-## Device and Performance
+## PDE Configuration Format
 
-### Hardware Recommendations
-- **Neural networks**: Use GPU (`"device": "cuda"`) when available
-- **Linear algebra**: Use CPU (`"linear_device": "cpu"`) for stability
-- **Memory**: Monitor GPU memory usage, reduce parameters if needed
+### New Structured Format
 
-### Typical Parameters
-- `epochs_adam`: 10000-30000 for initial training
-- `hidden_dims`: [32, 64, 32] for 2D problems
-- `n_segments`: [10, 10] for 2D domain decomposition
-- `poly_degree`: [5, 5] for 2D polynomial features
-- `points_domain`: 20000 for training points
+The framework now uses a structured approach for defining PDEs with separate operator categories:
 
-## Version-Specific Notes
+```json
+{
+    "eq": {
+        "L1": ["0.0001*diff(u,x,2)"],           // Linear stiff terms (implicit)
+        "L2": ["u"],                            // Linear multiplicative terms  
+        "F": ["5-5*u**2"],                     // Source/forcing terms
+        "N": []                                // Nonlinear terms (explicit)
+    },
+    "vars_list": ["u"],                        // Solution variables
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",         // Initial condition expression
+            "points": 100
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",                 // BC type: periodic, dirichlet, neumann
+            "region": "left",                  // Boundary region
+            "pair_with": "right",              // For periodic: paired boundary
+            "constraint": "dirichlet",         // Constraint type
+            "points": 1
+        }
+    ]
+}
+```
 
-Current version: v0.2
-- High-accuracy solving for arbitrary-dimensional linear PDEs
-- Auto-coding capability for PDEs
-- GPU acceleration support
-- English documentation and comments
+### Auto-Coding for Linear PDEs
 
-## Technical Details
+For linear PDEs, the framework can automatically generate solving code:
 
-### Tensor Dimensionality Notes
-- `features` is dimensioned as `(n_points, dgN)` on the segment dimension
-- `coeffs` is dimensioned as `(ns, n_eqs, dgN)` 
-- Segment-wise computation involves matrix multiplication:
-  ```python
-  for j in range(ne):
-      U_seg[:, j] = features @ coeffs[i, j, :]
-  ```
-  This means for each equation, the features are multiplied by the corresponding coefficients to compute segment-wise values.
+1. Set `"auto_code": true` in config.json
+2. Define PDE using the structured format above
+3. Run once to generate operator code
+4. Set `"auto_code": false` for subsequent runs
 
-## Operational Details
+### Mathematical Notation
 
-### Operator Output Dimensionality
-- L1,L2算子输出分区维度和features相同
-- N和F算子输出分区维度和u_seg维度相同
+- **Derivatives**: `diff(u,x,2)` for ∂²u/∂x²
+- **Variables**: Use variable names from `vars_list`
+- **Constants**: Numeric values and `pi`, `e`
+- **Functions**: `sin`, `cos`, `exp`, etc.
+- **Powers**: Use `**` notation (e.g., `u**2`)
 
-### Memory Details
-- `build_segment_jacobian` 中的L维度和features相同，b尺寸为(ne,n_points)
+## Code Style Guidelines
 
-### Memory Notes
-- `U_seg`维度为`(n_points,ne)`
-- 代码风格保持纯净，易读和高效，避免过多的通用性检测和分支
-- 运行代码需要
-- source ~/anaconda3/etc/profile.d/conda.sh && conda activate ML
+1. **Clean and Efficient**: Prioritize readability and performance
+2. **Minimal Branching**: Avoid excessive conditional checks
+3. **Consistent Tensors**: Use uniform tensor operations
+4. **English Comments**: All documentation in English
+5. **Dimension Verification**: Print shapes during debugging, not runtime checks
 
-- 针对抽象变量 U编程，其中U=[...] 代表抽象的方程变量，包含具体物理量，u可能包含在物理量中，可能没有
+## Version Information
 
+**Current Version**: v0.2
+- High-accuracy arbitrary-dimensional PDE solving
+- IMEX-RK time integration schemes
+- Comprehensive boundary condition support
+- Reference solution comparison
+- Full English documentation
 
--重要：通过打印确认不同矩阵维度,而不是通过大量分支判断保证正确
+## Important Notes
+
+- Always verify tensor dimensions by printing during development
+- Avoid matrix/array dimension type branching in production code
+- Use abstract variable U consistently throughout the codebase
+- Maintain separation between physical interpretation and numerical computation

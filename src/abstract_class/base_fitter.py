@@ -279,6 +279,7 @@ class BaseDeepPolyFitter(ABC):
         self.A, self.b = [], []
         if self.config.problem_type != "func_fitting":
             self._add_boundary_conditions(model)
+            self._add_periodic_constraints(model)  # 添加周期边界条件约束
             self._add_swap_conditions(model)
 
     def _add_boundary_conditions(self, model: nn.Module):
@@ -411,6 +412,125 @@ class BaseDeepPolyFitter(ABC):
 
                         self.A.append(10 * constraint)
                         self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
+
+    def _add_periodic_constraints(self, model: nn.Module):
+        """Add periodic boundary conditions - 处理跨segment的全局约束"""
+        if "boundary_dict" not in self.data:
+            return
+            
+        global_boundary_data = self.data["boundary_dict"]
+        ne = self.config.n_eqs
+        
+        for var_idx in range(len(self.config.vars_list)):
+            if var_idx not in global_boundary_data:
+                continue
+                
+            if "periodic" not in global_boundary_data[var_idx]:
+                continue
+                
+            pairs = global_boundary_data[var_idx]["periodic"]["pairs"]
+            
+            for pair in pairs:
+                constraint_type = pair.get('constraint_type', 'dirichlet')
+                
+                # 获取两组边界点和对应的segment索引
+                segment_1 = pair['segment_1']
+                segment_2 = pair['segment_2'] 
+                x_boundary_1 = pair['x_1']
+                x_boundary_2 = pair['x_2']
+                
+                if constraint_type == 'dirichlet':
+                    # Dirichlet周期条件: u(x_1) = u(x_2)
+                    for pt_idx in range(min(x_boundary_1.shape[0], x_boundary_2.shape[0])):
+                        point_1 = x_boundary_1[pt_idx:pt_idx + 1]
+                        point_2 = x_boundary_2[pt_idx:pt_idx + 1]
+                        
+                        # 获取两个点的特征，使用各自segment的归一化参数
+                        features_1 = self._get_segment_features(
+                            point_1,
+                            self.config.x_min[segment_1],
+                            self.config.x_max[segment_1],
+                            model,
+                            [0] * self.config.n_dim,
+                        )
+                        features_2 = self._get_segment_features(
+                            point_2,
+                            self.config.x_min[segment_2], 
+                            self.config.x_max[segment_2],
+                            model,
+                            [0] * self.config.n_dim,
+                        )
+                        
+                        # 构建跨segment约束: u_seg1(x_1) = u_seg2(x_2)
+                        constraint = np.zeros((1, self.dgN * self.ns * ne))
+                        
+                        # segment_1的系数为正
+                        start_idx_1 = segment_1 * self.dgN * ne + self.dgN * var_idx
+                        constraint[:, start_idx_1 : start_idx_1 + self.dgN] = features_1
+                        
+                        # segment_2的系数为负
+                        start_idx_2 = segment_2 * self.dgN * ne + self.dgN * var_idx  
+                        constraint[:, start_idx_2 : start_idx_2 + self.dgN] = -features_2
+                        
+                        self.A.append(10 * constraint)
+                        self.b.append(10 * np.zeros(1))
+                        
+                elif constraint_type == 'neumann':
+                    # Neumann周期条件: ∂u/∂n(x_1) = ∂u/∂n(x_2)
+                    normals_1 = pair.get('normals_1')
+                    normals_2 = pair.get('normals_2')
+                    
+                    if normals_1 is not None and normals_2 is not None:
+                        for pt_idx in range(min(x_boundary_1.shape[0], x_boundary_2.shape[0])):
+                            point_1 = x_boundary_1[pt_idx:pt_idx + 1]
+                            point_2 = x_boundary_2[pt_idx:pt_idx + 1]
+                            normal_1 = normals_1[pt_idx]
+                            normal_2 = normals_2[pt_idx]
+                            
+                            # 计算法向导数特征
+                            features_dn_1 = np.zeros((1, self.dgN))
+                            features_dn_2 = np.zeros((1, self.dgN))
+                            
+                            for dim in range(self.config.n_dim):
+                                if abs(normal_1[dim]) >= 1e-10:
+                                    derivative = [0] * self.config.n_dim
+                                    derivative[dim] = 1
+                                    
+                                    features_dim_1 = self._get_segment_features(
+                                        point_1,
+                                        self.config.x_min[segment_1],
+                                        self.config.x_max[segment_1],
+                                        model,
+                                        derivative,
+                                    )
+                                    features_dn_1 += normal_1[dim] * features_dim_1
+                                    
+                                if abs(normal_2[dim]) >= 1e-10:
+                                    derivative = [0] * self.config.n_dim
+                                    derivative[dim] = 1
+                                    
+                                    features_dim_2 = self._get_segment_features(
+                                        point_2,
+                                        self.config.x_min[segment_2],
+                                        self.config.x_max[segment_2], 
+                                        model,
+                                        derivative,
+                                    )
+                                    features_dn_2 += normal_2[dim] * features_dim_2
+                            
+                            # 构建跨segment约束: ∂u/∂n_seg1(x_1) = ∂u/∂n_seg2(x_2)
+                            constraint = np.zeros((1, self.dgN * self.ns * ne))
+                            
+                            # segment_1的系数为正
+                            start_idx_1 = segment_1 * self.dgN * ne + self.dgN * var_idx
+                            constraint[:, start_idx_1 : start_idx_1 + self.dgN] = features_dn_1
+                            
+                            # segment_2的系数为负
+                            start_idx_2 = segment_2 * self.dgN * ne + self.dgN * var_idx
+                            constraint[:, start_idx_2 : start_idx_2 + self.dgN] = -features_dn_2
+                            
+                            self.A.append(10 * constraint)
+                            self.b.append(10 * np.zeros(1))
 
     def _add_swap_conditions(self, model: nn.Module):
         """Add interface continuity conditions"""

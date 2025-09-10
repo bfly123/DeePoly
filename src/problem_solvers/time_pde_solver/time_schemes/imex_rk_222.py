@@ -15,7 +15,7 @@ class ImexRK222(BaseTimeScheme):
 
         # IMEX-RK(2,2,2) parameters (according to formula 3.3)
         self.gamma = (2 - np.sqrt(2)) / 2  # ≈ 0.2928932
-        #self.gamma = 1
+        self.order = 2
 
         # Butcher tableau coefficients
         self.A_imp = np.array([[self.gamma, 0], [1 - 2 * self.gamma, self.gamma]])
@@ -65,7 +65,6 @@ class ImexRK222(BaseTimeScheme):
           "coeffs_1": coeffs_stage1,
         }
 
-        
         # Plot Stage 1 intermediate solution (disable for performance)
         # self._plot_stage_solution(U_seg_stage1, stage=1, dt=dt)
 
@@ -92,14 +91,13 @@ class ImexRK222(BaseTimeScheme):
         # self.U_seg_current = U_seg_new
 
         # Convert back to global array
-        U_new = self.fitter.segments_to_global(U_seg_stage1)
-        #U_new = self.fitter.segments_to_global(U_seg_stage1)
+        U_new = self.fitter.segments_to_global(U_seg_new)
 
         return (
             U_new,
-            U_seg_stage1,
-            coeffs_stage1,
-        )  # Return coefficients from the last stage
+            U_seg_new,
+            coeffs_stage2,
+        )
 
     def _solve_imex_stage_U_seg(
         self,
@@ -126,85 +124,97 @@ class ImexRK222(BaseTimeScheme):
             self.fitter.data, self.fitter._current_model, coeffs_stage
         )
 
+        # 计算并存储算子值K用于最终更新
+        K_stage_segments = self._compute_stage_operators(
+            U_stage_segments, coeffs_stage, kwargs
+        )
+        
+        # 存储算子值到实例变量
+        stage_num = kwargs.get("stage")
+        setattr(self, f'_K_stage_{stage_num}', K_stage_segments)
+
         return U_stage_segments, coeffs_stage
+
+    def _compute_stage_operators(
+        self, 
+        U_stage_segments: List[np.ndarray], 
+        coeffs_stage: np.ndarray, 
+        kwargs: dict
+    ) -> List[np.ndarray]:
+        """计算阶段算子值 K = L1(U) + L2(U)⊙F(U) + N(U)"""
+        
+        K_segments = []
+        stage = kwargs.get("stage")
+        U_n_seg = kwargs.get("U_n_seg", [])
+        
+        for segment_idx in range(self.fitter.ns):
+            U_seg = U_stage_segments[segment_idx]
+            K_seg = np.zeros_like(U_seg)
+            
+            # 获取算子和特征
+            L1_ops = self.fitter._linear_operators[segment_idx].get("L1", None)
+            L2_ops = self.fitter._linear_operators[segment_idx].get("L2", None)
+            features = self.fitter._features[segment_idx][0]
+            
+            # 预计算F值（一次计算所有方程）
+            F_vals = None
+            if L2_ops is not None and self.fitter.has_operator("F"):
+                F_vals = self.fitter.F_func(features, U_seg)
+            
+            # 计算各方程的算子贡献
+            for eq_idx in range(self.config.n_eqs):
+                beta = coeffs_stage[segment_idx, eq_idx, :]
+                
+                # L1贡献
+                if L1_ops is not None:
+                    L1_contrib = L1_ops[eq_idx] @ beta
+                    K_seg[:, eq_idx] += L1_contrib
+                
+                # L2⊙F贡献（使用预计算的F值）
+                if L2_ops is not None and F_vals is not None:
+                    L2_contrib = L2_ops[eq_idx] @ beta
+                    K_seg[:, eq_idx] += L2_contrib * F_vals[:, eq_idx]
+            
+            # N贡献
+            if self.fitter.has_operator("N"):
+                # 根据IMEX-RK公式，阶段1使用U^n，阶段2使用U^(1)
+                if stage == 1:
+                    N_input = U_n_seg[segment_idx]
+                else:
+                    # 阶段2应该使用U^(1)，从kwargs中获取
+                    U_1_seg = kwargs.get("U_1_seg", [])
+                    N_input = U_1_seg[segment_idx] if U_1_seg else U_seg
+                N_vals = self.fitter.N_func(features, N_input)
+                K_seg += N_vals
+            
+            K_segments.append(K_seg)
+        
+        return K_segments
 
     def _imex_final_update_U_seg(
         self,
         U_n_seg: List[np.ndarray],
-        U_1_seg: List[np.ndarray],
-        U_2_seg: List[np.ndarray],
         dt: float,
-        coeffs_1: np.ndarray,
-        coeffs_2: np.ndarray,
+        **_kwargs
     ) -> List[np.ndarray]:
-        """IMEX-RK最终更新步骤 - 根据公式3.4计算U^{n+1}"""
+        """IMEX-RK最终更新步骤 - 直接使用预计算的算子值K"""
         
-        # Initialize parameters
-        ne = self.config.n_eqs
-        dgN = self.fitter.dgN
+        # 检查是否有预计算的算子值
+        if not hasattr(self, '_K_stage_1') or not hasattr(self, '_K_stage_2'):
+            raise RuntimeError("Stage operator values not computed. This is a programming error.")
+        
         U_seg_new = []
-
-        # Process each segment
+        
+        # 对每个段进行最终更新
         for segment_idx in range(self.fitter.ns):
-            # Get segment dimensions and current solution
-            n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
-            U_n_seg_current = U_n_seg[segment_idx]
+            U_n_current = U_n_seg[segment_idx]
+            K1 = self._K_stage_1[segment_idx]
+            K2 = self._K_stage_2[segment_idx]
             
-            # Get precompiled operators and features
-            L1_operators = self.fitter._linear_operators[segment_idx].get("L1", None)
-            L2_operators = self.fitter._linear_operators[segment_idx].get("L2", None)
-            features_list = self.fitter._features[segment_idx]
-            features = features_list[0]
-            
-            # Get stage solutions for current segment
-            U_1_seg_current = U_1_seg[segment_idx]
-            U_2_seg_current = U_2_seg[segment_idx]
-            
-            # Calculate total contribution from all stages
-            total_contribution = np.zeros_like(U_n_seg_current)
-            
-            # Stage data: (U_stage, coeffs, weight)
-            stage_data = [
-                (U_1_seg_current, coeffs_1, self.b[0]),
-                (U_2_seg_current, coeffs_2, self.b[1])
-            ]
-            
-            for U_seg_stage, coeffs_stage, weight in stage_data:
-                stage_contribution = np.zeros_like(U_n_seg_current)
-                
-                # Calculate operator contributions for each equation
-                for eq_idx in range(ne):
-                    # Extract coefficients for current segment and equation
-                    beta_seg_stage = coeffs_stage[segment_idx, eq_idx, :]
-                    
-                    # L1 contribution: L1 @ β^(i)
-                    if L1_operators is not None:
-                        L1_seg = L1_operators[eq_idx]
-                        L1_contrib = L1_seg @ beta_seg_stage
-                        L1_contrib = L1_contrib.reshape(-1, 1)
-                        stage_contribution += L1_contrib
-                    
-                    # L2⊙F contribution: diag(F) @ L2 @ β^(i)
-                    if L2_operators is not None and self.fitter.has_operator("F"):
-                        L2_seg = L2_operators[eq_idx]
-                        F_vals = self.fitter.F_func(features, U_seg_stage)
-                        F_eq = F_vals[:, eq_idx]
-                        
-                        L2F_contrib = np.diag(F_eq) @ L2_seg @ beta_seg_stage
-                        L2F_contrib = L2F_contrib.reshape(-1, 1)
-                        stage_contribution += L2F_contrib
-                
-                # N contribution: N(U^(i))
-                if self.fitter.has_operator("N"):
-                    N_vals = self.fitter.N_func(features, U_seg_stage)
-                    stage_contribution += N_vals
-                
-                # Weighted accumulation
-                total_contribution += weight * stage_contribution
-            
-            # Final update: U^{n+1} = U^n + Δt * total_contribution
-            U_seg_new.append(U_n_seg_current + dt * total_contribution)
-
+            # 根据IMEX-RK(2,2,2)公式: U^{n+1} = U^n + dt/2 * [K^{(1)} + K^{(2)}]
+            U_new_seg = U_n_current + dt * 0.5 * (K1 + K2)
+            U_seg_new.append(U_new_seg)
+        
         return U_seg_new
 
     def build_stage_jacobian(
@@ -288,27 +298,23 @@ class ImexRK222(BaseTimeScheme):
             
             # 减去隐式L1项: -γΔt*L1
             if L1 is not None:
-              if stage == 2 and step > 0:
-                J_eq -= 0.5* dt * L1
-              else:
-                J_eq -=  dt * L1
+                J_eq -= gamma * dt * L1
             
-            # 减去隐式L2⊙F项: -γΔt*diag(F)*L2 (统一使用逐点相乘方式的线性化形式)
+            # 减去隐式L2⊙F项: -γΔt*diag(F)*L2
             if L2 is not None:
                 if stage == 1:
-                  F_vals = F_n
+                    F_vals = F_n
                 elif stage == 2:
-                  F_vals = (F_prev + F_n)/2
+                    F_vals = F_prev
                 else:
-                  raise ValueError(f"Invalid stage: {stage}")
+                    raise ValueError(f"Invalid stage: {stage}")
                 
-                F_eq = F_vals[:, eq_idx]
-                # 统一的L2⊙F项线性化: -γΔt * diag(F_eq) @ L2_2d
-                # 这对应于 (L2@β) ⊙ F 的雅可比矩阵形式
-                L2F_term = dt * np.diag(F_eq) @ L2
-                if stage == 2 and step > 0:
-                  L2F_term *= 0.5
-                J_eq -= L2F_term
+                # 只有当F_vals不为None时才进行计算
+                if F_vals is not None:
+                    F_eq = F_vals[:, eq_idx]
+                    # L2⊙F项线性化: -γΔt * diag(F_eq) @ L2
+                    L2F_term = gamma * dt * np.diag(F_eq) @ L2
+                    J_eq -= L2F_term
             # 将该方程的雅可比矩阵放入最终矩阵
             L_final[row_start:row_end, col_start:col_end] = J_eq
             # 添加对应的右端项
@@ -317,7 +323,7 @@ class ImexRK222(BaseTimeScheme):
         b_vector = np.concatenate(b_final)
         return L_final, b_vector
 
-    def _build_stage_rhs(self, segment_idx: int, **kwargs) -> np.ndarray:
+    def _build_stage_rhs(self, _segment_idx: int, **kwargs) -> np.ndarray:
         """构建IMEX-RK阶段的右端向量
         
         根据Doc/time_scheme_program.md的公式：
@@ -334,10 +340,6 @@ class ImexRK222(BaseTimeScheme):
         U_n_seg = kwargs.get("U_n_seg")
         N_n = kwargs.get("N_n")
         N_prev = kwargs.get("N_prev")
-        F_prev = kwargs.get("F_prev")
-        F_n = kwargs.get("F_n")
-        beta_prev = kwargs.get("beta_prev")
-        beta_n = kwargs.get("beta_n")
 
         # 获取维度信息
         n_points = U_n_seg.shape[0]
@@ -358,14 +360,9 @@ class ImexRK222(BaseTimeScheme):
             # 阶段2 RHS: U^n + Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
             # 基础项: U^n
             rhs[:, :] = U_n_seg
-
-            if F_prev is not None:
             
-            # 添加隐式项的显式贡献: Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1)
-            # 这部分需要从stage 1的系数β^(1)计算得出，此处简化为仅包含N项
-            
+            # 添加显式非线性项: Δt(1-γ)*N(U^(1))
             if N_prev is not None:
-                # N项: Δt(1-γ)*N(U^(1))
                 rhs += dt * (1-gamma) * N_prev
 
         return rhs
@@ -405,7 +402,7 @@ class ImexRK222(BaseTimeScheme):
         return validation
 
     def estimate_stable_dt(
-        self, U_current: np.ndarray, safety_factor: float = 0.8
+        self, _U_current: np.ndarray, safety_factor: float = 0.8
     ) -> float:
         """估算稳定的时间步长"""
 

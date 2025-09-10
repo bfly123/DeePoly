@@ -404,30 +404,7 @@ class ImexRK222(BaseTimeScheme):
                 self._stage_operator_cache.clear()
 ```
 
-### 5. 并行化建议
-
-#### 段级并行
-```python
-from concurrent.futures import ThreadPoolExecutor
-import numpy as np
-
-def _parallel_segment_processing(self, segment_func, *args, **kwargs):
-    """并行处理所有段"""
-    if self.fitter.ns > 4:  # 只在段数较多时使用并行
-        with ThreadPoolExecutor(max_workers=min(4, self.fitter.ns)) as executor:
-            futures = []
-            for segment_idx in range(self.fitter.ns):
-                future = executor.submit(segment_func, segment_idx, *args, **kwargs)
-                futures.append(future)
-            
-            results = [future.result() for future in futures]
-            return results
-    else:
-        # 串行处理小规模问题
-        return [segment_func(i, *args, **kwargs) for i in range(self.fitter.ns)]
-```
-
-### 6. 数值稳定性改进
+### 5. 数值稳定性改进
 
 #### gamma参数处理
 ```python
@@ -451,7 +428,7 @@ def __init__(self, config):
         raise ValueError(f"IMEX gamma parameter must be in (0,1), got {self.gamma}")
 ```
 
-### 7. 接口优化
+### 6. 接口优化
 
 #### 返回值一致性
 ```python
@@ -472,7 +449,7 @@ def time_step(self, U_n, U_seg, dt, coeffs_n=None, current_time=0.0, step=0):
     )
 ```
 
-### 8. 关键性能问题修复
+### 7. 关键性能问题修复
 
 #### 问题1：最终更新中的重复计算
 ```python
