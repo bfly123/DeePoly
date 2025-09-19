@@ -415,10 +415,10 @@ class BaseDeepPolyFitter(ABC):
 
     def _add_periodic_constraints(self, model: nn.Module):
         """Add periodic boundary conditions - 处理跨segment的全局约束"""
-        if "boundary_dict" not in self.data:
+        if "global_boundary_dict" not in self.data:
             return
             
-        global_boundary_data = self.data["boundary_dict"]
+        global_boundary_data = self.data["global_boundary_dict"]
         ne = self.config.n_eqs
         
         for var_idx in range(len(self.config.vars_list)):

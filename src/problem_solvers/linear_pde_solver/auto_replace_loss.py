@@ -120,18 +120,18 @@ class LossCodeGenerator:
                     
         # Generate second-order derivatives
         second_order_needed = False
+        third_order_needed = False
         for var, dims in used_derivatives.items():
             for dim in dims:
-                if len(dim) > 1:  # Check for second-order derivatives
+                if len(dim) == 2:
                     second_order_needed = True
-                    break
-            if second_order_needed:
-                break
-                
+                elif len(dim) == 3:
+                    third_order_needed = True
+
         if second_order_needed:
             code_lines.append("")
             code_lines.append("# Calculate second-order derivatives")
-            
+
             for var, dims in used_derivatives.items():
                 for dim in dims:
                     if len(dim) == 2:  # Second-order derivatives
@@ -141,6 +141,19 @@ class LossCodeGenerator:
                         first_deriv = f"d{var}_{dim[0]}"
                         # Then calculate second-order derivative
                         code_lines.append(f"d{var}_{dim} = self.gradients({first_deriv}, x_train)[0][..., {dim2_idx}]")
+
+        if third_order_needed:
+            code_lines.append("")
+            code_lines.append("# Calculate third-order derivatives")
+
+            for var, dims in used_derivatives.items():
+                for dim in dims:
+                    if len(dim) == 3:  # Third-order derivatives
+                        dim3_idx = self.dimensions.index(dim[2])
+                        # Use second-order derivative as base
+                        second_deriv = f"d{var}_{dim[:2]}"
+                        # Then calculate third-order derivative
+                        code_lines.append(f"d{var}_{dim} = self.gradients({second_deriv}, x_train)[0][..., {dim3_idx}]")
                         
         return "\n".join(code_lines)
         
@@ -162,7 +175,7 @@ class LossCodeGenerator:
                 if order == 1:
                     return f"d{var}_{dim}"
                 else:
-                    return f"d{var}_{dim * order}"
+                    return f"d{var}_{dim + dim * (order - 1)}"
             eq_code = re.sub(diff_pattern, replace_diff, eq_code)
             eq_exprs.append(eq_code)
             

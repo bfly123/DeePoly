@@ -153,6 +153,69 @@ class BaseNet(nn.Module):
           lr_adam = self.config.learning_rate
           optimizer_adam = optim.Adam(model.parameters(), lr=lr_adam)
           optimizer_lbfgs = optim.LBFGS(model.parameters(), lr=0.1)
+          
+          # Learning rate decay with stability mechanism
+          lr_history = []  # Track loss history for stability check
+          current_lr_level = 0  # 0: initial, 1: medium, 2: low
+          stability_counter = 0  # Counter for stability check
+          last_lr_change_epoch = 0
+          
+          def should_decrease_lr(loss_history, current_loss, threshold):
+              """Check if we should decrease learning rate based on loss trend"""
+              if len(loss_history) < 100:
+                  return False
+              
+              # Check if loss has been above threshold for last 100 steps
+              recent_losses = loss_history[-100:]
+              return all(loss >= threshold for loss in recent_losses)
+          
+          def adjust_learning_rate(optimizer, current_loss, epoch):
+              nonlocal current_lr_level, stability_counter, last_lr_change_epoch
+              
+              # Track loss history
+              lr_history.append(current_loss)
+              
+              # Define thresholds and corresponding learning rates
+              thresholds = [1e-2, 1e-3]
+              learning_rates = [self.config.learning_rate, 0.005, 0.001]
+              
+              current_lr = optimizer.param_groups[0]['lr']
+              new_lr = current_lr
+              lr_changed = False
+              
+              # Check for learning rate decrease (more restrictive)
+              for i, threshold in enumerate(thresholds):
+                  target_level = i + 1
+                  if (current_lr_level < target_level and 
+                      current_loss < threshold):
+                      # Immediate decrease when loss drops below threshold
+                      new_lr = learning_rates[target_level]
+                      current_lr_level = target_level
+                      last_lr_change_epoch = epoch
+                      lr_changed = True
+                      break
+              
+              # Check for learning rate increase (with stability requirement)
+              if not lr_changed:
+                  for i, threshold in enumerate(reversed(thresholds)):
+                      target_level = len(thresholds) - i - 1
+                      if (current_lr_level > target_level and 
+                          should_decrease_lr(lr_history, current_loss, threshold) and
+                          epoch - last_lr_change_epoch >= 100):
+                          # Only increase if loss has been above threshold for 100+ steps
+                          new_lr = learning_rates[target_level]
+                          current_lr_level = target_level
+                          last_lr_change_epoch = epoch
+                          lr_changed = True
+                          break
+              
+              # Update learning rate if changed
+              if lr_changed and abs(current_lr - new_lr) > 1e-8:
+                  for param_group in optimizer.param_groups:
+                      param_group['lr'] = new_lr
+                  return True, new_lr
+              
+              return False, current_lr
 
           #data_train = BaseNet.prepare_train_data(data)
           model = model.to(self.config.device)
@@ -171,11 +234,16 @@ class BaseNet(nn.Module):
               loss.backward()
               optimizer_adam.step()
               final_loss = loss.item()
-
-              if final_loss < self.config.DNNtol:
+              
+              # Adjust learning rate based on loss
+              lr_changed, current_lr = adjust_learning_rate(optimizer_adam, final_loss, epoch)
+              
+              if final_loss < self.config.DNNtol*self.config.dt:
                   break
               if epoch % 1000 == 0:
-                  print(f" Adam Epoch {epoch}, Loss: {final_loss}")
+                  print(f" Adam Epoch {epoch}, Loss: {final_loss:.6e}, LR: {current_lr:.6e}")
+              if lr_changed:
+                  print(f"   Learning rate adjusted to {current_lr:.6e} at epoch {epoch}, loss {final_loss:.6e}")
 
           print(f"Final Adam Loss: {final_loss}")
   #

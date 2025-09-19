@@ -10,7 +10,15 @@ import matplotlib
 import scipy.io
 from scipy.interpolate import interp1d
 
-matplotlib.use("Agg")  # Use non-interactive backend
+# Check if display is available, otherwise use non-interactive backend
+try:
+    if os.environ.get('DISPLAY', '') == '':
+        matplotlib.use("Agg")  # Use non-interactive backend for headless systems
+    else:
+        matplotlib.use("TkAgg")  # Use interactive backend for GUI
+except:
+    matplotlib.use("Agg")  # Fallback to non-interactive backend
+
 import matplotlib.pyplot as plt
 
 # Ensure project modules can be imported
@@ -116,7 +124,11 @@ class TimePDESolver:
             # Extract data
             t_ref = data['t'].flatten()
             x_ref = data['x'].flatten()
-            u_ref = data['usol']  # shape: (n_time, n_space)
+            u_ref = data['usol']  # shape: (n_space, n_time) from MATLAB
+
+            # Transpose if needed to get (n_time, n_space) format
+            if u_ref.shape[0] == len(x_ref) and u_ref.shape[1] == len(t_ref):
+                u_ref = u_ref.T  # Transpose to (n_time, n_space)
             
             print(f"  Time points: {len(t_ref)}")
             print(f"  Spatial points: {len(x_ref)}")
@@ -191,6 +203,10 @@ class TimePDESolver:
             dt = self._compute_adaptive_timestep(it, T, dt, U)
 
             print(f"Step {it}: T = {T:.6f}, dt = {dt:.6f}")
+            
+            # Reset linear solver step counter for this time step
+            if hasattr(self.fitter, 'solver'):
+                self.fitter.solver.reset_step_counter()
 
             # Train neural network and execute time step
             self._train_neural_network_step(it, dt, U_current=U)
@@ -208,7 +224,11 @@ class TimePDESolver:
             self._monitor_solution(it, U)
 
         print(f"Time evolution completed. Final time: T = {T:.6f}")
-        
+
+        # 完成实时动画显示（与standalone solver一致）
+        if getattr(self.config, 'realtime_visualization', False):
+            self.visualizer.finalize_realtime_animation()
+
         # 从可视化器获取动画数据统计
         time_history, solution_history = self.visualizer.get_animation_data()
         print(f"Collected {len(time_history)} time steps for animation")
@@ -232,8 +252,8 @@ class TimePDESolver:
         # Initialize fitter with model for operator precompilation
         self.fitter.fitter_init(self.model)
 
-        # 初始化可视化器的动画数据存储
-        self.visualizer.update_animation_data(0, T, self.data_test, self.model, coeffs, self.fitter, solver=self)
+        # 不在初始化时调用update_animation_data，等到第一个真正的时间步
+        print(f"Initialized at T = {T:.6f}, ready for time stepping")
 
         return it, T, dt, U, U_seg, coeffs
 

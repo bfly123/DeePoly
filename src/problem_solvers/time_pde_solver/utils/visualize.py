@@ -16,23 +16,31 @@ class TimePDEVisualizer(BaseVisualizer):
         # Detect problem dimension
         self.n_dim = len(config.spatial_vars) if hasattr(config, 'spatial_vars') else len(config.x_domain)
         self.is_1d = (self.n_dim == 1)
-        
-        # 初始化交互式绘图
+
+        # 初始化交互式绘图（与standalone solver一致）
         plt.ion()
-        
-        # 根据维度初始化不同的图形
+
+        # 根据维度初始化不同的图形，使用更小的自适应尺寸
         if self.is_1d:
-            self.fig = plt.figure(figsize=(12, 6))
+            self.fig = plt.figure(figsize=(6, 4))  # 更小的尺寸，更紧凑
             self.ax = self.fig.add_subplot(111)
         else:
-            self.fig = plt.figure(figsize=(10, 10))
+            self.fig = plt.figure(figsize=(6, 6))
             self.ax = self.fig.add_subplot(111, projection="3d")
-            
+
+        # 设置紧凑布局
+        self.fig.tight_layout(pad=1.0)
+
         self._frames = []  # 用于存储动画帧
         self._save_gif = False
         self._visualization_interval = 1
         self._iteration_counter = 0
         self.cbar = None
+
+        # 用于tracking scatter plot和line plot对象（实时动画）
+        self._scatter_numerical = None
+        self._line_reference = None
+        self._step_counter = 0
         
     def plot_solution(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
         """绘制解 - 根据维度自动选择1D或2D可视化"""
@@ -354,78 +362,133 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.draw()
         plt.pause(0.01)
     
-    def plot_evolution_step_with_reference(self, T: float, u: np.ndarray, x: np.ndarray, 
-                                         u_ref: Optional[np.ndarray] = None, save_path: Optional[str] = None) -> None:
+    def plot_evolution_step_with_reference(self, T: float, u: np.ndarray, x: np.ndarray,
+                                         u_ref: Optional[np.ndarray] = None, solver=None, save_path: Optional[str] = None) -> None:
         """绘制时间演化步骤与参考解对比"""
         if self.is_1d:
-            self._plot_evolution_step_with_reference_1d(T, u, x, u_ref, save_path)
+            self._plot_evolution_step_with_reference_1d(T, u, x, u_ref, solver, save_path)
         else:
             # 2D情况暂时使用原有方法
             self._plot_evolution_step_2d(T, u, x, save_path)
     
-    def _plot_evolution_step_with_reference_1d(self, T: float, u: np.ndarray, x: np.ndarray, 
-                                             u_ref: Optional[np.ndarray] = None, save_path: Optional[str] = None) -> None:
-        """1D时间演化步骤与参考解对比可视化"""
-        self.ax.clear()
-        
-        # 排序以便正确绘制线图
-        sort_idx = np.argsort(x[:, 0])
-        x_sorted = x[sort_idx, 0]
-        u_sorted = u[sort_idx, 0] if u.ndim > 1 else u[sort_idx]
-        
-        # 绘制数值解
-        self.ax.plot(x_sorted, u_sorted, 'r-', linewidth=3, label=f'数值解 (T={T:.4f})', alpha=0.8)
-        
-        # 绘制参考解（如果有）
-        if u_ref is not None:
-            # 假设参考解的x坐标与数值解相同或可以插值
-            if len(u_ref) == len(x_sorted):
-                self.ax.plot(x_sorted, u_ref[sort_idx], 'b--', linewidth=2, label='参考解', alpha=0.8)
+    def _plot_evolution_step_with_reference_1d(self, T: float, u: np.ndarray, x: np.ndarray,
+                                             u_ref: Optional[np.ndarray] = None, solver=None, save_path: Optional[str] = None) -> None:
+        """1D时间演化步骤与参考解对比可视化 - 使用scatter plot方式（与standalone solver一致）"""
+
+        # 如果还没有初始化scatter对象，先初始化
+        if self._scatter_numerical is None:
+            self.ax.clear()
+
+            # 获取x坐标
+            x_flat = x[:, 0] if x.ndim > 1 else x
+            u_flat = u[:, 0] if u.ndim > 1 else u
+
+            # 创建scatter plot用于数值解（红色）
+            self._scatter_numerical = self.ax.scatter(x_flat, u_flat, c='r', label='Numerical', s=20)
+
+            # 创建line plot用于参考解（蓝色）
+            if u_ref is not None and solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
+                # 获取参考解的真实x坐标
+                x_ref_true = solver.reference_solution['x_ref']
+                # 使用真实的参考解x坐标进行绘制
+                sort_idx = np.argsort(x_ref_true)
+                x_ref_sorted = x_ref_true[sort_idx]
+                u_ref_sorted = u_ref[sort_idx]
+
+                self._line_reference, = self.ax.plot(x_ref_sorted, u_ref_sorted, 'b--',
+                                                   label='Reference Solution', linewidth=2, alpha=0.7)
+                print(f"    Reference initialized with {len(x_ref_true)} points, x_range=[{x_ref_true.min():.3f}, {x_ref_true.max():.3f}]")
             else:
-                # 如果参考解的网格不同，需要插值到数值解网格上
+                self._line_reference = None
+                print("    No reference solution available for initialization")
+
+            # 设置图形属性（动态调整域边界）
+            # 从数据中获取x和u的范围
+            x_min, x_max = x_flat.min(), x_flat.max()
+            u_min, u_max = u_flat.min(), u_flat.max()
+
+            # 如果有参考解，考虑参考解的范围
+            if u_ref is not None and solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
+                x_ref_true = solver.reference_solution['x_ref']
+                u_min = min(u_min, u_ref.min())
+                u_max = max(u_max, u_ref.max())
+                x_min = min(x_min, x_ref_true.min())
+                x_max = max(x_max, x_ref_true.max())
+
+            # 添加边距
+            x_margin = (x_max - x_min) * 0.05
+            u_margin = (u_max - u_min) * 0.1
+
+            self.ax.set_xlim(x_min - x_margin, x_max + x_margin)
+            self.ax.set_ylim(u_min - u_margin, u_max + u_margin)
+            self.ax.set_xlabel('x')
+            self.ax.set_ylabel('u')
+            self.ax.set_title('Time PDE Real-time Solution')
+            self.ax.legend()
+            self.ax.grid(True, alpha=0.3)
+
+        # 更新scatter plot数据（类似standalone solver的line_pred.set_offsets）
+        x_flat = x[:, 0] if x.ndim > 1 else x
+        u_flat = u[:, 0] if u.ndim > 1 else u
+
+        # 更新数值解scatter plot的位置
+        self._scatter_numerical.set_offsets(np.column_stack((x_flat, u_flat)))
+
+        # 更新参考解（如果有新的参考解数据）
+        if u_ref is not None and hasattr(self, '_line_reference') and self._line_reference is not None:
+            if solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
+                # 使用真实的参考解x坐标
+                x_ref_true = solver.reference_solution['x_ref']
+                sort_idx = np.argsort(x_ref_true)
+                x_ref_sorted = x_ref_true[sort_idx]
+                u_ref_sorted = u_ref[sort_idx]
+
+                self._line_reference.set_data(x_ref_sorted, u_ref_sorted)
+
+                # 计算误差：需要将参考解插值到数值解网格上
                 from scipy.interpolate import interp1d
-                x_ref_range = np.linspace(x_sorted.min(), x_sorted.max(), len(u_ref))
-                interp_func = interp1d(x_ref_range, u_ref, kind='cubic', bounds_error=False, fill_value='extrapolate')
-                u_ref_interp = interp_func(x_sorted)
-                self.ax.plot(x_sorted, u_ref_interp, 'b--', linewidth=2, label='参考解', alpha=0.8)
-                
-                # 计算并显示误差
-                error = np.abs(u_sorted - u_ref_interp)
+                interp_func = interp1d(x_ref_true, u_ref, kind='cubic', bounds_error=False, fill_value='extrapolate')
+                u_ref_interp = interp_func(x_flat)
+                error = np.abs(u_flat - u_ref_interp)
                 max_error = np.max(error)
                 l2_error = np.sqrt(np.mean(error**2))
-                self.ax.text(0.02, 0.98, f'最大误差: {max_error:.2e}\nL2误差: {l2_error:.2e}', 
-                           transform=self.ax.transAxes, verticalalignment='top',
-                           bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-        
-        self.ax.set_xlabel("x", fontsize=12)
-        self.ax.set_ylabel("u", fontsize=12)
-        self.ax.set_title(f"Solution Evolution at T = {T:.4f}", fontsize=14, fontweight='bold')
-        self.ax.grid(True, alpha=0.3)
-        self.ax.legend()
-        
-        # 设置坐标轴范围
-        if hasattr(self.config, 'x_domain'):
-            self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
-        
-        # 添加段边界标记
-        if hasattr(self.config, 'n_segments') and hasattr(self.config, 'x_domain'):
-            x_min_domain, x_max_domain = self.config.x_domain[0]
-            n_seg = self.config.n_segments[0] if isinstance(self.config.n_segments, (list, tuple)) else self.config.n_segments
-            segment_boundaries = np.linspace(x_min_domain, x_max_domain, n_seg + 1)
-            
-            for boundary in segment_boundaries[1:-1]:  # 跳过首尾边界
-                self.ax.axvline(boundary, color='gray', linestyle=':', alpha=0.6, linewidth=1)
-        
-        plt.tight_layout()
+
+                # 更新标题包含误差信息
+                self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}')
+            else:
+                # 没有solver或参考解时
+                self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s')
+        else:
+            # 没有参考解时的标题
+            self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s')
+
+        # 增加步数计数器
+        if not hasattr(self, "_step_counter"):
+            self._step_counter = 0
+        self._step_counter += 1
+
+        # 刷新显示（类似standalone solver的方式）
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+
+        # 小的延时以便平滑动画（与standalone solver一致）
+        import time
+        time.sleep(0.05)
+
+        # 保存图像（如果需要）
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        plt.draw()
-        plt.pause(0.01)
         
     def close_evolution_plot(self) -> None:
         """关闭时间演化绘图"""
         plt.ioff()
-        plt.close()
+        if hasattr(self, 'fig'):
+            plt.close(self.fig)
+
+    def finalize_realtime_animation(self) -> None:
+        """完成实时动画显示"""
+        plt.ioff()
+        print("Time evolution completed. Close the plot window to continue...")
         
     def plot_mesh_results(
         self,
@@ -658,11 +721,30 @@ class TimePDEVisualizer(BaseVisualizer):
             
             # 获取当前时间步的解
             try:
+                # Check if data_test and required fields are available
+                if data_test is None:
+                    print(f"  Warning: data_test is None, skipping animation update")
+                    return
+
+                if 'x' not in data_test and 'x_segments' not in data_test:
+                    print(f"  Warning: No coordinate data in data_test, skipping animation update")
+                    return
+
+                # Check if coeffs is valid
+                if coeffs is None:
+                    print(f"  Warning: coeffs is None at T={T:.4f}, skipping animation update")
+                    return
+
                 U_test, _ = fitter.construct(data_test, model, coeffs)
+                if U_test is None:
+                    print(f"  Warning: fitter.construct returned None, skipping animation update")
+                    return
+                    
                 self.solution_history_viz.append(U_test.copy())
                 
                 # 可选择实时绘制时间演化步骤
                 if getattr(self.config, 'realtime_visualization', False):
+                    print(f"  Real-time visualization enabled, plotting at T = {T:.4f}")
                     x_coords = data_test.get('x', data_test.get('x_segments', []))
                     if hasattr(x_coords, '__iter__') and len(x_coords) > 0:
                         if isinstance(x_coords, list):
@@ -674,8 +756,14 @@ class TimePDEVisualizer(BaseVisualizer):
                         u_ref = None
                         if solver and hasattr(solver, 'get_reference_solution_at_time'):
                             u_ref = solver.get_reference_solution_at_time(T)
+                            print(f"    Reference solution at T={T:.4f}: {'Yes' if u_ref is not None else 'No'}")
+                            if u_ref is not None:
+                                print(f"    Reference solution range: [{np.min(u_ref):.4f}, {np.max(u_ref):.4f}]")
                             
-                        self.plot_evolution_step_with_reference(T, U_test, x_plot, u_ref)
+                        self.plot_evolution_step_with_reference(T, U_test, x_plot, u_ref, solver)
+                        print(f"    Real-time plot updated for T = {T:.4f}")
+                else:
+                    print(f"  Real-time visualization disabled (setting: {getattr(self.config, 'realtime_visualization', 'Not found')})")
                         
                 print(f"  动画数据已更新: T = {T:.6f}, 总帧数 = {len(self.solution_history_viz)}")
                 

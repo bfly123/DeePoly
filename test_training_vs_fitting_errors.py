@@ -21,23 +21,46 @@ if current_dir not in sys.path:
 
 from src.problem_solvers.time_pde_solver.solver import TimePDESolver
 from src.problem_solvers.time_pde_solver.utils.config import TimePDEConfig
-from ac_reference_solver import ACReferenceSolver
-from highres_reference_solver import HighResACReferenceSolver
 from scipy.interpolate import interp1d
+import scipy.io as sio
 
 def test_training_vs_fitting_errors():
     """Test neural network training error vs fitting error"""
-    print("=== Testing Training vs Fitting Errors at T=0.005 ===")
+    print("=== Testing Training vs Fitting Errors at T=0.05 ===")
     
     # Load DeePoly solver
     case_dir = os.path.join(current_dir, "cases", "Time_pde_cases", "AC_equation")
     config = TimePDEConfig(case_dir=case_dir)
     solver = TimePDESolver(config)
     
-    # Get high-resolution reference solution
-    highres_ref_solver = HighResACReferenceSolver(current_dir)
-    T = 0.005  # 降低时间到0.005，测试更短时间步的精度
-    ref_data = highres_ref_solver.solve_reference(T=T, interpolation_method='spline')
+    # Load reference solution from existing MATLAB data
+    T = 0.05  # 使用dt=0.05进行测试
+    ref_path = os.path.join(case_dir, "reference_data", "allen_cahn_highres.mat")
+
+    print(f"Loading reference solution from: {ref_path}")
+    ref_mat = sio.loadmat(ref_path)
+
+    # Extract reference data
+    x_ref = ref_mat['x'].flatten()
+    t_ref = ref_mat['t'].flatten()
+    u_ref_full = ref_mat['usol']  # Shape: (nt, nx)
+
+    print(f"Reference data shape: x={x_ref.shape}, t={t_ref.shape}, u={u_ref_full.shape}")
+
+    # Find closest time to T=0.05
+    t_idx = np.argmin(np.abs(t_ref - T))
+    t_actual = t_ref[t_idx]
+    print(f"Target time T={T:.3f}, actual reference time: {t_actual:.6f}")
+
+    # Get reference solution at closest time
+    u_ref_at_t = u_ref_full[t_idx, :]
+
+    ref_data = {
+        'x': x_ref,
+        'u': u_ref_at_t,
+        'is_highres': True,
+        'interpolation_method': 'cubic'
+    }
     
     # Interpolate reference to training points (not test points!)
     train_data = solver.data_train
@@ -79,7 +102,7 @@ def test_training_vs_fitting_errors():
     
     # Stage 1: Neural network training
     print("  Training neural network for current time step...")
-    solver._train_neural_network_step(dt, U_current=U)
+    solver._train_neural_network_step(it=0, dt=dt, U_current=U)
     model = solver.model  # Use the trained model from solver
     
     # Get neural network prediction (before polynomial fitting) on training points
@@ -180,7 +203,7 @@ def create_error_comparison_plot(x_train, ref_solution, results, case_dir):
     """Create detailed comparison plot"""
     
     fig, axes = plt.subplots(3, 2, figsize=(15, 18))
-    fig.suptitle('Neural Network vs U_new Error Analysis on Training Points at T=0.01', fontsize=16)
+    fig.suptitle('Neural Network vs U_new Error Analysis on Training Points at T=0.05', fontsize=16)
     
     nn_pred = results['neural_network']['prediction']
     final_pred = results['polynomial_fitting']['prediction']

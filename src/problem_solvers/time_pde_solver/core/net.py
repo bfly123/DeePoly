@@ -46,14 +46,17 @@ class TimePDENet(BaseNet):
         # Calculate 2nd-order derivatives
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
-        # L1 operators
-        L1 = [0.0001*du_xx]
+        # Calculate 3th-order derivatives
+        du_xxx = self.gradients(du_xx, x_train)[0][..., 0]
 
-        # L2 operators
-        L2 = [u]
+        # L1 operators
+        L1 = [1.0*du_xxx]
 
         # F operators
-        F = [5-5*u**2]
+        F = [u]
+
+        # L2 operators
+        L2 = [du_x]
 
         # N operators
         N = [

@@ -5,7 +5,7 @@ import os
 import json
 from src.meta_coding import parse_operators
 from src.meta_coding.auto_spotter import update_hybrid_fitter_code
-from src.problem_solvers.linear_pde_solver.auto_replace_loss import update_physics_loss_code
+from src.meta_coding.auto_spotter import update_physics_loss_from_config
 from src.abstract_class.config.base_config import BaseConfig
 
 @dataclass
@@ -312,14 +312,8 @@ class TimePDEConfig(BaseConfig):
             print(f"  Nonlinear equations: {nonlinear_eqs}")
             
             # 调用代码生成
-            update_physics_loss_code(
-                linear_equations=linear_eqs,
-                nonlinear_equations=nonlinear_eqs,
-                vars_list=self.vars_list,
-                spatial_vars=self.spatial_vars,
-                const_list=self.const_list,
-                case_dir=self.case_dir
-            )
+            config_path = os.path.join(self.case_dir, "config.json")
+            update_physics_loss_from_config(config_path)
             print("Auto code generation completed, please check the net.py file, restart the program")
 
     def _validate_config(self):

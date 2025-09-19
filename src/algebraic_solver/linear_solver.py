@@ -127,6 +127,9 @@ class LinearSolver:
         
         # 性能跟踪
         self.performance_history = [] if performance_tracking else None
+        
+        # 步骤计数器，用于跟踪每步的残差范数
+        self.step_counter = 0
     
     def _check_gpu_capability(self) -> bool:
         """检查GPU是否适合计算（性能、内存等）"""
@@ -255,17 +258,47 @@ class LinearSolver:
         
         # 计算残差范数（在CPU上）
         if not sp.issparse(A):
-            residual_norm = np.linalg.norm(A @ x - b)
+            residual = A @ x - b
+            residual_norm = np.linalg.norm(residual)
+            residual_norm_inf = np.linalg.norm(residual, ord=np.inf)
+            residual_norm_1 = np.linalg.norm(residual, ord=1)
         else:
-            residual_norm = np.linalg.norm(A.dot(x) - b)
+            residual = A.dot(x) - b
+            residual_norm = np.linalg.norm(residual)
+            residual_norm_inf = np.linalg.norm(residual, ord=np.inf)
+            residual_norm_1 = np.linalg.norm(residual, ord=1)
+            
+        # 计算相对残差范数
+        b_norm = np.linalg.norm(b)
+        relative_residual = residual_norm / max(b_norm, 1e-16)
+        
+        # 存储详细残差信息
         info['residual_norm'] = residual_norm
+        info['residual_norm_inf'] = residual_norm_inf
+        info['residual_norm_1'] = residual_norm_1
+        info['relative_residual'] = relative_residual
+        info['b_norm'] = b_norm
+        
+        # 步骤计数器递增
+        self.step_counter += 1
         
         if self.verbose:
-            print(f"求解方法: {method}")
-            print(f"求解时间: {solve_time:.6f}秒")
-            print(f"残差范数: {residual_norm:.6e}")
+            print(f"=== Linear Solve Step {self.step_counter} ===")
+            print(f"Method: {method}")
+            print(f"Matrix size: {A.shape[0]} x {A.shape[1]}")
+            print(f"Condition number: {info.get('condition_number', 'N/A')}")
+            print(f"Residual Analysis:")
+            print(f"  ||Ax-b||_2 = {residual_norm:.6e}")
+            print(f"  ||Ax-b||_∞ = {residual_norm_inf:.6e}")
+            print(f"  ||Ax-b||_1 = {residual_norm_1:.6e}")
+            print(f"  ||b||_2 = {b_norm:.6e}")
+            print(f"  Relative residual = {relative_residual:.6e}")
+            print(f"Solve time: {solve_time:.6f}s")
             if 'iterations' in info:
-                print(f"迭代次数: {info['iterations']}")
+                print(f"Iterations: {info['iterations']}")
+            if 'rank' in info:
+                print(f"Matrix rank: {info['rank']}")
+            print("-" * 45)
                 
         # 记录性能
         if self.performance_tracking:
@@ -999,6 +1032,12 @@ class LinearSolver:
         """重置性能跟踪数据"""
         if self.performance_tracking:
             self.performance_history = []
+            
+    def reset_step_counter(self):
+        """重置步骤计数器，适用于新的时间步或新问题"""
+        self.step_counter = 0
+        if self.verbose:
+            print("=== Linear Solver Step Counter Reset ===")
 
     def _has_cuda_device(self):
         if not CUPY_AVAILABLE:

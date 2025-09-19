@@ -1,13 +1,30 @@
 {
   "segment_ranges": [
     [
-      -1.0,
-      -0.33333333333333337,
-      0.33333333333333326,
-      1.0
+      -20.0,
+      -18.0,
+      -16.0,
+      -14.0,
+      -12.0,
+      -10.0,
+      -8.0,
+      -6.0,
+      -4.0,
+      -2.0,
+      0.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      10.0,
+      12.0,
+      14.0,
+      16.0,
+      18.0,
+      20.0
     ]
   ],
-  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/AC_equation",
+  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/KDV_equation",
   "vars_list": [
     "u"
   ],
@@ -16,13 +33,13 @@
   ],
   "eq": {
     "L1": [
-      "0.0001*diff(u,x,2)"
-    ],
-    "L2": [
-      "u"
+      "1.0*diff(u,x,3)"
     ],
     "F": [
-      "5-5*u**2"
+      "u"
+    ],
+    "L2": [
+      "diff(u,x)"
     ],
     "N": []
   },
@@ -30,15 +47,15 @@
   "const_list": [],
   "source_term": "False",
   "n_segments": [
-    "3"
+    "20"
   ],
   "poly_degree": [
-    10
+    8
   ],
   "x_domain": [
     [
-      -1,
-      1
+      -20,
+      20
     ]
   ],
   "method": "hybrid",
@@ -46,43 +63,43 @@
     "12",
     "32",
     "32",
-    "25"
+    "10"
   ],
   "device": "cuda",
   "linear_device": "cpu",
   "learning_rate": "0.01",
   "training_epochs": "10000",
-  "points_domain": "300",
+  "points_domain": "1000",
   "points_domain_test": [
     "100"
   ],
   "points_boundary": "200",
   "points_boundary_test": "50",
-  "T": "0.01",
-  "dt": "0.01",
-  "spotter_skip": "10",
-  "epochs_adam": "1000",
-  "epochs_lbfgs": "1",
+  "T": "40.0",
+  "dt": "0.2",
+  "spotter_skip": "1",
+  "epochs_adam": "5000",
+  "epochs_lbfgs": "0",
   "max_retries": "1",
-  "DNNtol": "0.0001",
+  "DNNtol": "0.01",
   "points_per_swap": "1",
   "Initial_conditions": [
     {
       "var": "u",
-      "value": "x**2*cos(pi*x)",
-      "points": "100"
+      "value": "cos(pi*x/20)",
+      "points": "500"
     }
   ],
   "time_scheme": "IMEX_RK_2_2_2",
   "time_scheme_params": {},
   "eq_L1": [
-    "0.0001*diff(u,x,2)"
+    "1.0*diff(u,x,3)"
   ],
   "eq_L2": [
-    "u"
+    "diff(u,x)"
   ],
   "eq_F": [
-    "5-5*u**2"
+    "u"
   ],
   "eq_N": [],
   "seed": "42",
@@ -92,6 +109,13 @@
       "region": "left",
       "pair_with": "right",
       "constraint": "dirichlet",
+      "points": "1"
+    },
+    {
+      "type": "periodic",
+      "region": "left",
+      "pair_with": "right",
+      "constraint": "neumann",
       "points": "1"
     }
   ],
@@ -104,16 +128,23 @@
       "0",
       "0"
     ],
-    "U_xx": [
+    "U_x": [
       "0",
       "1"
+    ],
+    "U_xxx": [
+      "0",
+      "2"
     ]
   },
   "problem_type": "time_pde",
-  "auto_code": "False",
-  "output_module_path": "output.py",
+  "auto_code": "True",
+  "note": "\u8fd9\u4e2a\u662f\u65f6\u95f4\u6b65\u957f\u4e3a0.1\u7684DNNtol\uff0c\u9700\u8981\u9664\u4ee5\u65f6\u95f4\u6b65\u957f\uff0c\u6240\u4ee5\u662f0.01",
+  "reference_solution": "reference_data/KdV_cos.mat",
+  "realtime_visualization": "True",
+  "animation_skip": "1",
   "f_L2": [
-    "5-5*u**2"
+    "u"
   ],
   "N": [],
   "gamma": 0.2928932188134524,
@@ -127,27 +158,180 @@
   "n_eqs": "1",
   "x_min": [
     [
-      -1.0
+      -20.0
     ],
     [
-      -0.33333333333333337
+      -18.0
     ],
     [
-      0.33333333333333326
+      -16.0
+    ],
+    [
+      -14.0
+    ],
+    [
+      -12.0
+    ],
+    [
+      -10.0
+    ],
+    [
+      -8.0
+    ],
+    [
+      -6.0
+    ],
+    [
+      -4.0
+    ],
+    [
+      -2.0
+    ],
+    [
+      0.0
+    ],
+    [
+      2.0
+    ],
+    [
+      4.0
+    ],
+    [
+      6.0
+    ],
+    [
+      8.0
+    ],
+    [
+      10.0
+    ],
+    [
+      12.0
+    ],
+    [
+      14.0
+    ],
+    [
+      16.0
+    ],
+    [
+      18.0
     ]
   ],
   "x_max": [
     [
-      -0.33333333333333337
+      -18.0
     ],
     [
-      0.33333333333333326
+      -16.0
     ],
     [
-      1.0
+      -14.0
+    ],
+    [
+      -12.0
+    ],
+    [
+      -10.0
+    ],
+    [
+      -8.0
+    ],
+    [
+      -6.0
+    ],
+    [
+      -4.0
+    ],
+    [
+      -2.0
+    ],
+    [
+      0.0
+    ],
+    [
+      2.0
+    ],
+    [
+      4.0
+    ],
+    [
+      6.0
+    ],
+    [
+      8.0
+    ],
+    [
+      10.0
+    ],
+    [
+      12.0
+    ],
+    [
+      14.0
+    ],
+    [
+      16.0
+    ],
+    [
+      18.0
+    ],
+    [
+      20.0
     ]
   ],
   "x_min_norm": [
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
+    [
+      0.0
+    ],
     [
       0.0
     ],
@@ -167,17 +351,71 @@
     ],
     [
       1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
     ]
   ],
-  "DNN_degree": "25",
-  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/AC_equation/results",
+  "DNN_degree": "10",
+  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/KDV_equation/results",
   "operator_parse": {
     "derivatives": [
       [
         "0"
       ],
       [
-        "2"
+        "1"
+      ],
+      [
+        "3"
       ]
     ],
     "all_derivatives": {
@@ -185,31 +423,35 @@
         "0",
         "0"
       ],
-      "U_xx": [
+      "U_x": [
         "0",
         "1"
+      ],
+      "U_xxx": [
+        "0",
+        "2"
       ]
     },
     "max_derivative_orders": [
       [
-        "2"
+        "3"
       ]
     ],
     "operator_terms": {
       "L1": [
         {
           "derivative_indices": [
-            "1"
+            "2"
           ],
-          "symbolic_expr": "0.0001*U_xx"
+          "symbolic_expr": "1.0*U_xxx"
         }
       ],
       "L2": [
         {
           "derivative_indices": [
-            "0"
+            "1"
           ],
-          "symbolic_expr": "U"
+          "symbolic_expr": "U_x"
         }
       ],
       "F": [
@@ -217,22 +459,23 @@
           "derivative_indices": [
             "0"
           ],
-          "symbolic_expr": "5-5*U**2"
+          "symbolic_expr": "U"
         }
       ],
       "L2F": [
         {
           "derivative_indices": [
-            "0"
+            "0",
+            "1"
           ],
-          "symbolic_expr": "U*(5-5*U**2)"
+          "symbolic_expr": "U_x*(U)"
         }
       ]
     }
   },
   "max_derivative_orders": [
     [
-      "2"
+      "3"
     ]
   ],
   "derivatives": [
@@ -240,24 +483,27 @@
       "0"
     ],
     [
-      "2"
+      "1"
+    ],
+    [
+      "3"
     ]
   ],
   "operator_terms": {
     "L1": [
       {
         "derivative_indices": [
-          "1"
+          "2"
         ],
-        "symbolic_expr": "0.0001*U_xx"
+        "symbolic_expr": "1.0*U_xxx"
       }
     ],
     "L2": [
       {
         "derivative_indices": [
-          "0"
+          "1"
         ],
-        "symbolic_expr": "U"
+        "symbolic_expr": "U_x"
       }
     ],
     "F": [
@@ -265,18 +511,19 @@
         "derivative_indices": [
           "0"
         ],
-        "symbolic_expr": "5-5*U**2"
+        "symbolic_expr": "U"
       }
     ],
     "L2F": [
       {
         "derivative_indices": [
-          "0"
+          "0",
+          "1"
         ],
-        "symbolic_expr": "U*(5-5*U**2)"
+        "symbolic_expr": "U_x*(U)"
       }
     ]
   },
-  "export_time": "2025-09-03 09:34:13",
+  "export_time": "2025-09-19 11:17:51",
   "device_info": "cuda"
 }

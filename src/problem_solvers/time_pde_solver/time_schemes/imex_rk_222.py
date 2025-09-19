@@ -128,10 +128,17 @@ class ImexRK222(BaseTimeScheme):
         K_stage_segments = self._compute_stage_operators(
             U_stage_segments, coeffs_stage, kwargs
         )
-        
+
         # 存储算子值到实例变量
         stage_num = kwargs.get("stage")
         setattr(self, f'_K_stage_{stage_num}', K_stage_segments)
+
+        # 预计算stage2所需的显式项并存储 (like K)
+        if stage_num == 1:
+            explicit_stage1_segments = self._compute_explicit_stage1_terms(
+                U_stage_segments, coeffs_stage
+            )
+            setattr(self, '_explicit_stage1_terms', explicit_stage1_segments)
 
         return U_stage_segments, coeffs_stage
 
@@ -191,6 +198,50 @@ class ImexRK222(BaseTimeScheme):
         
         return K_segments
 
+    def _compute_explicit_stage1_terms(
+        self,
+        U_stage1_segments: List[np.ndarray],
+        coeffs_stage1: np.ndarray
+    ) -> List[np.ndarray]:
+        """预计算stage1的显式项 [L1 + L2⊙F(U^(1))]β^(1) 用于stage2的RHS"""
+
+        explicit_segments = []
+
+        for segment_idx in range(self.fitter.ns):
+            U_seg = U_stage1_segments[segment_idx]
+            n_points = U_seg.shape[0]
+            ne = self.config.n_eqs
+
+            # 获取算子和特征
+            L1_ops = self.fitter._linear_operators[segment_idx].get("L1", None)
+            L2_ops = self.fitter._linear_operators[segment_idx].get("L2", None)
+            features = self.fitter._features[segment_idx][0]
+
+            # 预计算F(U^(1))
+            F_vals = None
+            if L2_ops is not None and self.fitter.has_operator("F"):
+                F_vals = self.fitter.F_func(features, U_seg)
+
+            # 计算显式项
+            explicit_seg = np.zeros((n_points, ne))
+
+            for eq_idx in range(ne):
+                beta_1 = coeffs_stage1[segment_idx, eq_idx, :]
+
+                # L1*β^(1)贡献
+                if L1_ops is not None:
+                    L1_contrib = L1_ops[eq_idx] @ beta_1
+                    explicit_seg[:, eq_idx] += L1_contrib
+
+                # L2*β^(1)*F(U^(1))贡献
+                if L2_ops is not None and F_vals is not None:
+                    L2_contrib = L2_ops[eq_idx] @ beta_1
+                    explicit_seg[:, eq_idx] += L2_contrib * F_vals[:, eq_idx]
+
+            explicit_segments.append(explicit_seg)
+
+        return explicit_segments
+
     def _imex_final_update_U_seg(
         self,
         U_n_seg: List[np.ndarray],
@@ -208,8 +259,8 @@ class ImexRK222(BaseTimeScheme):
         # 对每个段进行最终更新
         for segment_idx in range(self.fitter.ns):
             U_n_current = U_n_seg[segment_idx]
-            K1 = self._K_stage_1[segment_idx]
-            K2 = self._K_stage_2[segment_idx]
+            K1 = -self._K_stage_1[segment_idx]
+            K2 = -self._K_stage_2[segment_idx]
             
             # 根据IMEX-RK(2,2,2)公式: U^{n+1} = U^n + dt/2 * [K^{(1)} + K^{(2)}]
             U_new_seg = U_n_current + dt * 0.5 * (K1 + K2)
@@ -223,8 +274,8 @@ class ImexRK222(BaseTimeScheme):
         """构建IMEX-RK阶段的段雅可比矩阵
         
         根据Doc/time_scheme_program.md的公式：
-        阶段1: [V - γΔt*L1 - γΔt*L2⊙F(U^n)] β^(1) = U^n + γΔt*N(U^n)
-        阶段2: [V - γΔt*L1 - γΔt*L2⊙F(U^(1))] β^(2) = RHS
+        阶段1: [V + γΔt*L1 + γΔt*L2⊙F(U^n)] β^(1) = U^n - γΔt*N(U^n)
+        阶段2: [V + γΔt*L1 + γΔt*L2⊙F(U^(1))] β^(2) = RHS
         """
 
         n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
@@ -296,11 +347,11 @@ class ImexRK222(BaseTimeScheme):
             # 构建该方程的雅可比矩阵: V - γΔt*L1 - γΔt*L2⊙F
             J_eq = V.copy()  # 从特征矩阵V开始
             
-            # 减去隐式L1项: -γΔt*L1
+            # 减去隐式L1项: +γΔt*L1
             if L1 is not None:
-                J_eq -= gamma * dt * L1
+                J_eq += gamma * dt * L1
             
-            # 减去隐式L2⊙F项: -γΔt*diag(F)*L2
+            # 减去隐式L2⊙F项: +γΔt*diag(F)*L2
             if L2 is not None:
                 if stage == 1:
                     F_vals = F_n
@@ -314,7 +365,7 @@ class ImexRK222(BaseTimeScheme):
                     F_eq = F_vals[:, eq_idx]
                     # L2⊙F项线性化: -γΔt * diag(F_eq) @ L2
                     L2F_term = gamma * dt * np.diag(F_eq) @ L2
-                    J_eq -= L2F_term
+                    J_eq += L2F_term
             # 将该方程的雅可比矩阵放入最终矩阵
             L_final[row_start:row_end, col_start:col_end] = J_eq
             # 添加对应的右端项
@@ -327,8 +378,8 @@ class ImexRK222(BaseTimeScheme):
         """构建IMEX-RK阶段的右端向量
         
         根据Doc/time_scheme_program.md的公式：
-        阶段1 RHS: U^n + γΔt*N(U^n)
-        阶段2 RHS: U^n + Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
+        阶段1 RHS: U^n - γΔt*N(U^n)
+        阶段2 RHS: U^n - Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
         """
 
         ne = self.config.n_eqs
@@ -348,22 +399,27 @@ class ImexRK222(BaseTimeScheme):
         rhs = np.zeros((n_points, ne))
 
         if stage == 1:
-            # 阶段1 RHS: U^n + γΔt*N(U^n)
+            # 阶段1 RHS: U^n - γΔt*N(U^n)
             # 基础项: U^n
             rhs[:, :] = U_n_seg
             
             # 添加非线性项: γΔt*N(U^n)
             if N_n is not None:
-                rhs += gamma * dt * N_n
+                rhs -= gamma * dt * N_n
 
         elif stage == 2:
             # 阶段2 RHS: U^n + Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1) + Δt(1-γ)N(U^(1))
             # 基础项: U^n
             rhs[:, :] = U_n_seg
-            
+
+            # 添加预计算的显式项: Δt(1-2γ)[L1 + L2⊙F(U^(1))]β^(1)
+            if hasattr(self, '_explicit_stage1_terms') and self._explicit_stage1_terms:
+                explicit_seg = self._explicit_stage1_terms[_segment_idx]
+                rhs -= dt * (1 - 2*gamma) * explicit_seg
+
             # 添加显式非线性项: Δt(1-γ)*N(U^(1))
             if N_prev is not None:
-                rhs += dt * (1-gamma) * N_prev
+                rhs -= dt * (1-gamma) * N_prev
 
         return rhs
 

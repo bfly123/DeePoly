@@ -76,10 +76,10 @@ class LinearPDENet(BaseNet):
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
         # Compute equations as a list
-        eq = [0.0001*du_xx, u]
+        eq = [-0.000484*du_xxx, du_x]
 
         # Add nonlinear terms
-        eq[0] = eq[0] + u*(5-5*u**2)
+        eq[0] = eq[0] + du_x*(u)
 
         pde_loss = torch.mean(sum((eq[i] - source[i]) ** 2 for i in range(2)))
 
