@@ -434,6 +434,9 @@ class TimePDEVisualizer(BaseVisualizer):
         # 更新数值解scatter plot的位置
         self._scatter_numerical.set_offsets(np.column_stack((x_flat, u_flat)))
 
+        # 动态调整y轴范围（考虑当前数值解的范围）
+        u_min_current, u_max_current = u_flat.min(), u_flat.max()
+
         # 更新参考解（如果有新的参考解数据）
         if u_ref is not None and hasattr(self, '_line_reference') and self._line_reference is not None:
             if solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
@@ -445,6 +448,10 @@ class TimePDEVisualizer(BaseVisualizer):
 
                 self._line_reference.set_data(x_ref_sorted, u_ref_sorted)
 
+                # 同时考虑参考解的范围来动态调整y轴
+                u_min_current = min(u_min_current, u_ref_sorted.min())
+                u_max_current = max(u_max_current, u_ref_sorted.max())
+
                 # 计算误差：需要将参考解插值到数值解网格上
                 from scipy.interpolate import interp1d
                 interp_func = interp1d(x_ref_true, u_ref, kind='cubic', bounds_error=False, fill_value='extrapolate')
@@ -453,19 +460,42 @@ class TimePDEVisualizer(BaseVisualizer):
                 max_error = np.max(error)
                 l2_error = np.sqrt(np.mean(error**2))
 
-                # 更新标题包含误差信息
-                self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}')
+                # 增加步数计数器（在显示之前递增以显示正确的步数）
+                if not hasattr(self, "_step_counter"):
+                    self._step_counter = 0
+                self._step_counter += 1
+
+                # 更新标题包含误差信息和正确的步数
+                self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}')
+
+                # 添加详细的误差诊断信息（仅在前几步）
+                if self._step_counter <= 5:
+                    print(f"  详细误差诊断 - Step {self._step_counter}, T={T:.3f}:")
+                    print(f"    数值解范围: [{np.min(u_flat):.6f}, {np.max(u_flat):.6f}]")
+                    print(f"    参考解范围: [{np.min(u_ref_interp):.6f}, {np.max(u_ref_interp):.6f}]")
+                    print(f"    时间同步检查: 数值解T={T:.6f}, 参考解T={T:.6f} (应该相同)")
+                    print(f"    最大误差: {max_error:.2e}, L2误差: {l2_error:.2e}")
+                    print(f"    误差分布: 平均={np.mean(error):.2e}, 标准差={np.std(error):.2e}")
             else:
                 # 没有solver或参考解时
-                self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s')
+                if not hasattr(self, "_step_counter"):
+                    self._step_counter = 0
+                self._step_counter += 1
+                self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s')
         else:
             # 没有参考解时的标题
-            self.ax.set_title(f'Allen-Cahn Equation - Step {getattr(self, "_step_counter", 0)}, Time = {T:.3f}s')
+            if not hasattr(self, "_step_counter"):
+                self._step_counter = 0
+            self._step_counter += 1
+            self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s')
 
-        # 增加步数计数器
-        if not hasattr(self, "_step_counter"):
-            self._step_counter = 0
-        self._step_counter += 1
+        # 动态调整y轴范围（在所有数据更新完成后）
+        if u_max_current > u_min_current:  # 避免除零错误
+            u_margin = (u_max_current - u_min_current) * 0.1
+            self.ax.set_ylim(u_min_current - u_margin, u_max_current + u_margin)
+        else:
+            # 如果范围为零，使用默认的小范围
+            self.ax.set_ylim(u_min_current - 0.1, u_max_current + 0.1)
 
         # 刷新显示（类似standalone solver的方式）
         self.fig.canvas.draw()
@@ -705,9 +735,9 @@ class TimePDEVisualizer(BaseVisualizer):
         
         print("4 separate images and Tecplot format data file have been saved to the results folder")
         
-    def update_animation_data(self, it: int, T: float, data_test: Dict, model: torch.nn.Module, 
-                            coeffs: np.ndarray, fitter, solver=None) -> None:
-        """更新动画数据 - 从求解器移动到可视化器，支持参考解对比"""
+    def update_animation_data(self, it: int, T: float, data_train: Dict, model: torch.nn.Module,
+                            coeffs: np.ndarray, fitter, solver=None, U_direct: np.ndarray = None, U_seg_direct: list = None) -> None:
+        """更新动画数据 - 从求解器移动到可视化器，支持参考解对比，使用训练数据绘制scatter plot"""
         animation_skip = getattr(self.config, "animation_skip", 10)
         
         # 检查是否需要更新动画数据
@@ -719,33 +749,39 @@ class TimePDEVisualizer(BaseVisualizer):
                 
             self.time_history_viz.append(T)
             
-            # 获取当前时间步的解
+            # 获取当前时间步的解 - 直接使用时间步输出的解
             try:
-                # Check if data_test and required fields are available
-                if data_test is None:
-                    print(f"  Warning: data_test is None, skipping animation update")
+                # Check if data_train and required fields are available
+                if data_train is None:
+                    print(f"  Warning: data_train is None, skipping animation update")
                     return
 
-                if 'x' not in data_test and 'x_segments' not in data_test:
-                    print(f"  Warning: No coordinate data in data_test, skipping animation update")
+                if 'x' not in data_train and 'x_segments' not in data_train:
+                    print(f"  Warning: No coordinate data in data_train, skipping animation update")
                     return
 
-                # Check if coeffs is valid
-                if coeffs is None:
-                    print(f"  Warning: coeffs is None at T={T:.4f}, skipping animation update")
+                # 使用时间步直接输出的解，而不是通过 construct 重新构造
+                if U_direct is not None:
+                    U_train = U_direct.copy()
+                    print(f"  使用时间步直接输出的解: U_direct.shape={U_direct.shape}")
+                else:
+                    # 备用方案：如果没有直接传递解，则使用 construct
+                    if coeffs is None:
+                        print(f"  Warning: coeffs is None at T={T:.4f}, skipping animation update")
+                        return
+                    U_train, _ = fitter.construct(data_train, model, coeffs)
+                    print(f"  备用方案：使用 construct 构造解")
+
+                if U_train is None:
+                    print(f"  Warning: U_train is None, skipping animation update")
                     return
 
-                U_test, _ = fitter.construct(data_test, model, coeffs)
-                if U_test is None:
-                    print(f"  Warning: fitter.construct returned None, skipping animation update")
-                    return
-                    
-                self.solution_history_viz.append(U_test.copy())
+                self.solution_history_viz.append(U_train.copy())
                 
                 # 可选择实时绘制时间演化步骤
                 if getattr(self.config, 'realtime_visualization', False):
                     print(f"  Real-time visualization enabled, plotting at T = {T:.4f}")
-                    x_coords = data_test.get('x', data_test.get('x_segments', []))
+                    x_coords = data_train.get('x', data_train.get('x_segments', []))
                     if hasattr(x_coords, '__iter__') and len(x_coords) > 0:
                         if isinstance(x_coords, list):
                             x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
@@ -760,7 +796,7 @@ class TimePDEVisualizer(BaseVisualizer):
                             if u_ref is not None:
                                 print(f"    Reference solution range: [{np.min(u_ref):.4f}, {np.max(u_ref):.4f}]")
                             
-                        self.plot_evolution_step_with_reference(T, U_test, x_plot, u_ref, solver)
+                        self.plot_evolution_step_with_reference(T, U_train, x_plot, u_ref, solver)
                         print(f"    Real-time plot updated for T = {T:.4f}")
                 else:
                     print(f"  Real-time visualization disabled (setting: {getattr(self.config, 'realtime_visualization', 'Not found')})")
@@ -796,9 +832,9 @@ class TimePDEVisualizer(BaseVisualizer):
         else:
             print("没有帧可保存")
     
-    def create_time_evolution_gif(self, time_history: List[float], solution_history: List[np.ndarray], 
-                                data_test: Dict, filename: str = "time_evolution.gif", solver=None) -> None:
-        """创建时间演化GIF动画，支持参考解对比"""
+    def create_time_evolution_gif(self, time_history: List[float], solution_history: List[np.ndarray],
+                                data_train: Dict, filename: str = "time_evolution.gif", solver=None) -> None:
+        """创建时间演化GIF动画，支持参考解对比，使用训练数据坐标"""
         if not time_history or not solution_history:
             print("警告: 没有时间演化数据可创建动画")
             return
@@ -807,10 +843,10 @@ class TimePDEVisualizer(BaseVisualizer):
             print(f"正在创建时间演化动画: {filename}")
             
             # 获取x坐标
-            if 'x_segments' in data_test:
-                x_coords = np.vstack(data_test['x_segments'])
-            elif 'x' in data_test:
-                x_coords = data_test['x']
+            if 'x_segments' in data_train:
+                x_coords = np.vstack(data_train['x_segments'])
+            elif 'x' in data_train:
+                x_coords = data_train['x']
             else:
                 print("警告: 无法获取x坐标数据")
                 return

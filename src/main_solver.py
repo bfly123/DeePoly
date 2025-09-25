@@ -30,8 +30,8 @@ def main():
     if DEBUG_MODE:
         # Dynamically construct case path relative to project root
         #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
-        #case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "AC_equation")
-        case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "KDV_equation")
+        case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "Burgers", "Burgers1")
+        #case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "KDV_equation")
         #case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
     else:
         # Get parameters from command line

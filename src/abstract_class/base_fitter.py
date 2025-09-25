@@ -435,102 +435,112 @@ class BaseDeepPolyFitter(ABC):
                 
                 # 获取两组边界点和对应的segment索引
                 segment_1 = pair['segment_1']
-                segment_2 = pair['segment_2'] 
-                x_boundary_1 = pair['x_1']
-                x_boundary_2 = pair['x_2']
-                
-                if constraint_type == 'dirichlet':
-                    # Dirichlet周期条件: u(x_1) = u(x_2)
-                    for pt_idx in range(min(x_boundary_1.shape[0], x_boundary_2.shape[0])):
-                        point_1 = x_boundary_1[pt_idx:pt_idx + 1]
-                        point_2 = x_boundary_2[pt_idx:pt_idx + 1]
-                        
-                        # 获取两个点的特征，使用各自segment的归一化参数
-                        features_1 = self._get_segment_features(
-                            point_1,
-                            self.config.x_min[segment_1],
-                            self.config.x_max[segment_1],
-                            model,
-                            [0] * self.config.n_dim,
-                        )
-                        features_2 = self._get_segment_features(
-                            point_2,
-                            self.config.x_min[segment_2], 
-                            self.config.x_max[segment_2],
-                            model,
-                            [0] * self.config.n_dim,
-                        )
-                        
-                        # 构建跨segment约束: u_seg1(x_1) = u_seg2(x_2)
-                        constraint = np.zeros((1, self.dgN * self.ns * ne))
-                        
-                        # segment_1的系数为正
-                        start_idx_1 = segment_1 * self.dgN * ne + self.dgN * var_idx
-                        constraint[:, start_idx_1 : start_idx_1 + self.dgN] = features_1
-                        
-                        # segment_2的系数为负
-                        start_idx_2 = segment_2 * self.dgN * ne + self.dgN * var_idx  
-                        constraint[:, start_idx_2 : start_idx_2 + self.dgN] = -features_2
-                        
-                        self.A.append(10 * constraint)
-                        self.b.append(10 * np.zeros(1))
-                        
-                elif constraint_type == 'neumann':
-                    # Neumann周期条件: ∂u/∂n(x_1) = ∂u/∂n(x_2)
-                    normals_1 = pair.get('normals_1')
-                    normals_2 = pair.get('normals_2')
-                    
-                    if normals_1 is not None and normals_2 is not None:
-                        for pt_idx in range(min(x_boundary_1.shape[0], x_boundary_2.shape[0])):
-                            point_1 = x_boundary_1[pt_idx:pt_idx + 1]
-                            point_2 = x_boundary_2[pt_idx:pt_idx + 1]
-                            normal_1 = normals_1[pt_idx]
-                            normal_2 = normals_2[pt_idx]
-                            
-                            # 计算法向导数特征
-                            features_dn_1 = np.zeros((1, self.dgN))
-                            features_dn_2 = np.zeros((1, self.dgN))
-                            
-                            for dim in range(self.config.n_dim):
-                                if abs(normal_1[dim]) >= 1e-10:
-                                    derivative = [0] * self.config.n_dim
-                                    derivative[dim] = 1
-                                    
-                                    features_dim_1 = self._get_segment_features(
-                                        point_1,
-                                        self.config.x_min[segment_1],
-                                        self.config.x_max[segment_1],
-                                        model,
-                                        derivative,
-                                    )
-                                    features_dn_1 += normal_1[dim] * features_dim_1
-                                    
-                                if abs(normal_2[dim]) >= 1e-10:
-                                    derivative = [0] * self.config.n_dim
-                                    derivative[dim] = 1
-                                    
-                                    features_dim_2 = self._get_segment_features(
-                                        point_2,
-                                        self.config.x_min[segment_2],
-                                        self.config.x_max[segment_2], 
-                                        model,
-                                        derivative,
-                                    )
-                                    features_dn_2 += normal_2[dim] * features_dim_2
-                            
-                            # 构建跨segment约束: ∂u/∂n_seg1(x_1) = ∂u/∂n_seg2(x_2)
-                            constraint = np.zeros((1, self.dgN * self.ns * ne))
-                            
-                            # segment_1的系数为正
-                            start_idx_1 = segment_1 * self.dgN * ne + self.dgN * var_idx
-                            constraint[:, start_idx_1 : start_idx_1 + self.dgN] = features_dn_1
-                            
-                            # segment_2的系数为负
-                            start_idx_2 = segment_2 * self.dgN * ne + self.dgN * var_idx
-                            constraint[:, start_idx_2 : start_idx_2 + self.dgN] = -features_dn_2
-                            
-                            self.A.append(10 * constraint)
-                            self.b.append(10 * np.zeros(1))
+                segment_2 = pair['segment_2']
+                x_boundary_1_global = pair['x_1']  # 全局坐标
+                x_boundary_2_global = pair['x_2']  # 全局坐标
+
+                # 转换为局部归一化坐标（复用数据预处理的归一化方法）
+                x_boundary_1_local = self._normalize_coords(x_boundary_1_global, segment_1)
+                x_boundary_2_local = self._normalize_coords(x_boundary_2_global, segment_2)
+
+                # 复用swap的导数阶管理和约束生成逻辑
+                self._add_periodic_constraints_for_pair(
+                    model, segment_1, segment_2,
+                    x_boundary_1_local, x_boundary_2_local
+                )
+
+    def _normalize_coords(self, x_global: np.ndarray, segment_idx: int) -> np.ndarray:
+        """将全局坐标转换为segment的局部归一化坐标，复用数据预处理的归一化方法"""
+        x_min = self.config.x_min[segment_idx]
+        x_max = self.config.x_max[segment_idx]
+
+        # 使用与base_data._normalize_data相同的归一化方法
+        x = np.asarray(x_global, dtype=np.float64)
+        x_min = np.asarray(x_min, dtype=np.float64)
+        x_max = np.asarray(x_max, dtype=np.float64)
+
+        normalized = np.zeros_like(x)
+        for i in range(x.shape[-1]):
+            if x_max[..., i] - x_min[..., i] > 1e-10:
+                normalized[..., i] = (x[..., i] - x_min[..., i]) / (
+                    x_max[..., i] - x_min[..., i]
+                )
+            else:
+                normalized[..., i] = x[..., i]
+        return normalized
+
+    def _add_periodic_constraints_for_pair(
+        self,
+        model: nn.Module,
+        segment_1: int,
+        segment_2: int,
+        x_boundary_1_local: np.ndarray,
+        x_boundary_2_local: np.ndarray
+    ):
+        """为周期边界条件对添加约束，完全复用swap的导数阶管理逻辑"""
+        # 完全复用swap的处理方式 - 对所有方程都处理
+        ne = self.config.n_eqs
+        dgN = self.dgN
+        NS = self.ns
+        nw = min(x_boundary_1_local.shape[0], x_boundary_2_local.shape[0])  # 边界点数量
+
+        for i in range(ne):  # 像swap一样遍历所有方程
+            max_orders = self.max_derivatives[i]  # 使用方程索引i
+            reduced_orders = [max(0, order - 1) for order in max_orders]
+            ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
+
+            for derivative_tuple in product(*ranges):
+                derivative = list(derivative_tuple)
+                # 完全复用_add_swap_derivative的逻辑
+                self._add_periodic_derivative_pair(
+                    model, segment_1, segment_2, NS, nw, dgN, i, derivative,
+                    x_boundary_1_local, x_boundary_2_local
+                )
+
+    def _add_periodic_derivative_pair(
+        self,
+        model: nn.Module,
+        seg1: int,
+        seg2: int,
+        NS: int,
+        nw: int,
+        dgN: int,
+        eq_idx: int,
+        derivative: List[int],
+        x_boundary_1_local: np.ndarray,
+        x_boundary_2_local: np.ndarray
+    ):
+        """添加周期边界条件的导数约束，完全复制_add_swap_derivative的结构和参数"""
+        # 获取特征（完全模仿_add_swap_derivative中的P1和P2）
+        P1 = self._get_segment_features(
+            x_boundary_1_local,
+            self.config.x_min[seg1],
+            self.config.x_max[seg1],
+            model,
+            derivative,
+        )
+
+        P2 = self._get_segment_features(
+            x_boundary_2_local,
+            self.config.x_min[seg2],
+            self.config.x_max[seg2],
+            model,
+            derivative,
+        )
+
+        # 完全复制_add_swap_derivative的约束矩阵构建
+        cont = np.zeros((nw, dgN * NS * self.config.n_eqs), dtype=np.float64)
+
+        # 完全复制_add_swap_derivative的ndisp计算和系数设置
+        ndisp = seg1 * dgN * self.config.n_eqs + dgN * eq_idx
+        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]  # 取前nw行以匹配维度
+
+        ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
+        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]  # 取前nw行以匹配维度
+
+        # 完全复制_add_swap_derivative的约束添加方式
+        self.A.extend(10 * cont)
+        self.b.extend(10 * np.zeros((nw, 1)).flatten())
 
     def _add_swap_conditions(self, model: nn.Module):
         """Add interface continuity conditions"""

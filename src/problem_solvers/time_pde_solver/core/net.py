@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from typing import Dict
 from src.abstract_class.base_net import BaseNet
+from src.abstract_class.constants import pi
 
 class TimePDENet(BaseNet):
     """Neural network implementation for time-dependent problems"""
@@ -46,17 +47,14 @@ class TimePDENet(BaseNet):
         # Calculate 2nd-order derivatives
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
-        # Calculate 3th-order derivatives
-        du_xxx = self.gradients(du_xx, x_train)[0][..., 0]
-
         # L1 operators
-        L1 = [1.0*du_xxx]
-
-        # F operators
-        F = [u]
+        L1 = [-0.01/pi*du_xx]
 
         # L2 operators
         L2 = [du_x]
+
+        # F operators
+        F = [u]
 
         # N operators
         N = [
@@ -73,9 +71,19 @@ class TimePDENet(BaseNet):
         pde_loss = 0.0
         #dt = 0.01
         
-        # Time evolution format: (u - u_n)/dt = L1[i] + L2[i]*F[i]  
+        # Time evolution format: (u - u_n)/dt = L1[i] + L2[i]*F[i] + N[i]
         for i in range(self.config.n_eqs):
-            residual_i = (U[:,i] - U_n[:,i])/dt - L1[i] - L2[i]*F[i]
+            # L1 term (always present)
+            l1_term = L1[i] if i < len(L1) else 0.0
+
+            # L2*F term (only if both L2 and F exist)
+            l2f_term = L2[i] * F[i] if (i < len(L2) and i < len(F)) else 0.0
+
+            # N term (nonlinear, explicit)
+            n_term = N[i] if i < len(N) else 0.0
+
+            # PDE residual: (u - u_n)/dt + L1 + L2*F + N = 0
+            residual_i = (U[:,i] - U_n[:,i]) + dt*( l1_term + l2f_term + n_term)
             pde_loss += torch.mean(residual_i**2)
 
 

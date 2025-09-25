@@ -33,7 +33,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
         """Create time integration scheme instance using factory pattern"""
         return create_time_scheme(scheme_name, self.config)
 
-    def time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float, coeffs_n: np.ndarray = None) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
+    def time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float, coeffs_n: np.ndarray = None, **kwargs) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
         """Execute one time step using the configured time scheme
         
         Args:
@@ -49,7 +49,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
         self.U_seg_current = U_seg
         
         # Delegate to time scheme
-        U_new, U_seg_new, coeffs = self.time_scheme.time_step(U_n, U_seg, dt, coeffs_n)
+        U_new, U_seg_new, coeffs = self.time_scheme.time_step(U_n, U_seg, dt, coeffs_n, **kwargs)
         
         # Update maintained segment-level solution values
         self.U_seg_prev = self.U_seg_current
@@ -62,7 +62,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
         if not self._precompiled:
             raise RuntimeError("Operators not precompiled. Call fitter_init() first.")
         
-        return self.time_step(U_n, U_seg, dt, coeffs_n)
+        return self.time_step(U_n, U_seg, dt, coeffs_n, **kwargs)
 
     def get_time_scheme_info(self) -> Dict[str, Any]:
         """Get time integration scheme information"""

@@ -1,30 +1,13 @@
 {
   "segment_ranges": [
     [
-      -20.0,
-      -18.0,
-      -16.0,
-      -14.0,
-      -12.0,
-      -10.0,
-      -8.0,
-      -6.0,
-      -4.0,
-      -2.0,
-      0.0,
-      2.0,
-      4.0,
-      6.0,
-      8.0,
-      10.0,
-      12.0,
-      14.0,
-      16.0,
-      18.0,
-      20.0
+      -1.0,
+      -0.33333333333333337,
+      0.33333333333333326,
+      1.0
     ]
   ],
-  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/KDV_equation",
+  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Burgers/Burgers1",
   "vars_list": [
     "u"
   ],
@@ -33,13 +16,13 @@
   ],
   "eq": {
     "L1": [
-      "1.0*diff(u,x,3)"
-    ],
-    "F": [
-      "u"
+      "-0.01/pi*diff(u,x,2)"
     ],
     "L2": [
       "diff(u,x)"
+    ],
+    "F": [
+      "u"
     ],
     "N": []
   },
@@ -47,15 +30,15 @@
   "const_list": [],
   "source_term": "False",
   "n_segments": [
-    "20"
+    "3"
   ],
   "poly_degree": [
-    8
+    10
   ],
   "x_domain": [
     [
-      -20,
-      20
+      -1,
+      1
     ]
   ],
   "method": "hybrid",
@@ -69,16 +52,16 @@
   "linear_device": "cpu",
   "learning_rate": "0.01",
   "training_epochs": "10000",
-  "points_domain": "1000",
+  "points_domain": "100",
   "points_domain_test": [
     "100"
   ],
   "points_boundary": "200",
   "points_boundary_test": "50",
-  "T": "40.0",
-  "dt": "0.2",
+  "T": "1",
+  "dt": "0.1",
   "spotter_skip": "1",
-  "epochs_adam": "5000",
+  "epochs_adam": "20000",
   "epochs_lbfgs": "0",
   "max_retries": "1",
   "DNNtol": "0.01",
@@ -86,14 +69,14 @@
   "Initial_conditions": [
     {
       "var": "u",
-      "value": "cos(pi*x/20)",
-      "points": "500"
+      "value": "-sin(pi*x)",
+      "points": "100"
     }
   ],
-  "time_scheme": "IMEX_RK_2_2_2",
+  "time_scheme": "onestep_predictor",
   "time_scheme_params": {},
   "eq_L1": [
-    "1.0*diff(u,x,3)"
+    "-0.01/pi*diff(u,x,2)"
   ],
   "eq_L2": [
     "diff(u,x)"
@@ -110,13 +93,6 @@
       "pair_with": "right",
       "constraint": "dirichlet",
       "points": "1"
-    },
-    {
-      "type": "periodic",
-      "region": "left",
-      "pair_with": "right",
-      "constraint": "neumann",
-      "points": "1"
     }
   ],
   "eq_linear_list": [],
@@ -132,206 +108,46 @@
       "0",
       "1"
     ],
-    "U_xxx": [
+    "U_xx": [
       "0",
       "2"
     ]
   },
   "problem_type": "time_pde",
-  "auto_code": "True",
-  "note": "\u8fd9\u4e2a\u662f\u65f6\u95f4\u6b65\u957f\u4e3a0.1\u7684DNNtol\uff0c\u9700\u8981\u9664\u4ee5\u65f6\u95f4\u6b65\u957f\uff0c\u6240\u4ee5\u662f0.01",
-  "reference_solution": "reference_data/KdV_cos.mat",
+  "auto_code": "False",
+  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
+  "reference_solution": "reference_data/burgers.mat",
   "realtime_visualization": "True",
   "animation_skip": "1",
   "f_L2": [
     "u"
   ],
   "N": [],
-  "gamma": 0.2928932188134524,
-  "max_time_steps": "1000",
-  "time_output_interval": "10",
-  "adaptive_dt": "False",
-  "cfl_number": "0.5",
-  "stability_check": "True",
-  "max_eigenvalue_estimate": "100.0",
   "n_dim": "1",
   "n_eqs": "1",
   "x_min": [
     [
-      -20.0
+      -1.0
     ],
     [
-      -18.0
+      -0.33333333333333337
     ],
     [
-      -16.0
-    ],
-    [
-      -14.0
-    ],
-    [
-      -12.0
-    ],
-    [
-      -10.0
-    ],
-    [
-      -8.0
-    ],
-    [
-      -6.0
-    ],
-    [
-      -4.0
-    ],
-    [
-      -2.0
-    ],
-    [
-      0.0
-    ],
-    [
-      2.0
-    ],
-    [
-      4.0
-    ],
-    [
-      6.0
-    ],
-    [
-      8.0
-    ],
-    [
-      10.0
-    ],
-    [
-      12.0
-    ],
-    [
-      14.0
-    ],
-    [
-      16.0
-    ],
-    [
-      18.0
+      0.33333333333333326
     ]
   ],
   "x_max": [
     [
-      -18.0
+      -0.33333333333333337
     ],
     [
-      -16.0
+      0.33333333333333326
     ],
     [
-      -14.0
-    ],
-    [
-      -12.0
-    ],
-    [
-      -10.0
-    ],
-    [
-      -8.0
-    ],
-    [
-      -6.0
-    ],
-    [
-      -4.0
-    ],
-    [
-      -2.0
-    ],
-    [
-      0.0
-    ],
-    [
-      2.0
-    ],
-    [
-      4.0
-    ],
-    [
-      6.0
-    ],
-    [
-      8.0
-    ],
-    [
-      10.0
-    ],
-    [
-      12.0
-    ],
-    [
-      14.0
-    ],
-    [
-      16.0
-    ],
-    [
-      18.0
-    ],
-    [
-      20.0
+      1.0
     ]
   ],
   "x_min_norm": [
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
     [
       0.0
     ],
@@ -351,61 +167,10 @@
     ],
     [
       1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
     ]
   ],
   "DNN_degree": "10",
-  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/KDV_equation/results",
+  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Burgers/Burgers1/results",
   "operator_parse": {
     "derivatives": [
       [
@@ -415,7 +180,7 @@
         "1"
       ],
       [
-        "3"
+        "2"
       ]
     ],
     "all_derivatives": {
@@ -427,14 +192,14 @@
         "0",
         "1"
       ],
-      "U_xxx": [
+      "U_xx": [
         "0",
         "2"
       ]
     },
     "max_derivative_orders": [
       [
-        "3"
+        "2"
       ]
     ],
     "operator_terms": {
@@ -443,7 +208,7 @@
           "derivative_indices": [
             "2"
           ],
-          "symbolic_expr": "1.0*U_xxx"
+          "symbolic_expr": "-0.01/pi*U_xx"
         }
       ],
       "L2": [
@@ -475,7 +240,7 @@
   },
   "max_derivative_orders": [
     [
-      "3"
+      "2"
     ]
   ],
   "derivatives": [
@@ -486,7 +251,7 @@
       "1"
     ],
     [
-      "3"
+      "2"
     ]
   ],
   "operator_terms": {
@@ -495,7 +260,7 @@
         "derivative_indices": [
           "2"
         ],
-        "symbolic_expr": "1.0*U_xxx"
+        "symbolic_expr": "-0.01/pi*U_xx"
       }
     ],
     "L2": [
@@ -524,6 +289,6 @@
       }
     ]
   },
-  "export_time": "2025-09-19 11:17:51",
+  "export_time": "2025-09-25 18:09:58",
   "device_info": "cuda"
 }

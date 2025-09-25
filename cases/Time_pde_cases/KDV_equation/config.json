@@ -24,7 +24,7 @@
         {
             "var": "u",
             "value": "cos(pi*x/20)",
-            "points": 500
+            "points": 1000
         }
     ],
     "boundary_conditions": [
@@ -41,8 +41,9 @@
             "pair_with": "right",
             "constraint": "neumann",
             "points": 1
-        }
+        }  
     ],
+    
     "hidden_dims": [
         12,
         32,
@@ -56,7 +57,7 @@
     "note": "\u8fd9\u4e2a\u662f\u65f6\u95f4\u6b65\u957f\u4e3a0.1\u7684DNNtol\uff0c\u9700\u8981\u9664\u4ee5\u65f6\u95f4\u6b65\u957f\uff0c\u6240\u4ee5\u662f0.01",
     "learning_rate": 0.01,
     "n_segments": [
-        20
+        10
     ],
     "points_domain": 1000,
     "points_per_swap": 1,
@@ -64,7 +65,7 @@
         100
     ],
     "poly_degree": [
-        8
+        5
     ],
     "x_domain": [
         [
@@ -73,8 +74,8 @@
         ]
     ],
     "time_scheme": "IMEX_RK_2_2_2",
-    "T": 1.0,
-    "dt": 0.2,
+    "T": 40.0,
+    "dt": 0.01,
     "spotter_skip": 1,
     "reference_solution": "reference_data/KdV_cos.mat",
     "realtime_visualization": true,

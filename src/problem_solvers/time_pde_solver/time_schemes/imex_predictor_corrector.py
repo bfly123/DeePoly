@@ -22,7 +22,7 @@ class ImexPredictorCorrector(BaseTimeScheme):
     - L1: [-0.0001 * ∂²u/∂x²] (stiff diffusion term - treated implicitly)
     - L2: [u] (linear multiplicative term)
     - F: [5 - 5*u²] (nonlinear source term)
-    - N: [] (no separate explicit nonlinear terms)
+    - N: [5*u**3-5*u] (no separate explicit nonlinear terms)
     
     IMEX Predictor-Corrector scheme:
     
@@ -152,7 +152,6 @@ class ImexPredictorCorrector(BaseTimeScheme):
         self, 
         U_seg_n: List[np.ndarray],
         U_seg_predictor: List[np.ndarray], 
-        du_x_current: np.ndarray,
         du_xx_current: np.ndarray,
         dt: float, 
         step: int
@@ -171,9 +170,8 @@ class ImexPredictorCorrector(BaseTimeScheme):
             end_idx = start_idx + n_points
             du_xx_seg = du_xx_current[start_idx:end_idx] if len(du_xx_current) > end_idx else np.zeros(n_points)
             
-            if step > 1 and self.du_xx_old is not None and len(self.du_xx_old) > end_idx:
+            if step > 1:
                 # Use averaged derivatives for corrector (it > 1)
-                du_xx_old_seg = self.du_xx_old[start_idx:end_idx]
                 du_xx_avg = (du_xx_seg + du_xx_old_seg) / 2
                 
                 # Average predictor and previous solution for nonlinear term

@@ -3,6 +3,7 @@
 from typing import Dict, Type
 from .base_time_scheme import BaseTimeScheme
 from .imex_rk_222 import ImexRK222
+from .onestep_predictor import OneStepPredictor
 
 
 class TimeSchemeFactory:
@@ -12,6 +13,8 @@ class TimeSchemeFactory:
     _schemes: Dict[str, Type[BaseTimeScheme]] = {
         "imex_rk_222": ImexRK222,
         "imex_rk_2_2_2": ImexRK222,  # Alternative naming
+        "onestep_predictor": OneStepPredictor,
+        "onestep": OneStepPredictor,  # Alternative naming
     }
     
     @classmethod

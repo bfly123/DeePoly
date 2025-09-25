@@ -75,8 +75,9 @@ class TimePDESolver:
         # Neural network model
         self.model = TimePDENet(self.config).to(self.config.device)
         
-        # Time PDE fitter
-        self.fitter = TimePDEFitter(config=self.config, data=self.data_train)
+        # Time PDE fitter with specified time scheme
+        time_scheme = getattr(self.config, 'time_scheme', 'imex_rk_222')
+        self.fitter = TimePDEFitter(config=self.config, data=self.data_train, time_scheme=time_scheme)
 
         # Visualizer
         self.visualizer = TimePDEVisualizer(self.config)
@@ -212,15 +213,15 @@ class TimePDESolver:
             self._train_neural_network_step(it, dt, U_current=U)
 
             U, U_seg, coeffs = self.fitter.solve_time_step(
-                U, U_seg, dt, coeffs_n=coeffs
+                U, U_seg, dt, coeffs_n=coeffs, step=it, current_time=T
             )
 
             # Update time and iteration
             T += dt
             it += 1
 
-            # 动画数据更新和解监控（传递solver实例以便访问参考解）
-            self.visualizer.update_animation_data(it, T, self.data_test, self.model, coeffs, self.fitter, solver=self)
+            # 动画数据更新和解监控（传递solver实例以便访问参考解，直接使用时间步输出的U）
+            self.visualizer.update_animation_data(it, T, self.data_train, self.model, coeffs, self.fitter, solver=self, U_direct=U, U_seg_direct=U_seg)
             self._monitor_solution(it, U)
 
         print(f"Time evolution completed. Final time: T = {T:.6f}")
@@ -278,13 +279,18 @@ class TimePDESolver:
          #       dt_change = self._compute_solution_change_limit(U, self._previous_U, dt)
          #       dt = min(dt, dt_change)
         #else:
-            # 固定时间步 (it参数预留用于未来自适应功能)
-        _ = it  # 暂时未使用，但保留用于未来扩展
+            # 固定时间步
         dt = base_dt
 
-        # 首步特殊处理
-        #if it == 0 and hasattr(self.config, 'initial_dt_factor'):
-        #    dt *= self.config.initial_dt_factor
+        # 根据时间格式进行首步特殊处理
+        time_scheme = getattr(self.config, 'time_scheme', 'imex_rk_222')
+        if time_scheme == "onestep_predictor" and it == 0:
+            # OneStep Predictor: 首步时间缩减到1/10
+            dt *= 0.1
+            print(f"  OneStep Predictor: First step dt reduction, dt = {dt:.6f}")
+        elif it == 0 and hasattr(self.config, 'initial_dt_factor'):
+            # 其他格式的首步处理
+            dt *= self.config.initial_dt_factor
 
         # 确保不超过最终时间
         if T + dt > self.config.T:
@@ -494,48 +500,465 @@ class TimePDESolver:
 
     # ==================== 后处理和可视化方法 ====================
 
-    def _postprocess_results(self, U_final: np.ndarray, U_seg_final: list, 
+    def _postprocess_results(self, U_final: np.ndarray, U_seg_final: list,
                            model_final: torch.nn.Module, coeffs_final: np.ndarray):
-        """后处理结果 - 使用独立的可视化器"""
-        # U_final, U_seg_final 预留用于未来扩展
-        _ = U_final, U_seg_final
+        """后处理结果 - 专注于train数据与参考解对比"""
         print("=== Post-processing and Visualization ===")
-        
-        # 生成最终解的可视化
-        test_predictions, _ = self.fitter.construct(self.data_test, model_final, coeffs_final)
-        
-        # 绘制最终解 (支持1D/2D自适应)
-        final_solution_path = os.path.join(self.config.results_dir, "final_solution.png")
-        self.visualizer.plot_solution(self.data_test, test_predictions, final_solution_path)
-        
-        # 绘制误差分布 (支持1D/2D自适应)
-        error_path = os.path.join(self.config.results_dir, "error_distribution.png")
-        self.visualizer.plot_error(self.data_test, test_predictions, error_path)
-        
-        # 从可视化器获取时间演化数据
-        time_history, solution_history = self.visualizer.get_animation_data()
-        
-        if len(time_history) > 1 and len(solution_history) > 1:
-            # 使用增强的时间演化总结方法
-            evolution_summary_path = os.path.join(self.config.results_dir, "time_evolution_summary.png")
-            self.visualizer.plot_time_evolution_summary(time_history, solution_history, evolution_summary_path)
-            
-            # 生成完整的时间演化GIF动画
-            animation_path = os.path.join(self.config.results_dir, "time_evolution.gif")
-            self.visualizer.create_time_evolution_gif(time_history, solution_history, self.data_test, animation_path, solver=self)
-        else:
-            print("Warning: Insufficient time evolution data for visualization")
 
-        # 生成损失曲线（使用可视化器方法）
-        if self.loss_history:
-            loss_path = os.path.join(self.config.results_dir, "loss_history.png")
-            self.visualizer.plot_loss_history(self.loss_history, loss_path)
-        
-        # 生成参考解对比分析（如果有参考解）
-        if self.reference_solution is not None:
-            self._generate_reference_comparison_analysis(model_final, coeffs_final)
-            
-        print(f"=== Visualization results saved to: {self.config.results_dir} ===")
+        # 设置matplotlib样式以获得更专业的图形
+        plt.style.use('default')
+        plt.rcParams.update({
+            'font.size': 11,
+            'axes.labelsize': 12,
+            'axes.titlesize': 14,
+            'xtick.labelsize': 10,
+            'ytick.labelsize': 10,
+            'legend.fontsize': 11,
+            'figure.titlesize': 16,
+            'axes.grid': True,
+            'grid.alpha': 0.3,
+            'lines.linewidth': 2,
+            'axes.spines.top': False,
+            'axes.spines.right': False,
+            'figure.facecolor': 'white'
+        })
+
+        # 从可视化器获取时间演化数据（使用train数据）
+        time_history, solution_history = self.visualizer.get_animation_data()
+
+        if len(time_history) == 0 or len(solution_history) == 0:
+            print("Warning: No time evolution data available for analysis")
+            return
+
+        # 1. 最终时刻train结果与参考解对比
+        print("1. 分析最终时刻解与参考解的对比...")
+        self._plot_final_time_comparison(time_history, solution_history)
+
+        # 2. t-x二维图：train解、参考解和逐点误差
+        print("2. 生成时空二维图...")
+        self._plot_spacetime_comparison(time_history, solution_history)
+
+        # 3. 统计所有时刻的平均误差
+        print("3. 统计所有时刻的误差...")
+        self._compute_overall_error_statistics(time_history, solution_history)
+
+        # 4. 导出数据供MATLAB使用
+        print("4. 导出数据供MATLAB分析...")
+        self._export_data_for_matlab(time_history, solution_history)
+
+        print(f"=== Analysis results saved to: {self.config.results_dir} ===")
+        print("=== To generate MATLAB plots, run: matlab -batch 'plot_comparison' in the reference_data directory ===")
+
+    def _plot_final_time_comparison(self, time_history, solution_history):
+        """1. 最终时刻train结果与参考解对比和逐点误差"""
+        if not self.reference_solution:
+            print("  No reference solution available for comparison")
+            return
+
+        # 获取最终时刻
+        T_final = time_history[-1]
+        U_final = solution_history[-1]
+
+        # 获取参考解
+        u_ref_final = self.get_reference_solution_at_time(T_final)
+        if u_ref_final is None:
+            print("  Cannot get reference solution at final time")
+            return
+
+        # 获取空间坐标
+        x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
+        if isinstance(x_coords, list):
+            x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
+        else:
+            x_plot = x_coords
+        x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
+
+        # 插值参考解到train网格
+        from scipy.interpolate import interp1d
+        x_ref = self.reference_solution['x_ref']
+        interp_func = interp1d(x_ref, u_ref_final, kind='cubic', bounds_error=False, fill_value='extrapolate')
+        u_ref_interp = interp_func(x_flat)
+
+        U_flat = U_final.flatten()
+
+        # 计算逐点误差
+        pointwise_error = np.abs(U_flat - u_ref_interp)
+
+        # 绘图 - 使用更专业的样式
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+        # 上图：解对比
+        # Debug: 打印参考解信息
+        print(f"  DEBUG - Reference solution: x_ref.shape={x_ref.shape}, u_ref_final.shape={u_ref_final.shape}")
+        print(f"  DEBUG - x_ref range: [{x_ref.min():.6f}, {x_ref.max():.6f}]")
+        print(f"  DEBUG - u_ref_final range: [{u_ref_final.min():.6f}, {u_ref_final.max():.6f}]")
+        print(f"  DEBUG - x_ref is sorted: {np.all(np.diff(x_ref) >= 0)}")
+
+        # 先绘制参考解（连续线）作为背景
+        ax1.plot(x_ref, u_ref_final, 'b-', linewidth=2.5, alpha=0.8,
+                label='Reference Solution', zorder=1)
+        # 再绘制train数据（散点）突出显示
+        scatter1 = ax1.scatter(x_flat, U_flat, c='red', s=35, alpha=0.9,
+                              edgecolors='darkred', linewidths=0.5,
+                              label='Train Solution', zorder=2)
+
+        ax1.set_xlabel('x', fontsize=12)
+        ax1.set_ylabel('u', fontsize=12)
+        ax1.set_title(f'Final Time Comparison (T = {T_final:.4f})',
+                     fontsize=14, fontweight='bold')
+        ax1.legend(fontsize=11, loc='best')
+        ax1.grid(True, alpha=0.3)
+
+        # 设置坐标轴范围
+        u_min_plot = min(np.min(U_flat), np.min(u_ref_final))
+        u_max_plot = max(np.max(U_flat), np.max(u_ref_final))
+        u_margin = (u_max_plot - u_min_plot) * 0.05
+        ax1.set_ylim([u_min_plot - u_margin, u_max_plot + u_margin])
+
+        # 下图：逐点误差 - 使用单一颜色
+        scatter2 = ax2.scatter(x_flat, pointwise_error, c='red', s=25, alpha=0.8,
+                              edgecolors='darkred', linewidths=0.3)
+        ax2.set_xlabel('x', fontsize=12)
+        ax2.set_ylabel('|Error|', fontsize=12)
+        ax2.set_title('Pointwise Error at Final Time (Log Scale)',
+                     fontsize=14, fontweight='bold')
+        ax2.set_yscale('log')
+        ax2.grid(True, alpha=0.3)
+
+        # 移除颜色条，不再需要
+
+        # 添加误差统计信息
+        max_error = np.max(pointwise_error)
+        l2_error = np.sqrt(np.mean(pointwise_error**2))
+        ax2.text(0.02, 0.98, f'Max Error: {max_error:.2e}\\nL2 Error: {l2_error:.2e}',
+                transform=ax2.transAxes, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+        plt.tight_layout()
+        final_comparison_path = os.path.join(self.config.results_dir, "final_time_comparison.png")
+        plt.savefig(final_comparison_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+        print(f"  Final time comparison saved to: {final_comparison_path}")
+        print(f"  Final time error - Max: {max_error:.2e}, L2: {l2_error:.2e}")
+
+    def _plot_spacetime_comparison(self, time_history, solution_history):
+        """2. t-x二维图：train解、参考解和逐点误差"""
+        if not self.reference_solution:
+            print("  No reference solution available for spacetime plot")
+            return
+
+        # 获取空间坐标
+        x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
+        if isinstance(x_coords, list):
+            x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
+        else:
+            x_plot = x_coords
+        x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
+
+        # 构建时空网格数据
+        nt = len(time_history)
+        nx = len(x_flat)
+
+        U_spacetime = np.zeros((nt, nx))
+        U_ref_spacetime = np.zeros((nt, nx))
+
+        x_ref = self.reference_solution['x_ref']
+
+        # 填充数据
+        for i, (t, U_t) in enumerate(zip(time_history, solution_history)):
+            # Train解
+            U_spacetime[i, :] = U_t.flatten()
+
+            # 参考解（插值到train网格）
+            u_ref_t = self.get_reference_solution_at_time(t)
+            if u_ref_t is not None:
+                from scipy.interpolate import interp1d
+                interp_func = interp1d(x_ref, u_ref_t, kind='cubic', bounds_error=False, fill_value='extrapolate')
+                U_ref_spacetime[i, :] = interp_func(x_flat)
+            else:
+                U_ref_spacetime[i, :] = 0
+
+        # 计算逐点误差
+        error_spacetime = np.abs(U_spacetime - U_ref_spacetime)
+
+        # 创建网格
+        T_grid, X_grid = np.meshgrid(time_history, x_flat, indexing='ij')
+
+        # 绘制三个子图 - 使用更好的可视化方法
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+        # 设置全局颜色范围以便对比
+        u_min = min(np.min(U_spacetime), np.min(U_ref_spacetime))
+        u_max = max(np.max(U_spacetime), np.max(U_ref_spacetime))
+
+        # 子图1: Train解 - 使用scatter显示随机采样点
+        t_scatter = []
+        x_scatter = []
+        u_scatter = []
+        for i, t in enumerate(time_history):
+            for j, x in enumerate(x_flat):
+                t_scatter.append(t)
+                x_scatter.append(x)
+                u_scatter.append(U_spacetime[i, j])
+
+        scatter1 = axes[0].scatter(t_scatter, x_scatter, c=u_scatter, cmap='RdBu_r',
+                                  s=8, alpha=0.8, vmin=u_min, vmax=u_max, edgecolors='none')
+        axes[0].set_xlabel('t', fontsize=12)
+        axes[0].set_ylabel('x', fontsize=12)
+        axes[0].set_title('Train Solution (Random Sampling)', fontsize=12, fontweight='bold')
+        axes[0].grid(True, alpha=0.3)
+        cbar1 = plt.colorbar(scatter1, ax=axes[0])
+        cbar1.set_label('u', fontsize=11)
+
+        # 子图2: 参考解 - 使用pcolormesh模拟MATLAB的pcolor效果
+        # 创建高分辨率参考解网格
+        t_ref_grid = self.reference_solution['t_ref']
+        x_ref_grid = self.reference_solution['x_ref']
+        u_ref_grid = self.reference_solution['u_ref']
+
+        # 使用pcolormesh获得更好的效果（类似MATLAB的pcolor）
+        T_ref_mesh, X_ref_mesh = np.meshgrid(t_ref_grid, x_ref_grid)
+        im2 = axes[1].pcolormesh(T_ref_mesh, X_ref_mesh, u_ref_grid.T, cmap='RdBu_r',
+                                shading='gouraud', vmin=u_min, vmax=u_max)
+        axes[1].set_xlabel('t', fontsize=12)
+        axes[1].set_ylabel('x', fontsize=12)  # 所有图现在都是统一方向：x轴时间，y轴空间
+        axes[1].set_title('Reference Solution (High-Res)', fontsize=12, fontweight='bold')
+        cbar2 = plt.colorbar(im2, ax=axes[1])
+        cbar2.set_label('u', fontsize=11)
+
+        # 子图3: 逐点误差 - 使用scatter显示
+        error_scatter = []
+        for i, t in enumerate(time_history):
+            for j, x in enumerate(x_flat):
+                error_scatter.append(error_spacetime[i, j])
+
+        # 改进误差可视化 - 使用更好的颜色映射和范围控制
+        from matplotlib.colors import LogNorm
+
+        # 计算误差统计信息以优化颜色范围
+        error_array = np.array(error_scatter)
+        error_nonzero = np.maximum(error_array, 1e-12)  # 避免log(0)
+
+        # 计算合理的颜色范围（去除极端值影响）
+        error_p05 = np.percentile(error_nonzero, 5)   # 5%分位数
+        error_p95 = np.percentile(error_nonzero, 95)  # 95%分位数
+        error_median = np.median(error_nonzero)
+
+        # 设置颜色范围，突出中等误差的变化
+        vmin_error = max(error_p05, 1e-10)
+        vmax_error = min(error_p95 * 5, np.max(error_nonzero))  # 扩展上限以显示高误差区域
+
+        print(f"  Error colormap range: [{vmin_error:.2e}, {vmax_error:.2e}], median: {error_median:.2e}")
+
+        # 使用更具对比度的颜色映射
+        scatter3 = axes[2].scatter(t_scatter, x_scatter, c=error_nonzero,
+                                  cmap='plasma',  # 使用plasma colormap获得更好的对比度
+                                  s=10, alpha=0.9,
+                                  norm=LogNorm(vmin=vmin_error, vmax=vmax_error),
+                                  edgecolors='none')
+        axes[2].set_xlabel('t', fontsize=12)
+        axes[2].set_ylabel('x', fontsize=12)
+        axes[2].set_title('Pointwise Error (Log Scale)', fontsize=12, fontweight='bold')
+        axes[2].grid(True, alpha=0.3)
+        cbar3 = plt.colorbar(scatter3, ax=axes[2])
+        cbar3.set_label('|Error|', fontsize=11)
+
+        plt.tight_layout()
+        spacetime_path = os.path.join(self.config.results_dir, "spacetime_comparison.png")
+        plt.savefig(spacetime_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+        print(f"  Spacetime comparison saved to: {spacetime_path}")
+
+    def _compute_overall_error_statistics(self, time_history, solution_history):
+        """3. 统计所有时刻的平均L2误差和L∞误差"""
+        if not self.reference_solution:
+            print("  No reference solution available for error statistics")
+            return
+
+        # 获取空间坐标
+        x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
+        if isinstance(x_coords, list):
+            x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
+        else:
+            x_plot = x_coords
+        x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
+        x_ref = self.reference_solution['x_ref']
+
+        l2_errors = []
+        linf_errors = []
+
+        # 计算每个时刻的误差
+        for t, U_t in zip(time_history, solution_history):
+            # 获取参考解
+            u_ref_t = self.get_reference_solution_at_time(t)
+            if u_ref_t is None:
+                continue
+
+            # 插值参考解到train网格
+            from scipy.interpolate import interp1d
+            interp_func = interp1d(x_ref, u_ref_t, kind='cubic', bounds_error=False, fill_value='extrapolate')
+            u_ref_interp = interp_func(x_flat)
+
+            # 计算误差
+            U_flat = U_t.flatten()
+            error = np.abs(U_flat - u_ref_interp)
+
+            l2_error = np.sqrt(np.mean(error**2))
+            linf_error = np.max(error)
+
+            l2_errors.append(l2_error)
+            linf_errors.append(linf_error)
+
+        if len(l2_errors) == 0:
+            print("  No valid time points for error calculation")
+            return
+
+        # 计算时间平均误差
+        mean_l2_error = np.mean(l2_errors)
+        mean_linf_error = np.mean(linf_errors)
+        max_l2_error = np.max(l2_errors)
+        max_linf_error = np.max(linf_errors)
+
+        # 保存误差统计报告
+        report_path = os.path.join(self.config.results_dir, "error_statistics_report.txt")
+        with open(report_path, 'w', encoding='utf-8') as f:
+            f.write("=" * 60 + "\\n")
+            f.write("Train Data Error Statistics Report\\n")
+            f.write("=" * 60 + "\\n\\n")
+
+            f.write(f"Time range: [{time_history[0]:.6f}, {time_history[-1]:.6f}]\\n")
+            f.write(f"Total time steps analyzed: {len(l2_errors)}\\n")
+            f.write(f"Spatial points: {len(x_flat)}\\n\\n")
+
+            f.write("Time-averaged Errors:\\n")
+            f.write("-" * 30 + "\\n")
+            f.write(f"Mean L2 Error:   {mean_l2_error:.6e}\\n")
+            f.write(f"Mean L∞ Error:   {mean_linf_error:.6e}\\n\\n")
+
+            f.write("Maximum Errors (across all times):\\n")
+            f.write("-" * 30 + "\\n")
+            f.write(f"Max L2 Error:    {max_l2_error:.6e}\\n")
+            f.write(f"Max L∞ Error:    {max_linf_error:.6e}\\n\\n")
+
+            f.write("Configuration:\\n")
+            f.write("-" * 30 + "\\n")
+            f.write(f"Time scheme:     {getattr(self.config, 'time_scheme', 'N/A')}\\n")
+            f.write(f"Time step:       {self.config.dt}\\n")
+            f.write(f"Neural network:  {self.config.hidden_dims}\\n")
+            f.write(f"Segments:        {self.config.n_segments}\\n")
+            f.write(f"Polynomial deg:  {self.config.poly_degree}\\n")
+
+        # 绘制误差随时间变化图 - 更专业的样式
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+        # L2误差演化 - 使用单一颜色
+        scatter_l2 = ax1.scatter(time_history[:len(l2_errors)], l2_errors,
+                                c='blue', s=40, alpha=0.8,
+                                edgecolors='navy', linewidths=0.5, label='L2 Error')
+        ax1.set_xlabel('Time', fontsize=12)
+        ax1.set_ylabel('L2 Error (log scale)', fontsize=12)
+        ax1.set_title('L2 Error Evolution (Train Data Points)',
+                     fontsize=14, fontweight='bold')
+        ax1.set_yscale('log')
+        ax1.grid(True, alpha=0.3)
+
+        # 添加趋势线
+        if len(l2_errors) > 2:
+            z = np.polyfit(time_history[:len(l2_errors)], np.log10(l2_errors), 1)
+            p = np.poly1d(z)
+            ax1.plot(time_history[:len(l2_errors)], 10**p(time_history[:len(l2_errors)]),
+                    'b--', alpha=0.5, linewidth=1.5, label='Trend')
+
+        # L∞误差演化 - 使用单一颜色
+        scatter_linf = ax2.scatter(time_history[:len(linf_errors)], linf_errors,
+                                  c='red', s=40, alpha=0.8,
+                                  edgecolors='darkred', linewidths=0.5, label='L∞ Error')
+        ax2.set_xlabel('Time', fontsize=12)
+        ax2.set_ylabel('L∞ Error (log scale)', fontsize=12)
+        ax2.set_title('L∞ Error Evolution (Train Data Points)',
+                     fontsize=14, fontweight='bold')
+        ax2.set_yscale('log')
+        ax2.grid(True, alpha=0.3)
+
+        # 添加趋势线
+        if len(linf_errors) > 2:
+            z = np.polyfit(time_history[:len(linf_errors)], np.log10(linf_errors), 1)
+            p = np.poly1d(z)
+            ax2.plot(time_history[:len(linf_errors)], 10**p(time_history[:len(linf_errors)]),
+                    'r--', alpha=0.5, linewidth=1.5, label='Trend')
+
+        # 添加图例
+        ax1.legend(fontsize=10)
+        ax2.legend(fontsize=10)
+
+        plt.tight_layout()
+        error_evolution_path = os.path.join(self.config.results_dir, "error_evolution.png")
+        plt.savefig(error_evolution_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+        print(f"  Error statistics saved to: {report_path}")
+        print(f"  Error evolution plot saved to: {error_evolution_path}")
+        print("  Overall Error Statistics:")
+        print(f"    Time-averaged L2 Error:  {mean_l2_error:.6e}")
+        print(f"    Time-averaged L∞ Error:  {mean_linf_error:.6e}")
+        print(f"    Maximum L2 Error:        {max_l2_error:.6e}")
+        print(f"    Maximum L∞ Error:        {max_linf_error:.6e}")
+
+    def _export_data_for_matlab(self, time_history, solution_history):
+        """导出train数据供MATLAB分析使用"""
+        try:
+            import scipy.io
+
+            # 获取空间坐标
+            x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
+            if isinstance(x_coords, list):
+                x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
+            else:
+                x_plot = x_coords
+            x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
+
+            # 构建解矩阵 (nx, nt)
+            nt = len(time_history)
+            nx = len(x_flat)
+            U_matrix = np.zeros((nx, nt))
+
+            for i, U_t in enumerate(solution_history):
+                U_matrix[:, i] = U_t.flatten()
+
+            # 准备导出数据
+            export_data = {
+                'time_history': np.array(time_history),
+                'x_coords': x_flat,
+                'solution_history': U_matrix,
+                'config_info': {
+                    'time_scheme': getattr(self.config, 'time_scheme', 'unknown'),
+                    'dt': self.config.dt,
+                    'T': self.config.T,
+                    'n_segments': self.config.n_segments,
+                    'poly_degree': self.config.poly_degree,
+                    'hidden_dims': self.config.hidden_dims
+                }
+            }
+
+            # 导出到reference_data目录
+            case_dir = getattr(self.config, 'case_dir', os.getcwd())
+            ref_data_dir = os.path.join(case_dir, 'reference_data')
+            os.makedirs(ref_data_dir, exist_ok=True)
+
+            matlab_data_path = os.path.join(ref_data_dir, 'train_data.mat')
+            scipy.io.savemat(matlab_data_path, export_data)
+
+            print(f"  Train data exported to: {matlab_data_path}")
+            print(f"  Data dimensions: {nt} time steps, {nx} spatial points")
+            print(f"  Time range: [{time_history[0]:.6f}, {time_history[-1]:.6f}]")
+            print(f"  Spatial range: [{x_flat.min():.6f}, {x_flat.max():.6f}]")
+
+        except ImportError:
+            print("  Warning: scipy.io not available, cannot export MATLAB data")
+        except Exception as e:
+            print(f"  Warning: Failed to export MATLAB data: {e}")
 
     def _generate_reference_comparison_analysis(self, model: torch.nn.Module, coeffs: np.ndarray):
         """生成参考解对比分析"""
