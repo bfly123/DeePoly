@@ -1,7 +1,7 @@
 %% Burgers equation and chaos
 nn = 511;
 steps = 200;
-nu = 0.01 / pi;
+nu = 0.01 ;
 
 dom = [-1 1]; x = chebfun('x',dom); t = linspace(0,1,steps+1);
 S = spinop(dom, t);
