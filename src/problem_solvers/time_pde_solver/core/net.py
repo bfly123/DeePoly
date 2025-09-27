@@ -38,6 +38,7 @@ class TimePDENet(BaseNet):
         nu = param[0]["nu"]
 
 # auto code begin
+# Config signature: {"F": [], "L1": ["-0.0001*diff(u,x,2)"], "L2": [], "N": ["-5*u+5*u**3"]}
         # Extract physical quantities from output
         u = U[..., 0]
 
@@ -48,17 +49,18 @@ class TimePDENet(BaseNet):
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
         # L1 operators
-        L1 = [-0.01/pi*du_xx]
+        L1 = [-0.0001*du_xx]
 
         # L2 operators
-        L2 = [du_x]
+        L2 = [
+        ]
 
         # F operators
-        F = [u]
+        F = [
+        ]
 
         # N operators
-        N = [
-        ]
+        N = [-5*u+5*u**3]
 
 # auto code end
 

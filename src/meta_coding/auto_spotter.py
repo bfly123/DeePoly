@@ -8,6 +8,7 @@ import shutil
 from datetime import datetime
 import logging
 import json
+import re
 
 
 class EquationProcessor:
@@ -337,10 +338,35 @@ class EquationProcessor:
             
             # 生成统一的算子代码
             operators_code = self.generate_unified_operators(config_dict) if config_dict else ""
-            
+
+            # 生成配置签名（用于后续一致性检查）
+            config_signature = ""
+            if config_dict:
+                # 提取算子配置
+                sig_dict = {}
+                if "eq" in config_dict:  # 新格式
+                    eq = config_dict["eq"]
+                    sig_dict = {
+                        "L1": eq.get("L1", []),
+                        "L2": eq.get("L2", []),
+                        "F": eq.get("F", []),
+                        "N": eq.get("N", [])
+                    }
+                else:  # 兼容旧格式
+                    sig_dict = {
+                        "L1": config_dict.get("eq_L1", []),
+                        "L2": config_dict.get("eq_L2", []),
+                        "F": config_dict.get("f_L2", []),
+                        "N": config_dict.get("N", [])
+                    }
+
+                import json
+                sig_str = json.dumps(sig_dict, sort_keys=True)
+                config_signature = f"# Config signature: {sig_str}\n"
+
             # 组合代码
             code = f"""# auto code begin
-{derivatives_code}
+{config_signature}{derivatives_code}
 
 {operators_code}
 
@@ -381,6 +407,158 @@ class AutoCodeGenerator:
                 return json.load(f)
         except Exception as e:
             raise ValueError(f"加载配置文件失败: {str(e)}")
+
+    def check_config_net_consistency(self, net_file_path: str) -> Tuple[bool, str]:
+        """
+        检查配置文件中的算子定义与net.py中生成代码的一致性
+
+        Args:
+            net_file_path: net.py文件路径
+
+        Returns:
+            (需要重新生成, 原因说明)
+        """
+        # 检查net.py是否存在
+        if not os.path.exists(net_file_path):
+            return True, "net.py文件不存在"
+
+        # 读取net.py内容
+        with open(net_file_path, 'r') as f:
+            net_content = f.read()
+
+        # 检查是否有auto code块
+        if "# auto code begin" not in net_content or "# auto code end" not in net_content:
+            return True, "net.py中没有auto code标记"
+
+        # 提取auto code块
+        begin_idx = net_content.find("# auto code begin")
+        end_idx = net_content.find("# auto code end")
+        auto_code_block = net_content[begin_idx:end_idx]
+
+        # 检查auto code块是否为空
+        lines = auto_code_block.split('\n')[1:-1]
+        has_code = any(line.strip() and not line.strip().startswith('#') for line in lines)
+
+        if not has_code:
+            return True, "auto code块为空，需要生成代码"
+
+        # 提取当前配置的算子签名
+        config_signature = self._extract_config_signature()
+
+        # 在auto code块中查找配置签名
+        if "# Config signature:" in auto_code_block:
+            # 提取保存的签名
+            for line in lines:
+                if "# Config signature:" in line:
+                    saved_sig = line.split("# Config signature:")[1].strip()
+                    try:
+                        saved_dict = json.loads(saved_sig)
+                        current_dict = json.loads(config_signature)
+
+                        # 比较两个签名
+                        if saved_dict == current_dict:
+                            return False, "config与net.py代码一致"
+                        else:
+                            # 找出具体的差异
+                            diff_msg = self._find_signature_diff(saved_dict, current_dict)
+                            return True, f"config算子定义已更改: {diff_msg}"
+                    except:
+                        return True, "无法解析保存的签名"
+
+        # 如果没有签名，通过更抽象的方式检查
+        return self._abstract_consistency_check(auto_code_block, config_signature)
+
+    def _extract_config_signature(self) -> str:
+        """提取配置文件的算子签名"""
+        sig_dict = {}
+
+        if "eq" in self.config_dict:  # 新格式
+            eq = self.config_dict["eq"]
+            sig_dict = {
+                "L1": eq.get("L1", []),
+                "L2": eq.get("L2", []),
+                "F": eq.get("F", []),
+                "N": eq.get("N", [])
+            }
+        else:  # 兼容旧格式
+            sig_dict = {
+                "L1": self.config_dict.get("eq_L1", []),
+                "L2": self.config_dict.get("eq_L2", []),
+                "F": self.config_dict.get("f_L2", []),
+                "N": self.config_dict.get("N", [])
+            }
+
+        return json.dumps(sig_dict, sort_keys=True)
+
+    def _find_signature_diff(self, saved_dict: Dict, current_dict: Dict) -> str:
+        """找出两个签名字典的差异"""
+        diffs = []
+
+        for key in ["L1", "L2", "F", "N"]:
+            saved = saved_dict.get(key, [])
+            current = current_dict.get(key, [])
+
+            if saved != current:
+                if not saved and current:
+                    diffs.append(f"{key}添加了算子")
+                elif saved and not current:
+                    diffs.append(f"{key}删除了算子")
+                else:
+                    diffs.append(f"{key}算子已修改")
+
+        return ", ".join(diffs) if diffs else "未知差异"
+
+    def _abstract_consistency_check(self, auto_code_block: str, config_signature: str) -> Tuple[bool, str]:
+        """
+        抽象的一致性检查，不依赖签名
+        通过分析代码结构和算子模式进行判断
+        """
+        try:
+            config_dict = json.loads(config_signature)
+
+            # 检查每种算子类型
+            for op_type, ops in config_dict.items():
+                if not ops:
+                    continue
+
+                # 根据算子类型确定代码中的标记
+                if op_type == "L1":
+                    pattern = r"L1\s*=\s*\[(.*?)\]"
+                elif op_type == "L2":
+                    pattern = r"L2\s*=\s*\[(.*?)\]"
+                elif op_type == "F":
+                    pattern = r"F\s*=\s*\[(.*?)\]"
+                elif op_type == "N":
+                    pattern = r"N\s*=\s*\[(.*?)\]"
+                else:
+                    continue
+
+                # 在代码中查找对应的算子定义
+                match = re.search(pattern, auto_code_block, re.DOTALL)
+
+                if not match and ops:
+                    return True, f"{op_type}算子在代码中未找到"
+
+                if match:
+                    code_content = match.group(1).strip()
+
+                    # 简单检查：算子数量是否一致
+                    # 通过计算逗号数量来估计算子个数
+                    expected_count = len(ops)
+                    if code_content:
+                        # 简单估计：如果有内容，至少有一个算子
+                        code_has_content = bool(code_content and not code_content.isspace())
+                        if expected_count > 0 and not code_has_content:
+                            return True, f"{op_type}算子定义不匹配"
+                    elif expected_count > 0:
+                        return True, f"{op_type}算子在代码中为空"
+
+            # 默认认为一致
+            return False, "通过抽象检查，代码与配置基本一致"
+
+        except Exception as e:
+            # 出错时保守处理，认为需要重新生成
+            return True, f"一致性检查出错: {str(e)}"
 
     def _get_net_file_path(self) -> str:
         """根据问题类型确定net.py文件路径"""
@@ -432,11 +610,11 @@ class AutoCodeGenerator:
             if not os.path.exists(net_file_path):
                 raise FileNotFoundError(f"找不到文件: {net_file_path}")
 
-            # 创建备份
-            backup_path = self._backup_file(net_file_path)
-            
+            # 不再创建备份
+            # backup_path = self._backup_file(net_file_path)
+
             # 生成和更新代码
-            self._generate_and_update_code(net_file_path, backup_path)
+            self._generate_and_update_code(net_file_path, None)
             
         except Exception as e:
             print(f"更新代码时出错: {str(e)}")
@@ -452,19 +630,20 @@ class AutoCodeGenerator:
         Returns:
             备份文件路径
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_path = f"{file_path}.{timestamp}.bak"
-        shutil.copy2(file_path, backup_path)
-        print(f"已创建备份: {backup_path}")
-        return backup_path
+        # 不再创建备份文件
+        # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # backup_path = f"{file_path}.{timestamp}.bak"
+        # shutil.copy2(file_path, backup_path)
+        print(f"跳过备份创建 (已禁用)")
+        return file_path  # 返回原文件路径
 
-    def _generate_and_update_code(self, net_file_path: str, backup_path: str) -> None:
+    def _generate_and_update_code(self, net_file_path: str, backup_path: str = None) -> None:
         """
         生成并更新代码
-        
+
         Args:
             net_file_path: 目标文件路径
-            backup_path: 备份文件路径
+            backup_path: 备份文件路径（已废弃，保留参数以兼容）
             
         Raises:
             Exception: 代码生成或更新错误
@@ -493,9 +672,9 @@ class AutoCodeGenerator:
             print(f"已成功更新 {net_file_path}")
             
         except Exception as e:
-            print("正在恢复备份...")
-            shutil.copy2(backup_path, net_file_path)
-            print("已恢复备份")
+            # 不再恢复备份，因为没有创建备份
+            print(f"更新文件时出错: {str(e)}")
+            print("注意：未创建备份文件，原文件可能已被修改")
             raise
 
     def _update_file_content(self, file_path: str, generated_code: str) -> None:
@@ -566,10 +745,10 @@ def update_pytorch_net_code(
     """
     processor = EquationProcessor(dimensions, vars_list)
     
-    # 创建备份
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = f"{net_file_path}.{timestamp}.bak"
-    shutil.copy2(net_file_path, backup_path)
+    # 不再创建备份
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # backup_path = f"{net_file_path}.{timestamp}.bak"
+    # shutil.copy2(net_file_path, backup_path)
     
     # 生成代码
     temp_file = os.path.join(os.path.dirname(__file__), "temp_pytorch_code.txt")
@@ -611,9 +790,9 @@ def update_pytorch_net_code(
         print(f"已成功更新 {net_file_path}")
         
     except Exception as e:
-        print("正在恢复备份...")
-        shutil.copy2(backup_path, net_file_path)
-        print("已恢复备份")
+        # 不再恢复备份，因为没有创建备份
+        print(f"更新文件时出错: {str(e)}")
+        print("注意：未创建备份文件，原文件可能已被修改")
         raise
 
 

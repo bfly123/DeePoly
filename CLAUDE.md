@@ -354,3 +354,4 @@ For linear PDEs, the framework can automatically generate solving code:
 - Avoid matrix/array dimension type branching in production code
 - Use abstract variable U consistently throughout the codebase
 - Maintain separation between physical interpretation and numerical computation
+- 保持全部代码文件英文书写,不要出现中文字符

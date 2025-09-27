@@ -1,10 +1,9 @@
 {
     "problem_type": "time_pde",
     "method": "hybrid",
-    "auto_code": false,
     "eq": {
         "L1": [
-            "-0.01/pi*diff(u,x,2)"
+            "-0.01*diff(u,x,2)"
         ],
         "L2": [
             "diff(u,x)"
@@ -24,7 +23,7 @@
         {
             "var": "u",
             "value": "-sin(pi*x)",
-            "points": 100
+            "points": 500
         }
     ],
     "boundary_conditions": [
@@ -49,9 +48,9 @@
     "note": "单步预测-校正格式：算子值预计算和时间步间复用，减少75%算子计算量",
     "learning_rate": 0.01,
     "n_segments": [
-        3
+        6
     ],
-    "points_domain": 100,
+    "points_domain": 500,
     "points_per_swap": 1,
     "points_domain_test": [
         100
@@ -66,13 +65,14 @@
         ]
     ],
     "time_scheme": "onestep_predictor",
-    "T": 1,
-    "dt": 0.1,
+    "T": 0.5,
+    "dt": 0.01,
     "spotter_skip": 1,
     "reference_solution": "reference_data/burgers.mat",
     "realtime_visualization": true,
     "animation_skip": 1,
     "device": "cuda",
     "linear_device": "cpu",
-    "seed": 42
+    "seed": 42,
+    "auto_code": false
 }

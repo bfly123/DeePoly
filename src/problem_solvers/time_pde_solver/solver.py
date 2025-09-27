@@ -198,6 +198,9 @@ class TimePDESolver:
         # Initialize time evolution
         it, T, dt, U, U_seg, coeffs = self._initialize_time_evolution()
 
+        # 记录物理计算开始时间（不包括初始化）
+        self.physics_start_time = time.time()
+
         # Main time stepping loop
         while T < self.config.T:
             # Compute adaptive time step
@@ -225,6 +228,10 @@ class TimePDESolver:
             self._monitor_solution(it, U)
 
         print(f"Time evolution completed. Final time: T = {T:.6f}")
+
+        # 记录物理计算结束时间（不包括画图）
+        self.physics_end_time = time.time()
+        self.physics_compute_time = self.physics_end_time - self.physics_start_time
 
         # 完成实时动画显示（与standalone solver一致）
         if getattr(self.config, 'realtime_visualization', False):
@@ -542,8 +549,34 @@ class TimePDESolver:
         print("3. 统计所有时刻的误差...")
         self._compute_overall_error_statistics(time_history, solution_history)
 
-        # 4. 导出数据供MATLAB使用
-        print("4. 导出数据供MATLAB分析...")
+        # 4. 生成时间演化动画GIF
+        print("4. 生成时间演化动画...")
+        try:
+            gif_filename = os.path.join(self.config.results_dir, "time_evolution.gif")
+            # 根据动画跳帧设置决定采样
+            animation_skip = getattr(self.config, 'animation_skip', 1)
+            if animation_skip > 1:
+                # 采样时间历史和解历史
+                sampled_time_history = time_history[::animation_skip]
+                sampled_solution_history = solution_history[::animation_skip]
+                print(f"  使用采样数据生成动画 (每 {animation_skip} 步采样一次)")
+            else:
+                sampled_time_history = time_history
+                sampled_solution_history = solution_history
+
+            self.visualizer.create_time_evolution_gif(
+                sampled_time_history,
+                sampled_solution_history,
+                self.data_train,
+                filename=gif_filename,
+                solver=self
+            )
+            print(f"  动画已保存至: {gif_filename}")
+        except Exception as e:
+            print(f"  动画生成失败: {e}")
+
+        # 5. 导出数据供MATLAB使用
+        print("5. 导出数据供MATLAB分析...")
         self._export_data_for_matlab(time_history, solution_history)
 
         print(f"=== Analysis results saved to: {self.config.results_dir} ===")
@@ -824,31 +857,71 @@ class TimePDESolver:
         # 保存误差统计报告
         report_path = os.path.join(self.config.results_dir, "error_statistics_report.txt")
         with open(report_path, 'w', encoding='utf-8') as f:
-            f.write("=" * 60 + "\\n")
-            f.write("Train Data Error Statistics Report\\n")
-            f.write("=" * 60 + "\\n\\n")
+            f.write("=" * 70 + "\n")
+            f.write("                   ERROR STATISTICS REPORT                    \n")
+            f.write("=" * 70 + "\n\n")
 
-            f.write(f"Time range: [{time_history[0]:.6f}, {time_history[-1]:.6f}]\\n")
-            f.write(f"Total time steps analyzed: {len(l2_errors)}\\n")
-            f.write(f"Spatial points: {len(x_flat)}\\n\\n")
+            # 时间信息部分
+            f.write("【时间信息】\n")
+            f.write("-" * 40 + "\n")
+            f.write(f"  时间范围:     [{time_history[0]:.6f}, {time_history[-1]:.6f}]\n")
+            f.write(f"  时间步数:     {len(l2_errors)}\n")
+            f.write(f"  时间步长:     {self.config.dt}\n")
+            f.write(f"  空间点数:     {len(x_flat)}\n\n")
 
-            f.write("Time-averaged Errors:\\n")
-            f.write("-" * 30 + "\\n")
-            f.write(f"Mean L2 Error:   {mean_l2_error:.6e}\\n")
-            f.write(f"Mean L∞ Error:   {mean_linf_error:.6e}\\n\\n")
+            # 计算时间统计部分
+            f.write("【计算时间统计】\n")
+            f.write("-" * 40 + "\n")
+            if hasattr(self, 'physics_compute_time'):
+                f.write(f"  物理计算时间: {self.physics_compute_time:.2f} 秒\n")
+                f.write(f"  平均每步耗时: {self.physics_compute_time/len(l2_errors):.4f} 秒\n")
+                f.write(f"  计算效率:     {len(l2_errors)/self.physics_compute_time:.2f} 步/秒\n")
 
-            f.write("Maximum Errors (across all times):\\n")
-            f.write("-" * 30 + "\\n")
-            f.write(f"Max L2 Error:    {max_l2_error:.6e}\\n")
-            f.write(f"Max L∞ Error:    {max_linf_error:.6e}\\n\\n")
+                # 计算物理时间与计算时间的比率
+                physical_time_range = time_history[-1] - time_history[0]
+                speedup_ratio = physical_time_range / self.physics_compute_time
+                f.write(f"  物理/计算时间比: {speedup_ratio:.4f}\n")
+            else:
+                f.write("  物理计算时间: N/A\n")
+            f.write("\n")
 
-            f.write("Configuration:\\n")
-            f.write("-" * 30 + "\\n")
-            f.write(f"Time scheme:     {getattr(self.config, 'time_scheme', 'N/A')}\\n")
-            f.write(f"Time step:       {self.config.dt}\\n")
-            f.write(f"Neural network:  {self.config.hidden_dims}\\n")
-            f.write(f"Segments:        {self.config.n_segments}\\n")
-            f.write(f"Polynomial deg:  {self.config.poly_degree}\\n")
+            # 误差统计部分
+            f.write("【误差统计】\n")
+            f.write("-" * 40 + "\n")
+            f.write("  时间平均误差:\n")
+            f.write(f"    - L2  误差:   {mean_l2_error:.6e}\n")
+            f.write(f"    - L∞  误差:   {mean_linf_error:.6e}\n\n")
+            f.write("  最大误差 (所有时刻):\n")
+            f.write(f"    - L2  误差:   {max_l2_error:.6e}\n")
+            f.write(f"    - L∞  误差:   {max_linf_error:.6e}\n\n")
+
+            # 误差比率分析
+            if mean_l2_error > 0:
+                f.write("  误差分析:\n")
+                f.write(f"    - L∞/L2 比率: {mean_linf_error/mean_l2_error:.2f}\n")
+                f.write(f"    - 相对精度:   {-np.log10(mean_l2_error):.1f} 位小数\n\n")
+
+            # 配置信息部分
+            f.write("【求解器配置】\n")
+            f.write("-" * 40 + "\n")
+            f.write(f"  时间格式:     {getattr(self.config, 'time_scheme', 'N/A')}\n")
+            f.write(f"  神经网络:     {self.config.hidden_dims}\n")
+            f.write(f"  分段数量:     {self.config.n_segments}\n")
+            f.write(f"  多项式阶:     {self.config.poly_degree}\n")
+            f.write(f"  设备类型:     {getattr(self.config, 'device', 'cpu')}\n\n")
+
+            # 添加时间戳
+            from datetime import datetime
+            f.write("=" * 70 + "\n")
+            f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 70 + "\n")
+
+        print(f"  误差统计报告已保存至: {report_path}")
+
+        # 打印物理计算时间统计
+        if hasattr(self, 'physics_compute_time'):
+            print(f"  物理计算时间: {self.physics_compute_time:.2f} 秒 (不含初始化和画图)")
+            print(f"  计算效率: {len(l2_errors)/self.physics_compute_time:.2f} 时间步/秒")
 
         # 绘制误差随时间变化图 - 更专业的样式
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))

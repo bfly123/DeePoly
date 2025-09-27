@@ -7,7 +7,7 @@
       1.0
     ]
   ],
-  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Burgers/Burgers1",
+  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1",
   "vars_list": [
     "u"
   ],
@@ -16,15 +16,13 @@
   ],
   "eq": {
     "L1": [
-      "-0.01/pi*diff(u,x,2)"
+      "-0.0001*diff(u,x,2)"
     ],
-    "L2": [
-      "diff(u,x)"
-    ],
-    "F": [
-      "u"
-    ],
-    "N": []
+    "L2": [],
+    "F": [],
+    "N": [
+      "-5*u+5*u**3"
+    ]
   },
   "eq_nonlinear": [],
   "const_list": [],
@@ -69,22 +67,20 @@
   "Initial_conditions": [
     {
       "var": "u",
-      "value": "-sin(pi*x)",
+      "value": "x**2*cos(pi*x)",
       "points": "100"
     }
   ],
   "time_scheme": "onestep_predictor",
   "time_scheme_params": {},
   "eq_L1": [
-    "-0.01/pi*diff(u,x,2)"
+    "-0.0001*diff(u,x,2)"
   ],
-  "eq_L2": [
-    "diff(u,x)"
+  "eq_L2": [],
+  "eq_F": [],
+  "eq_N": [
+    "-5*u+5*u**3"
   ],
-  "eq_F": [
-    "u"
-  ],
-  "eq_N": [],
   "seed": "42",
   "boundary_conditions": [
     {
@@ -104,25 +100,21 @@
       "0",
       "0"
     ],
-    "U_x": [
-      "0",
-      "1"
-    ],
     "U_xx": [
       "0",
-      "2"
+      "1"
     ]
   },
   "problem_type": "time_pde",
   "auto_code": "False",
   "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
-  "reference_solution": "reference_data/burgers.mat",
+  "reference_solution": "reference_data/allen_cahn_highres.mat",
   "realtime_visualization": "True",
   "animation_skip": "1",
-  "f_L2": [
-    "u"
+  "f_L2": [],
+  "N": [
+    "-5*u+5*u**3"
   ],
-  "N": [],
   "n_dim": "1",
   "n_eqs": "1",
   "x_min": [
@@ -170,14 +162,11 @@
     ]
   ],
   "DNN_degree": "10",
-  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Burgers/Burgers1/results",
+  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
   "operator_parse": {
     "derivatives": [
       [
         "0"
-      ],
-      [
-        "1"
       ],
       [
         "2"
@@ -188,13 +177,9 @@
         "0",
         "0"
       ],
-      "U_x": [
-        "0",
-        "1"
-      ],
       "U_xx": [
         "0",
-        "2"
+        "1"
       ]
     },
     "max_derivative_orders": [
@@ -206,34 +191,17 @@
       "L1": [
         {
           "derivative_indices": [
-            "2"
-          ],
-          "symbolic_expr": "-0.01/pi*U_xx"
-        }
-      ],
-      "L2": [
-        {
-          "derivative_indices": [
             "1"
           ],
-          "symbolic_expr": "U_x"
+          "symbolic_expr": "-0.0001*U_xx"
         }
       ],
-      "F": [
+      "N": [
         {
           "derivative_indices": [
             "0"
           ],
-          "symbolic_expr": "U"
-        }
-      ],
-      "L2F": [
-        {
-          "derivative_indices": [
-            "0",
-            "1"
-          ],
-          "symbolic_expr": "U_x*(U)"
+          "symbolic_expr": "-5*U+5*U**3"
         }
       ]
     }
@@ -248,9 +216,6 @@
       "0"
     ],
     [
-      "1"
-    ],
-    [
       "2"
     ]
   ],
@@ -258,37 +223,20 @@
     "L1": [
       {
         "derivative_indices": [
-          "2"
-        ],
-        "symbolic_expr": "-0.01/pi*U_xx"
-      }
-    ],
-    "L2": [
-      {
-        "derivative_indices": [
           "1"
         ],
-        "symbolic_expr": "U_x"
+        "symbolic_expr": "-0.0001*U_xx"
       }
     ],
-    "F": [
+    "N": [
       {
         "derivative_indices": [
           "0"
         ],
-        "symbolic_expr": "U"
-      }
-    ],
-    "L2F": [
-      {
-        "derivative_indices": [
-          "0",
-          "1"
-        ],
-        "symbolic_expr": "U_x*(U)"
+        "symbolic_expr": "-5*U+5*U**3"
       }
     ]
   },
-  "export_time": "2025-09-25 18:09:58",
+  "export_time": "2025-09-27 07:36:59",
   "device_info": "cuda"
 }

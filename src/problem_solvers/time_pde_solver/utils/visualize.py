@@ -379,6 +379,9 @@ class TimePDEVisualizer(BaseVisualizer):
         if self._scatter_numerical is None:
             self.ax.clear()
 
+            # 调整子图位置以留出更多空间给标题
+            self.fig.subplots_adjust(top=0.88)
+
             # 获取x坐标
             x_flat = x[:, 0] if x.ndim > 1 else x
             u_flat = u[:, 0] if u.ndim > 1 else u
@@ -423,7 +426,8 @@ class TimePDEVisualizer(BaseVisualizer):
             self.ax.set_ylim(u_min - u_margin, u_max + u_margin)
             self.ax.set_xlabel('x')
             self.ax.set_ylabel('u')
-            self.ax.set_title('Time PDE Real-time Solution')
+            # 初始标题，稍后会更新
+            self.ax.set_title('Time PDE Real-time Solution', pad=20)
             self.ax.legend()
             self.ax.grid(True, alpha=0.3)
 
@@ -463,10 +467,22 @@ class TimePDEVisualizer(BaseVisualizer):
                 # 增加步数计数器（在显示之前递增以显示正确的步数）
                 if not hasattr(self, "_step_counter"):
                     self._step_counter = 0
+                if not hasattr(self, "_initial_time"):
+                    self._initial_time = T
+                if not hasattr(self, "_last_time"):
+                    self._last_time = T
+
+                # 计算时间步长 dt
+                dt = T - self._last_time if self._step_counter > 0 else 0
+                self._last_time = T
                 self._step_counter += 1
 
-                # 更新标题包含误差信息和正确的步数
-                self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}')
+                # 更新标题包含时间、时间步和误差信息
+                title_lines = [
+                    f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s',
+                    f'Max Error: {max_error:.2e}, L2 Error: {l2_error:.2e}'
+                ]
+                self.ax.set_title('\n'.join(title_lines), pad=15, fontsize=11)
 
                 # 添加详细的误差诊断信息（仅在前几步）
                 if self._step_counter <= 5:
@@ -480,14 +496,28 @@ class TimePDEVisualizer(BaseVisualizer):
                 # 没有solver或参考解时
                 if not hasattr(self, "_step_counter"):
                     self._step_counter = 0
+                if not hasattr(self, "_initial_time"):
+                    self._initial_time = T
+                if not hasattr(self, "_last_time"):
+                    self._last_time = T
+
+                dt = T - self._last_time if self._step_counter > 0 else 0
+                self._last_time = T
                 self._step_counter += 1
-                self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s')
+                self.ax.set_title(f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s', pad=15, fontsize=11)
         else:
             # 没有参考解时的标题
             if not hasattr(self, "_step_counter"):
                 self._step_counter = 0
+            if not hasattr(self, "_initial_time"):
+                self._initial_time = T
+            if not hasattr(self, "_last_time"):
+                self._last_time = T
+
+            dt = T - self._last_time if self._step_counter > 0 else 0
+            self._last_time = T
             self._step_counter += 1
-            self.ax.set_title(f'KDV Equation - Step {self._step_counter}, Time = {T:.3f}s')
+            self.ax.set_title(f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s', pad=15, fontsize=11)
 
         # 动态调整y轴范围（在所有数据更新完成后）
         if u_max_current > u_min_current:  # 避免除零错误
@@ -858,55 +888,71 @@ class TimePDEVisualizer(BaseVisualizer):
             for i, (T, solution) in enumerate(zip(time_history, solution_history)):
                 # 创建临时图形
                 temp_fig = plt.figure(figsize=(10, 6) if self.is_1d else (10, 8))
+                temp_fig.subplots_adjust(top=0.88)  # 留出空间给标题
                 
                 if self.is_1d:
-                    # 1D情况
-                    sort_idx = np.argsort(x_coords[:, 0])
-                    x_sorted = x_coords[sort_idx, 0]
-                    u_sorted = solution.flatten()[sort_idx]
-                    
+                    # 1D情况 - 使用scatter保持与实时动画一致
+                    x_flat = x_coords[:, 0] if x_coords.ndim > 1 else x_coords
+                    u_flat = solution.flatten()
+
                     ax = temp_fig.add_subplot(111)
-                    ax.plot(x_sorted, u_sorted, 'b-', linewidth=3, label='Numerical Solution')
+                    # 使用scatter显示数值解（红色点，与实时动画一致）
+                    ax.scatter(x_flat, u_flat, c='r', label='Numerical', s=20)
                     
                     # 添加参考解对比（如果有solver且有参考解）
                     if solver and hasattr(solver, 'get_reference_solution_at_time'):
                         u_ref = solver.get_reference_solution_at_time(T)
                         if u_ref is not None:
-                            # 插值参考解到数值解的网格上
+                            # 使用参考解的原始x坐标
                             if hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                                 try:
                                     x_ref = solver.reference_solution['x_ref']
-                                    if len(u_ref) != len(x_sorted):
-                                        from scipy.interpolate import interp1d
-                                        interp_func = interp1d(x_ref, u_ref, kind='cubic', 
-                                                             bounds_error=False, fill_value='extrapolate')
-                                        u_ref_interp = interp_func(x_sorted)
-                                    else:
-                                        u_ref_interp = u_ref
-                                        
-                                    ax.plot(x_sorted, u_ref_interp, 'r--', linewidth=2, alpha=0.8, label='Reference Solution')
-                                    
-                                    # 计算并显示误差
-                                    error = np.abs(u_sorted - u_ref_interp)
+                                    # 对参考解排序以画出平滑的线
+                                    sort_idx = np.argsort(x_ref)
+                                    x_ref_sorted = x_ref[sort_idx]
+                                    u_ref_sorted = u_ref[sort_idx]
+
+                                    # 使用线条显示参考解（蓝色虚线，与实时动画一致）
+                                    ax.plot(x_ref_sorted, u_ref_sorted, 'b--', linewidth=2, alpha=0.7, label='Reference Solution')
+
+                                    # 计算误差（需要插值参考解到数值解网格）
+                                    from scipy.interpolate import interp1d
+                                    interp_func = interp1d(x_ref, u_ref, kind='cubic',
+                                                          bounds_error=False, fill_value='extrapolate')
+                                    u_ref_interp = interp_func(x_flat)
+
+                                    error = np.abs(u_flat - u_ref_interp)
                                     max_error = np.max(error)
                                     l2_error = np.sqrt(np.mean(error**2))
-                                    ax.text(0.02, 0.98, f'Max Error: {max_error:.2e}\\nL2 Error: {l2_error:.2e}', 
-                                           transform=ax.transAxes, verticalalignment='top',
-                                           bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-                                           fontsize=10)
                                 except Exception as e:
                                     print(f"参考解插值失败: {e}")
                     
                     ax.set_xlabel('x', fontsize=12)
                     ax.set_ylabel('u', fontsize=12)
-                    ax.set_title(f'T = {T:.4f}', fontsize=14, fontweight='bold')
+
+                    # 计算时间步长
+                    if i > 0:
+                        dt = time_history[i] - time_history[i-1]
+                    else:
+                        dt = time_history[1] - time_history[0] if len(time_history) > 1 else 0
+
+                    # 更新标题包含时间、时间步和步数信息
+                    title_text = f'Time: T = {T:.4f}s, Step: {i+1}, dt = {dt:.4f}s'
+
+                    # 如果有误差信息，将其移动到标题
+                    if 'error' in locals() and 'max_error' in locals() and 'l2_error' in locals():
+                        title_text += f'\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}'
+                        # 移除单独的误差文本框（已经在标题中显示）
+                        # ax.text已被移除
+
+                    ax.set_title(title_text, fontsize=11, fontweight='bold', pad=15)
                     ax.grid(True, alpha=0.3)
                     ax.legend(loc='upper right')
                     
                     # 设置固定的y轴范围以便动画稳定
                     all_solutions = np.concatenate([s.flatten() for s in solution_history])
                     y_min, y_max = all_solutions.min(), all_solutions.max()
-                    
+
                     # 如果有参考解，也考虑其范围
                     if solver and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                         try:
@@ -915,9 +961,22 @@ class TimePDEVisualizer(BaseVisualizer):
                             y_max = max(y_max, u_ref_all.max())
                         except:
                             pass
-                    
+
+                    # 添加边距
                     margin = (y_max - y_min) * 0.1
                     ax.set_ylim([y_min - margin, y_max + margin])
+
+                    # 设置x轴范围
+                    x_min, x_max = x_flat.min(), x_flat.max()
+                    if solver and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
+                        try:
+                            x_ref = solver.reference_solution['x_ref']
+                            x_min = min(x_min, x_ref.min())
+                            x_max = max(x_max, x_ref.max())
+                        except:
+                            pass
+                    x_margin = (x_max - x_min) * 0.05
+                    ax.set_xlim([x_min - x_margin, x_max + x_margin])
                     
                 else:
                     # 2D情况
