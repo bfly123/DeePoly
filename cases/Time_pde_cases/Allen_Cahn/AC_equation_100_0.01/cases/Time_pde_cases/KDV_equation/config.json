@@ -1,0 +1,85 @@
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "auto_code": false,
+    "eq": {
+        "L1": [
+            "1.0*diff(u,x,3)"
+        ],
+        "F": [
+            "u"
+        ],
+        "L2": [
+            "diff(u,x)"
+        ],
+        "N": []
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x"
+    ],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "cos(pi*x/20)",
+            "points": 1000
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",
+            "region": "left",
+            "pair_with": "right",
+            "constraint": "dirichlet",
+            "points": 1
+        },
+        {
+            "type": "periodic",
+            "region": "left",
+            "pair_with": "right",
+            "constraint": "neumann",
+            "points": 1
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        10
+    ],
+    "epochs_adam": 1000,
+    "epochs_lbfgs": 0,
+    "max_retries": 1,
+    "DNNtol": 0.01,
+    "note": "这个是时间步长为0.1的DNNtol，需要除以时间步长，所以是0.01",
+    "learning_rate": 0.01,
+    "n_segments": [
+        10
+    ],
+    "points_domain": 1000,
+    "points_per_swap": 1,
+    "points_domain_test": [
+        100
+    ],
+    "poly_degree": [
+        10
+    ],
+    "x_domain": [
+        [
+            -20,
+            20
+        ]
+    ],
+    "time_scheme": "onestep_predictor",
+    "T": 40.0,
+    "dt": 0.1,
+    "spotter_skip": 1,
+    "reference_solution": "reference_data/KdV_cos.mat",
+    "realtime_visualization": true,
+    "animation_skip": 1,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42
+}

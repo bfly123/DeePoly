@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from typing import Dict, List, Optional, Any, Callable
+from src.utils.shape import ensure_points_eqs, safe_eq_col, broadcast_coeffs
 
 
 class OperatorFactory:
@@ -52,9 +53,9 @@ class OperatorFactory:
                     for deriv_idx in derivative_indices:
                         for name, (v_idx, d_idx) in self.all_derivatives.items():
                             if d_idx == deriv_idx and d_idx == 0:
-                                # Unified u access - eliminate dimension checking branches
-                                u_reshaped = u.reshape(-1, max(1, u.shape[-1])) if u.ndim > 1 else u.reshape(-1, 1)
-                                local_vars[name] = u_reshaped[:, min(v_idx, u_reshaped.shape[1] - 1)]
+                                # Unified u access using shape utilities
+                                u_std = ensure_points_eqs(u, "u")
+                                local_vars[name] = safe_eq_col(u_std, min(v_idx, u_std.shape[1] - 1), name).flatten()
                 else:
                     # Using features@coeffs
                     for deriv_idx in derivative_indices:
@@ -219,16 +220,17 @@ class OptimizedOperatorFactory(OperatorFactory):
                     # 直接Usinguvalue
                     for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
                         if deriv_idx == 0:
-                            local_vars[var_name] = u[:, var_idx] if u.ndim == 2 and var_idx < u.shape[1] else u
+                            u_std = ensure_points_eqs(u, "u")
+                            local_vars[var_name] = safe_eq_col(u_std, min(var_idx, u_std.shape[1] - 1), var_name).flatten()
                 else:
                     # Usingfeatures@coeffs
                     for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
                         if coeffs is not None:
-                            current_coeffs = (
-                                coeffs[segment_idx, deriv_idx, :] if coeffs.ndim == 3 else
-                                coeffs[deriv_idx, :] if coeffs.ndim == 2 else
-                                coeffs[deriv_idx]
-                            )
+                            coeffs_std = broadcast_coeffs(coeffs, (1, 1, coeffs.shape[-1]) if coeffs.ndim == 3 else (1, coeffs.shape[-1]), "coeffs")
+                            if coeffs_std.ndim == 3:
+                                current_coeffs = coeffs_std[segment_idx, deriv_idx, :]
+                            else:
+                                current_coeffs = coeffs_std[deriv_idx, :]
                             
                             if current_coeffs.ndim == 1:
                                 coeff_scalar = current_coeffs[0] if len(current_coeffs) > 0 else 1.0

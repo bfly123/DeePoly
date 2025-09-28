@@ -5,6 +5,7 @@ import importlib.util
 import sys
 from typing import Dict, List, Tuple, Optional, Union
 from abc import ABC, abstractmethod
+from src.utils.shape import ensure_points_eqs
 
 class BaseDataGenerator(ABC):
     """Base data generator class for handling data generation and processing
@@ -572,8 +573,7 @@ class BaseDataGenerator(ABC):
         Returns:
             List[np.ndarray]: Segmented field values
         """
-        if len(u_global.shape) == 1:
-            u_global = u_global.reshape(-1, 1)
+        u_global = ensure_points_eqs(u_global, "u_global")
             
         u_segments = []
         for n in range(self.Ns):

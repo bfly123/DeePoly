@@ -1,0 +1,76 @@
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "auto_code": false,
+    "eq": {
+        "L1": [
+            "-0.0001*diff(u,x,2)"
+        ],
+        "L2": [],
+        "F": [],
+        "N": [
+            "5*u**3-5*u"
+        ]
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x"
+    ],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",
+            "points": 100
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",
+            "region": "left",
+            "pair_with": "right",
+            "constraint": "dirichlet",
+            "points": 1
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        10
+    ],
+    "epochs_adam": 100,
+    "epochs_lbfgs": 0,
+    "max_retries": 1,
+    "DNNtol": 0.01,
+    "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
+    "learning_rate": 0.01,
+    "n_segments": [
+        3
+    ],
+    "points_domain": 100,
+    "points_per_swap": 1,
+    "points_domain_test": [
+        100
+    ],
+    "poly_degree": [
+        10
+    ],
+    "x_domain": [
+        [
+            -1,
+            1
+        ]
+    ],
+    "time_scheme": "imex_predictor_corrector",
+    "T": 0.02,
+    "dt": 0.01,
+    "spotter_skip": 1,
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "realtime_visualization": true,
+    "animation_skip": 1,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42
+}

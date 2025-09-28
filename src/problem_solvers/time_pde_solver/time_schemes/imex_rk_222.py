@@ -163,34 +163,33 @@ class ImexRK222(BaseTimeScheme):
             L2_ops = self.fitter._linear_operators[segment_idx].get("L2", None)
             features = self.fitter._features[segment_idx][0]
             
-            # 预ComputeFvalue（OnceComputeAllEquation）
-            F_vals = None
-            if L2_ops is not None and self.fitter.has_operator("F"):
-                F_vals = self.fitter.F_func(features, U_seg)
+            # 预ComputeFvalue（OnceComputeAllEquation）（强制存在化：移除条件检查）
+            # F算子强制存在，无需检查
+            F_vals = self.fitter.F_func(features, U_seg)
             
             # Compute各Equation的Operators贡献
             for eq_idx in range(self.config.n_eqs):
                 beta = coeffs_stage[segment_idx, eq_idx, :]
                 
-                # L1贡献
-                if L1_ops is not None:
-                    L1_contrib = L1_ops[eq_idx] @ beta
-                    K_seg[:, eq_idx] += L1_contrib
+                # L1贡献（强制存在化：移除条件检查）
+                # L1算子强制存在，无需检查
+                L1_contrib = L1_ops[eq_idx] @ beta
+                K_seg[:, eq_idx] += L1_contrib
                 
-                # L2⊙F贡献（Using预Compute的Fvalue）
-                if L2_ops is not None and F_vals is not None:
-                    L2_contrib = L2_ops[eq_idx] @ beta
-                    K_seg[:, eq_idx] += L2_contrib * F_vals[:, eq_idx]
+                # L2⊙F贡献（Using预Compute的Fvalue）（强制存在化：移除条件检查）
+                # L2和F算子强制存在，无需检查
+                L2_contrib = L2_ops[eq_idx] @ beta
+                K_seg[:, eq_idx] += L2_contrib * F_vals[:, eq_idx]
             
-            # N贡献
-            if self.fitter.has_operator("N"):
-                # According toIMEX-RKFormula，Phase1UsingU^n，Phase2UsingU^(1)
-                if stage == 1:
-                    N_input = U_n_seg[segment_idx]
-                else:
-                    # Phase2应该UsingU^(1)，Fromkwargs中Get
-                    U_1_seg = kwargs.get("U_1_seg", [])
-                    N_input = U_1_seg[segment_idx] if U_1_seg else U_seg
+            # N贡献（强制存在化：移除条件检查）
+            # N算子强制存在，无需检查
+            # According toIMEX-RKFormula，Phase1UsingU^n，Phase2UsingU^(1)
+            if stage == 1:
+                N_input = U_n_seg[segment_idx]
+            else:
+                # Phase2应该UsingU^(1)，Fromkwargs中Get
+                U_1_seg = kwargs.get("U_1_seg", [])
+                N_input = U_1_seg[segment_idx] if U_1_seg else U_seg
                 N_vals = self.fitter.N_func(features, N_input)
                 K_seg += N_vals
             

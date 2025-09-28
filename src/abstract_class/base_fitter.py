@@ -6,6 +6,7 @@ from torch import nn
 from itertools import product
 
 from .operator_factory import create_operator_factory
+from src.utils.shape import safe_segment_slice, concat_segments
 
 
 class BaseDeepPolyFitter(ABC):
@@ -119,24 +120,20 @@ class BaseDeepPolyFitter(ABC):
             features = self._get_features(segment_idx, model)
             self._features[segment_idx] = features
 
-            # Level 2: Pre-compile linear operators
+            # Level 2: 强制预编译所有线性算子（移除条件检查）
             linear_ops = {}
-            if self.has_operator("L1"):
-                linear_ops["L1"] = self.L1_func(features)
-            if self.has_operator("L2"):
-                linear_ops["L2"] = self.L2_func(features)
+            linear_ops["L1"] = self.L1_func(features)  # 强制编译，零算子返回零矩阵
+            linear_ops["L2"] = self.L2_func(features)  # 强制编译，零算子返回零矩阵
             self._linear_operators[segment_idx] = linear_ops
 
-            # Level 3: Pre-compile nonlinear operators
+            # Level 3: 强制预编译所有非线性算子（移除条件检查）
             nonlinear_funcs = {}
-            if self.has_operator("N"):
-                nonlinear_funcs["N"] = self._create_nonlinear_function(
-                    features, self.N_func, "N"
-                )
-            if self.has_operator("F"):
-                nonlinear_funcs["F"] = self._create_nonlinear_function(
-                    features, self.F_func, "F"
-                )
+            nonlinear_funcs["N"] = self._create_nonlinear_function(
+                features, self.N_func, "N"
+            )  # 强制编译，零算子返回零数组
+            nonlinear_funcs["F"] = self._create_nonlinear_function(
+                features, self.F_func, "F"
+            )  # 强制编译，单位算子返回单位数组
             self._nonlinear_functions[segment_idx] = nonlinear_funcs
 
         # Level 4: Pre-compile constraint conditions
@@ -161,8 +158,8 @@ class BaseDeepPolyFitter(ABC):
         return coeffs_function
 
     def has_nonlinear_operators(self):
-        """Check if nonlinear operators exist"""
-        return self.has_operator("N") or self.has_operator("F")
+        """检查非线性算子是否存在 - 简化逻辑（强制存在化后总是True）"""
+        return True  # 简化为总是存在，由具体算子内容决定是否为零
 
     def fit(self, **kwargs) -> np.ndarray:
         """Solve system using nonlinear solver"""
@@ -674,10 +671,8 @@ class BaseDeepPolyFitter(ABC):
             n_points = len(self.data["x_segments_norm"][seg_idx])
             end_idx = start_idx + n_points
             
-            if U_global.ndim == 1:
-                U_segments.append(U_global[start_idx:end_idx].copy())
-            else:
-                U_segments.append(U_global[start_idx:end_idx, :].copy())
+            U_segment = safe_segment_slice(U_global, start_idx, end_idx, "U_global")
+            U_segments.append(U_segment)
                 
             start_idx = end_idx
             
@@ -694,13 +689,13 @@ class BaseDeepPolyFitter(ABC):
         """
         if not U_segments or U_segments[0] is None:
             total_points = sum(len(self.data["x_segments_norm"][i]) for i in range(self.ns))
-            return np.zeros(total_points)
-            
-        return np.concatenate(U_segments)
+            return np.zeros((total_points, self.n_eqs))
+
+        return concat_segments(U_segments, "U_segments")
 
     def has_operator(self, operator_name):
-        """Check if operator exists"""
-        return getattr(self, f"{operator_name}_func", None) is not None
+        """算子存在性检查 - 统一化后总是返回True（强制存在化）"""
+        return True  # 所有算子都强制存在，零算子会返回零值
 
     def get_operator_info(self, operator_name):
         """Get operator information"""
@@ -727,12 +722,12 @@ class BaseDeepPolyFitter(ABC):
         }
 
         for op_name in ["L1", "L2", "N", "F"]:
-            if self.has_operator(op_name):
-                op_info = self.get_operator_info(op_name)
-                if op_info["is_nonlinear"]:
-                    info["nonlinear_operators"].append(op_name)
-                else:
-                    info["linear_operators"].append(op_name)
+            # 移除条件检查，强制处理所有算子
+            op_info = self.get_operator_info(op_name)
+            if op_info.get("is_nonlinear", False):
+                info["nonlinear_operators"].append(op_name)
+            else:
+                info["linear_operators"].append(op_name)
 
         return info
 

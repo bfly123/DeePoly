@@ -76,8 +76,12 @@
   "eq_L1": [
     "-0.0001*diff(u,x,2)"
   ],
-  "eq_L2": [],
-  "eq_F": [],
+  "eq_L2": [
+    "0"
+  ],
+  "eq_F": [
+    "1"
+  ],
   "eq_N": [
     "-5*u+5*u**3"
   ],
@@ -111,7 +115,9 @@
   "reference_solution": "reference_data/allen_cahn_highres.mat",
   "realtime_visualization": "True",
   "animation_skip": "1",
-  "f_L2": [],
+  "f_L2": [
+    "1"
+  ],
   "N": [
     "-5*u+5*u**3"
   ],
@@ -196,12 +202,30 @@
           "symbolic_expr": "-0.0001*U_xx"
         }
       ],
+      "L2": [
+        {
+          "derivative_indices": [],
+          "symbolic_expr": "0"
+        }
+      ],
+      "F": [
+        {
+          "derivative_indices": [],
+          "symbolic_expr": "1"
+        }
+      ],
       "N": [
         {
           "derivative_indices": [
             "0"
           ],
           "symbolic_expr": "-5*U+5*U**3"
+        }
+      ],
+      "L2F": [
+        {
+          "derivative_indices": [],
+          "symbolic_expr": "0*(1)"
         }
       ]
     }
@@ -228,6 +252,18 @@
         "symbolic_expr": "-0.0001*U_xx"
       }
     ],
+    "L2": [
+      {
+        "derivative_indices": [],
+        "symbolic_expr": "0"
+      }
+    ],
+    "F": [
+      {
+        "derivative_indices": [],
+        "symbolic_expr": "1"
+      }
+    ],
     "N": [
       {
         "derivative_indices": [
@@ -235,8 +271,14 @@
         ],
         "symbolic_expr": "-5*U+5*U**3"
       }
+    ],
+    "L2F": [
+      {
+        "derivative_indices": [],
+        "symbolic_expr": "0*(1)"
+      }
     ]
   },
-  "export_time": "2025-09-27 09:13:53",
+  "export_time": "2025-09-28 17:56:28",
   "device_info": "cuda"
 }

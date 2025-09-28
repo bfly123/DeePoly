@@ -107,8 +107,8 @@ class ImexFirstOrder(BaseTimeScheme):
         U_n_seg_list = kwargs.get("U_n_seg", [])
         U_n_seg = U_n_seg_list[segment_idx]
 
-        F_n = self.fitter.F_func(features, U_n_seg)
-        N_n = self.fitter.N_func(features, U_n_seg) if self.fitter.has_operator("N") else None
+        F_n = self.fitter.F_func(features, U_n_seg)  # F算子强制存在
+        N_n = self.fitter.N_func(features, U_n_seg)  # N算子强制存在（移除条件检查）
 
         # Processfeatures的Differentformat
         V = features_list[0]  # AllDerivativesinformation都At这Inside 
@@ -146,16 +146,16 @@ class ImexFirstOrder(BaseTimeScheme):
             # Build该Equation的Jacobian matrix: V - Δt*L1 - Δt*L2⊙F
             J_eq = V.copy()  # FromFeature matrixVStart
             
-            # 减Go隐式L1Item: -Δt*L1
-            if L1 is not None:
-                J_eq -= dt * L1
+            # 减Go隐式L1Item: -Δt*L1（强制存在化：移除条件检查）
+            # L1算子强制存在，无需检查
+            J_eq -= dt * L1
             
-            # 减Go隐式L2⊙FItem: -Δt*diag(F)*L2
-            if L2 is not None and F_n is not None:
-                F_eq = F_n[:, eq_idx]
-                # L2⊙FItemLinear化: -Δt * diag(F_eq) @ L2
-                L2F_term = dt * np.diag(F_eq) @ L2
-                J_eq -= L2F_term
+            # 减Go隐式L2⊙FItem: -Δt*diag(F)*L2（强制存在化：移除条件检查）
+            # L2和F算子强制存在，无需检查
+            F_eq = F_n[:, eq_idx]
+            # L2⊙FItemLinear化: -Δt * diag(F_eq) @ L2
+            L2F_term = dt * np.diag(F_eq) @ L2
+            J_eq -= L2F_term
             
             # 将该Equation的Jacobian matrix放入FinalMatrix
             L_final[row_start:row_end, col_start:col_end] = J_eq
@@ -189,9 +189,9 @@ class ImexFirstOrder(BaseTimeScheme):
         # 基础Item: U^n
         rhs[:, :] = U_n_seg
         
-        # 添加NonlinearItem: Δt*N(U^n)
-        if N_n is not None:
-            rhs += dt * N_n
+        # 添加NonlinearItem: Δt*N(U^n)（强制存在化：移除条件检查）
+        # N算子强制存在，无需检查
+        rhs += dt * N_n
 
         return rhs
 

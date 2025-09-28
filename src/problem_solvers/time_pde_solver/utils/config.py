@@ -124,34 +124,72 @@ class TimePDEConfig(BaseConfig):
         self._parse_operator_splitting()
 
     def _normalize_eq_format(self):
-        """StandardizationEquationformat并提取OperatorsSeparateinformation"""
+        """标准化方程格式并确保所有算子都存在（强制存在化）"""
         if isinstance(self.eq, dict):
-            # FromDictionaryformat提取OperatorsSeparateinformation
-            self.eq_L1 = self.eq.get("L1", [])
-            self.eq_L2 = self.eq.get("L2", [])
-            self.eq_F = self.eq.get("F", [])  # JSON中的Ffield
-            self.eq_N = self.eq.get("N", [])
-            
-            # MaintainTowardBackward兼容的别名
-            self.f_L2 = self.eq_F  # 为TowardBackward兼容保留f_L2别名
-            self.N = self.eq_N     # 为TowardBackward兼容保留N别名
-            
-            print(f"Extracted operator splitting from config:")
+            # 从字典格式提取算子信息，缺失的补零算子
+            self.eq_L1 = self.eq.get("L1", ["0"])  # 默认零算子
+            self.eq_L2 = self.eq.get("L2", ["0"])  # 默认零算子
+            self.eq_F = self.eq.get("F", ["1"])    # 默认单位算子
+            self.eq_N = self.eq.get("N", ["0"])    # 默认零算子
+
+            print(f"Extracted operator splitting from config (with forced existence):")
             print(f"  L1 (主Linear operators): {self.eq_L1}")
             print(f"  L2 (半隐式Linear operators): {self.eq_L2}")
             print(f"  F (Nonlinearfunction): {self.eq_F}")
             print(f"  N (CompletelyNonlinearItem): {self.eq_N}")
+
         elif isinstance(self.eq, list):
-            # 兼容OldListformat，将其作为L1Operators
-            self.eq_L1 = self.eq
-            self.eq_L2 = []
-            self.eq_F = []
-            self.eq_N = []
-            self.f_L2 = []
-            self.N = []
+            # 兼容旧列表格式，作为L1算子，其他补零
+            self.eq_L1 = self.eq if self.eq else ["0"]
+            self.eq_L2 = ["0"]  # 默认零算子
+            self.eq_F = ["1"]   # 默认单位算子
+            self.eq_N = ["0"]   # 默认零算子
             print(f"Using legacy list format as L1 operators: {self.eq_L1}")
+
+            # 对于旧格式，不进行变量数量调整，保持原始列表
+            # 维护向后兼容的别名
+            self.f_L2 = self.eq_F
+            self.N = self.eq_N
+            print(f"Legacy format preserved L1 operators: {self.eq_L1}")
+            return  # 提前返回，跳过变量数量调整
+
         else:
             raise ValueError(f"Invalid eq format: {type(self.eq)}. Must be list or dict.")
+
+        # 确保所有算子列表长度与变量数量一致
+        n_vars = len(self.vars_list)
+        if n_vars > 0:  # 只有在变量列表已知的情况下才调整
+            self.eq_L1 = self._pad_operator_list(self.eq_L1, n_vars, "0")
+            self.eq_L2 = self._pad_operator_list(self.eq_L2, n_vars, "0")
+            self.eq_F = self._pad_operator_list(self.eq_F, n_vars, "1")
+            self.eq_N = self._pad_operator_list(self.eq_N, n_vars, "0")
+
+        # 维护向后兼容的别名
+        self.f_L2 = self.eq_F  # 为向后兼容保留f_L2别名
+        self.N = self.eq_N     # 为向后兼容保留N别名
+
+        print(f"Normalized operators to {n_vars} variables:")
+        print(f"  L1: {self.eq_L1}")
+        print(f"  L2: {self.eq_L2}")
+        print(f"  F: {self.eq_F}")
+        print(f"  N: {self.eq_N}")
+
+    def _pad_operator_list(self, op_list: List[str], target_length: int, default_op: str) -> List[str]:
+        """填充算子列表至目标长度，确保维度一致性"""
+        if len(op_list) == target_length:
+            return op_list
+        elif len(op_list) == 1:
+            # 单个算子扩展到所有变量
+            return op_list * target_length
+        elif len(op_list) == 0:
+            # 空列表用默认算子填充
+            return [default_op] * target_length
+        else:
+            # 不足的用默认算子补齐，超出的截断
+            if len(op_list) < target_length:
+                return op_list + [default_op] * (target_length - len(op_list))
+            else:
+                return op_list[:target_length]
 
     def _determine_n_eqs(self):
         """According toDifferent的Configuration方式确定Number of equations量 - ForTimePDE，Number of equations量等于variable数量"""
@@ -203,53 +241,32 @@ class TimePDEConfig(BaseConfig):
         print(f"Time scheme parameters: {merged_params}")
 
     def _parse_operator_splitting(self):
-        """AnalyticalOperatorsSeparateConfiguration"""
-        print("Parsing operator splitting...")
+        """解析算子分离配置 - 强制包含所有算子（移除条件检查）"""
+        print("Parsing operator splitting with forced existence...")
         print(f"L1 operators: {self.eq_L1}")
         print(f"L2 operators: {self.eq_L2}")
         print(f"F functions: {self.eq_F}")
         print(f"N operators: {self.eq_N}")
 
-        # BuildDictionaryformat的Operation符用于Analytical
-        if isinstance(self.eq, dict):
-            # ForDictionaryformat，Re-BuildOperation符Dictionary
-            operators_dict = {}
-            
-            # 添加L1Operators（主Linear operators）
-            if self.eq_L1:
-                operators_dict['L1'] = self.eq_L1
-            
-            # 添加L2Operators（半隐式Linear operators）
-            if self.eq_L2:
-                operators_dict['L2'] = self.eq_L2
-            
-            # 添加FOperators（IMEX-RKNeed单独的Ffunction）
-            if self.eq_F:
-                operators_dict['F'] = self.eq_F
-            
-            # Process半隐式Item L2 * F
-            if self.eq_L2 and self.eq_F:
-                semi_implicit_terms = []
-                for i, (l2_op, f_func) in enumerate(zip(self.eq_L2, self.eq_F)):
-                    # Construct半隐式Item：L2_i * F_i
-                    semi_implicit_term = f"{l2_op}*({f_func})"
-                    semi_implicit_terms.append(semi_implicit_term)
-                    print(f"Generated semi-implicit term {i+1}: {semi_implicit_term}")
-                operators_dict['L2F'] = semi_implicit_terms
-            
-            # 添加CompletelyNonlinearItem
-            if self.eq_N:
-                operators_dict['N'] = self.eq_N
-            
-            # UsingDictionaryformatEnter行Analytical
-            self.operator_parse = parse_operators(operators_dict, self.vars_list, self.spatial_vars, self.const_list)
-        else:
-            # 兼容旧format - 将ListConvert为Dictionaryformat
-            if isinstance(self.eq, list):
-                operators_dict = {'eq': self.eq}
-            else:
-                operators_dict = self.eq
-            self.operator_parse = parse_operators(operators_dict, self.vars_list, self.spatial_vars, self.const_list)
+        # 构建字典格式的算子用于解析，确保所有算子都存在
+        operators_dict = {
+            'L1': self.eq_L1,  # 保证存在（至少是零算子）
+            'L2': self.eq_L2,  # 保证存在（至少是零算子）
+            'F': self.eq_F,    # 保证存在（至少是单位算子）
+            'N': self.eq_N     # 保证存在（至少是零算子）
+        }
+
+        # 处理半隐式项 L2 * F（总是尝试生成，零算子会自然产生零项）
+        semi_implicit_terms = []
+        for i, (l2_op, f_func) in enumerate(zip(self.eq_L2, self.eq_F)):
+            # 构建半隐式项：L2_i * F_i
+            semi_implicit_term = f"{l2_op}*({f_func})"
+            semi_implicit_terms.append(semi_implicit_term)
+            print(f"Generated semi-implicit term {i+1}: {semi_implicit_term}")
+        operators_dict['L2F'] = semi_implicit_terms
+
+        # 使用字典格式进行解析（移除所有条件判断）
+        self.operator_parse = parse_operators(operators_dict, self.vars_list, self.spatial_vars, self.const_list)
 
         # OutputAnalyticalResult并SetupConfigurationattribute
         if hasattr(self, 'operator_parse'):
@@ -300,12 +317,11 @@ class TimePDEConfig(BaseConfig):
             # 添加CompletelyNonlinearItem(N)
             nonlinear_eqs.extend(self.eq_N)
             
-            # Process半隐式Item L2 * F
-            if self.eq_L2 and self.eq_F:
-                for l2_op, f_func in zip(self.eq_L2, self.eq_F):
-                    semi_implicit_term = f"{l2_op}*({f_func})"
-                    nonlinear_eqs.append(semi_implicit_term)
-                    print(f"Added semi-implicit term: {semi_implicit_term}")
+            # 处理半隐式项 L2 * F（移除条件检查，总是处理）
+            for l2_op, f_func in zip(self.eq_L2, self.eq_F):
+                semi_implicit_term = f"{l2_op}*({f_func})"
+                nonlinear_eqs.append(semi_implicit_term)
+                print(f"Added semi-implicit term: {semi_implicit_term}")
             
             print(f"Auto code generation with:")
             print(f"  Linear equations: {linear_eqs}")

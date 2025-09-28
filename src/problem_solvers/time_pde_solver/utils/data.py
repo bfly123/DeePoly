@@ -28,7 +28,7 @@ class TimePDEDataGenerator(BaseDataGenerator):
         """
         u_global = np.zeros((x_global.shape[0], self.n_eqs))
         
-        # CheckDimensions
+        # CheckDimensions (spatial dimensionality - legitimate check)
         if x_global.shape[1] == 1:
             # 1D case - Usingconfig中Definition的Initial conditions
             if self.config.Initial_conditions:

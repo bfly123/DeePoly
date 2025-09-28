@@ -142,9 +142,10 @@ class OneStepPredictor(BaseTimeScheme):
                 # Get coefficients: shape (dgN,)
                 beta = coeffs[seg_idx, eq_idx, :]
 
-                # Compute L1*β and L2*β with safe indexing
-                L1_val = L1_ops[eq_idx] @ beta if (L1_ops is not None and eq_idx < len(L1_ops)) else None
-                L2_val = L2_ops[eq_idx] @ beta if (L2_ops is not None and eq_idx < len(L2_ops)) else None
+                # Compute L1*β and L2*β (强制存在化：移除条件检查)
+                # L1和L2算子强制存在，无需检查
+                L1_val = L1_ops[eq_idx] @ beta
+                L2_val = L2_ops[eq_idx] @ beta
 
                 L1_seg.append(L1_val)
                 L2_seg.append(L2_val)
@@ -181,9 +182,9 @@ class OneStepPredictor(BaseTimeScheme):
             # Get feature matrix
             features = self.fitter._features[seg_idx][0]
 
-            # Compute function values at midpoint
-            F_mid = self.fitter.F_func(features, U_mid) if self.fitter.has_operator("F") else None
-            N_mid = self.fitter.N_func(features, U_mid) if self.fitter.has_operator("N") else None
+            # Compute function values at midpoint (强制存在化：移除条件检查)
+            F_mid = self.fitter.F_func(features, U_mid)  # F算子强制存在
+            N_mid = self.fitter.N_func(features, U_mid)  # N算子强制存在
 
             # Initialize corrected solution: u^{n+1} = u^n
             U_corrected = U_n.copy()
@@ -218,11 +219,9 @@ class OneStepPredictor(BaseTimeScheme):
                         L2_avg = 0.5 * (L2_star + L2_n)          # shape: (n_points,)
                         L2F_avg = L2_avg * F_mid[:, eq_idx]       # shape: (n_points,)
 
-                # Compute N term: N((u^* + u^n)/2)
-                N_contrib = np.zeros(U_n.shape[0])  # shape: (n_points,)
-                if N_mid is not None:
-                    # N_mid is always a list in this context
-                    N_contrib = N_mid[eq_idx]  # shape: (n_points,)
+                # Compute N term: N((u^* + u^n)/2) (强制存在化：移除条件检查)
+                # N_mid总是存在，N算子强制存在化
+                N_contrib = N_mid[eq_idx]  # shape: (n_points,)
 
                 # Explicit update: u^{n+1} = u^n - Δt * [L1_avg + L2F_avg + N_contrib]
                 # 确保Allterm都Yes (n_points,) vectors
@@ -274,9 +273,9 @@ class OneStepPredictor(BaseTimeScheme):
         else:
             raise ValueError(f"U_n_seg_list does not contain segment {segment_idx}")
 
-        # Compute F(u^n) 和 N(u^n)
-        F_n = self.fitter.F_func(features, U_n_seg) if self.fitter.has_operator("F") else None
-        N_n = self.fitter.N_func(features, U_n_seg) if self.fitter.has_operator("N") else None
+        # Compute F(u^n) 和 N(u^n) (强制存在化：移除条件检查)
+        F_n = self.fitter.F_func(features, U_n_seg)  # F算子强制存在
+        N_n = self.fitter.N_func(features, U_n_seg)  # N算子强制存在
 
         # Build system matrix
         A_matrix = np.zeros((ne * n_points, ne * dgN), dtype=np.float64)
@@ -290,22 +289,21 @@ class OneStepPredictor(BaseTimeScheme):
             # Build Jacobian for this equation: V + Δt⋅L1 + Δt⋅L2⊙F(u^n)
             J_eq = features.copy()  # Vterm (n_points, dgN)
 
-            # Add Δt⋅L1 term
-            if L1_ops is not None and len(L1_ops) > eq_idx:
-                J_eq += dt * L1_ops[eq_idx]  # (n_points, dgN)
+            # Add Δt⋅L1 term (强制存在化：移除条件检查)
+            # L1算子强制存在，无需检查
+            J_eq += dt * L1_ops[eq_idx]  # (n_points, dgN)
 
-            # Add Δt⋅L2⊙F(u^n) term
-            if L2_ops is not None and F_n is not None and len(L2_ops) > eq_idx:
-                F_eq = F_n[:, eq_idx]  # (n_points,)
-                J_eq += dt * np.diag(F_eq) @ L2_ops[eq_idx]  # (n_points, dgN)
+            # Add Δt⋅L2⊙F(u^n) term (强制存在化：移除条件检查)
+            # L2和F算子强制存在，无需检查
+            F_eq = F_n[:, eq_idx]  # (n_points,)
+            J_eq += dt * np.diag(F_eq) @ L2_ops[eq_idx]  # (n_points, dgN)
 
             A_matrix[row_start:row_end, col_start:col_end] = J_eq
 
-            # Build right-hand side vector: u^n - Δt⋅N(u^n)
+            # Build right-hand side vector: u^n - Δt⋅N(u^n) (强制存在化：移除条件检查)
             rhs_eq = U_n_seg[:, eq_idx].copy()  # (n_points,)
-            if N_n is not None:
-                # N_n is always a list in this context
-                rhs_eq -= dt * N_n[eq_idx]  # (n_points,)
+            # N算子强制存在，无需检查
+            rhs_eq -= dt * N_n[eq_idx]  # (n_points,)
 
             b_vector.append(rhs_eq)
 
@@ -330,12 +328,12 @@ class OneStepPredictor(BaseTimeScheme):
         }
 
     def validate_operators(self) -> Dict[str, bool]:
-        """Validate whether operator configuration meets time scheme requirements"""
+        """Validate whether operator configuration meets time scheme requirements（强制存在化：总是返回True）"""
         validation_result = {
-            "L1_exists": hasattr(self.fitter, 'L1_op') and self.fitter.L1_op is not None,
-            "L2_exists": hasattr(self.fitter, 'L2_op'),
-            "F_exists": hasattr(self.fitter, 'F_func'),
-            "N_exists": hasattr(self.fitter, 'N_op'),
+            "L1_exists": True,  # 强制存在化：L1算子总是存在
+            "L2_exists": True,  # 强制存在化：L2算子总是存在
+            "F_exists": True,   # 强制存在化：F算子总是存在
+            "N_exists": True,   # 强制存在化：N算子总是存在
             "onestep_ready": True
         }
 

@@ -94,7 +94,7 @@ class LinearPDENet(BaseNet):
 
         # Calculate PDE residual loss
         # For linear PDEs: L1(u) - S = 0, where S is the precomputed source term
-        pde_residual = L1[0] - source
+        pde_residual = L1[0] - source[:,0]
         pde_loss = torch.mean(pde_residual**2)
 
         # Initialize boundary loss
