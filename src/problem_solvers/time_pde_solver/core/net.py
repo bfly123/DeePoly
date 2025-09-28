@@ -185,44 +185,21 @@ class TimePDENet(BaseNet):
         return torch.mean(torch.stack(errors)) if errors else 0.0
     
     def _compute_periodic_loss(self, periodic_data: Dict) -> torch.Tensor:
-        """Compute periodic boundary condition loss"""
+        """统一的周期边界条件损失计算"""
         total_loss = 0.0
-        
+
         for pair in periodic_data['pairs']:
             x_bc_1, x_bc_2 = pair['x_1'], pair['x_2']
-            constraint_type = pair['constraint_type']
-            
+
             _, pred_bc_1 = self(x_bc_1)
             _, pred_bc_2 = self(x_bc_2)
-            
-            if constraint_type == 'dirichlet':
-                total_loss += torch.mean((pred_bc_1 - pred_bc_2) ** 2)
-            elif constraint_type == 'neumann':
-                total_loss += self._compute_periodic_neumann_loss(pair, x_bc_1, x_bc_2)
-                
+
+            # 统一的周期边界条件: U(x1) = U(x2)
+            total_loss += torch.mean((pred_bc_1 - pred_bc_2) ** 2)
+
         return total_loss
     
-    def _compute_periodic_neumann_loss(self, pair: Dict, x_bc_1: torch.Tensor, x_bc_2: torch.Tensor) -> torch.Tensor:
-        """Compute periodic Neumann boundary condition loss"""
-        normals_1, normals_2 = pair['normals_1'], pair['normals_2']
-        
-        errors = []
-        for i in range(x_bc_1.shape[0]):
-            x_point_1 = x_bc_1[i:i+1].clone().detach().requires_grad_(True)
-            x_point_2 = x_bc_2[i:i+1].clone().detach().requires_grad_(True)
-            
-            _, u_pred_1 = self(x_point_1)
-            _, u_pred_2 = self(x_point_2)
-            
-            grads_1 = self.gradients(u_pred_1, x_point_1)[0]
-            grads_2 = self.gradients(u_pred_2, x_point_2)[0]
-            
-            normal_deriv_1 = torch.sum(grads_1 * normals_1[i])
-            normal_deriv_2 = torch.sum(grads_2 * normals_2[i])
-            
-            errors.append((normal_deriv_1 - normal_deriv_2) ** 2)
-        
-        return torch.mean(torch.stack(errors)) if errors else 0.0
+    # 移除_compute_periodic_neumann_loss方法 - 不再需要复杂的导数约束
     
     def prepare_gpu_data(self, data: Dict, U_current: np.ndarray = None) -> Dict:
         """Prepare GPU data for time PDE problems

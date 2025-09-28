@@ -216,9 +216,7 @@ Time evolution equation:
     "boundary_conditions": [
         {
             "type": "periodic",
-            "region": "left", 
-            "pair_with": "right",
-            "constraint": "dirichlet",
+            "pairs": ["left", "right"],
             "points": 1
         }
     ],
@@ -305,10 +303,8 @@ The framework now uses a structured approach for defining PDEs with separate ope
     "boundary_conditions": [
         {
             "type": "periodic",                 // BC type: periodic, dirichlet, neumann
-            "region": "left",                  // Boundary region
-            "pair_with": "right",              // For periodic: paired boundary
-            "constraint": "dirichlet",         // Constraint type
-            "points": 1
+            "pairs": ["left", "right"],        // Paired boundary regions
+            "points": 1                        // Number of boundary points
         }
     ]
 }

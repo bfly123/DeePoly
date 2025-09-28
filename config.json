@@ -26,7 +26,6 @@
   },
   "eq_nonlinear": [],
   "const_list": [],
-  "source_term": "False",
   "n_segments": [
     "3"
   ],
@@ -49,126 +48,22 @@
   "device": "cuda",
   "linear_device": "cpu",
   "learning_rate": "0.01",
-  "training_epochs": "10000",
   "points_domain": "100",
   "points_domain_test": [
     "100"
   ],
-  "points_boundary": "200",
-  "points_boundary_test": "50",
-  "T": "1",
-  "dt": "0.1",
-  "spotter_skip": "1",
-  "epochs_adam": "20000",
-  "epochs_lbfgs": "0",
-  "max_retries": "1",
-  "DNNtol": "0.01",
   "points_per_swap": "1",
-  "Initial_conditions": [
-    {
-      "var": "u",
-      "value": "x**2*cos(pi*x)",
-      "points": "100"
-    }
-  ],
-  "time_scheme": "onestep_predictor",
-  "time_scheme_params": {},
-  "eq_L1": [
-    "-0.0001*diff(u,x,2)"
-  ],
-  "eq_L2": [
-    "0"
-  ],
-  "eq_F": [
-    "1"
-  ],
-  "eq_N": [
-    "-5*u+5*u**3"
-  ],
   "seed": "42",
   "boundary_conditions": [
     {
       "type": "periodic",
-      "region": "left",
-      "pair_with": "right",
-      "constraint": "dirichlet",
+      "pairs": [
+        "left",
+        "right"
+      ],
       "points": "1"
     }
   ],
-  "eq_linear_list": [],
-  "deriv_orders": [],
-  "max_deriv_orders": [],
-  "eq_nonlinear_list": [],
-  "all_derivatives": {
-    "U": [
-      "0",
-      "0"
-    ],
-    "U_xx": [
-      "0",
-      "1"
-    ]
-  },
-  "problem_type": "time_pde",
-  "auto_code": "False",
-  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
-  "reference_solution": "reference_data/allen_cahn_highres.mat",
-  "realtime_visualization": "True",
-  "animation_skip": "1",
-  "f_L2": [
-    "1"
-  ],
-  "N": [
-    "-5*u+5*u**3"
-  ],
-  "n_dim": "1",
-  "n_eqs": "1",
-  "x_min": [
-    [
-      -1.0
-    ],
-    [
-      -0.33333333333333337
-    ],
-    [
-      0.33333333333333326
-    ]
-  ],
-  "x_max": [
-    [
-      -0.33333333333333337
-    ],
-    [
-      0.33333333333333326
-    ],
-    [
-      1.0
-    ]
-  ],
-  "x_min_norm": [
-    [
-      0.0
-    ],
-    [
-      0.0
-    ],
-    [
-      0.0
-    ]
-  ],
-  "x_max_norm": [
-    [
-      1.0
-    ],
-    [
-      1.0
-    ],
-    [
-      1.0
-    ]
-  ],
-  "DNN_degree": "10",
-  "results_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
   "operator_parse": {
     "derivatives": [
       [
@@ -225,60 +120,108 @@
       "L2F": [
         {
           "derivative_indices": [],
-          "symbolic_expr": "0*(1)"
+          "symbolic_expr": "0"
         }
       ]
     }
   },
-  "max_derivative_orders": [
+  "T": "1",
+  "dt": "0.1",
+  "spotter_skip": "1",
+  "epochs_adam": "20000",
+  "epochs_lbfgs": "0",
+  "max_retries": "1",
+  "DNNtol": "0.01",
+  "Initial_conditions": [
+    {
+      "var": "u",
+      "value": "x**2*cos(pi*x)",
+      "points": "100"
+    }
+  ],
+  "time_scheme": "onestep_predictor",
+  "time_scheme_params": {},
+  "eq_L1": [
+    "-0.0001*diff(u,x,2)"
+  ],
+  "eq_L2": [
+    "0"
+  ],
+  "eq_F": [
+    "1"
+  ],
+  "eq_N": [
+    "-5*u+5*u**3"
+  ],
+  "eq_linear_list": [],
+  "deriv_orders": [],
+  "max_deriv_orders": [],
+  "eq_nonlinear_list": [],
+  "all_derivatives": [],
+  "f_L2": [
+    "1"
+  ],
+  "N": [
+    "-5*u+5*u**3"
+  ],
+  "problem_type": "time_pde",
+  "auto_code": "False",
+  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
+  "reference_solution": "reference_data/allen_cahn_highres.mat",
+  "realtime_visualization": "True",
+  "animation_skip": "1",
+  "n_dim": "1",
+  "n_eqs": "1",
+  "x_min": [
     [
-      "2"
+      -1.0
+    ],
+    [
+      -0.33333333333333337
+    ],
+    [
+      0.33333333333333326
     ]
   ],
-  "derivatives": [
+  "x_max": [
     [
-      "0"
+      -0.33333333333333337
     ],
     [
-      "2"
+      0.33333333333333326
+    ],
+    [
+      1.0
     ]
   ],
-  "operator_terms": {
-    "L1": [
-      {
-        "derivative_indices": [
-          "1"
-        ],
-        "symbolic_expr": "-0.0001*U_xx"
-      }
+  "x_min_norm": [
+    [
+      0.0
     ],
-    "L2": [
-      {
-        "derivative_indices": [],
-        "symbolic_expr": "0"
-      }
+    [
+      0.0
     ],
-    "F": [
-      {
-        "derivative_indices": [],
-        "symbolic_expr": "1"
-      }
-    ],
-    "N": [
-      {
-        "derivative_indices": [
-          "0"
-        ],
-        "symbolic_expr": "-5*U+5*U**3"
-      }
-    ],
-    "L2F": [
-      {
-        "derivative_indices": [],
-        "symbolic_expr": "0*(1)"
-      }
+    [
+      0.0
     ]
-  },
-  "export_time": "2025-09-28 17:56:28",
+  ],
+  "x_max_norm": [
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ]
+  ],
+  "DNN_degree": "10",
+  "max_time_steps": "11",
+  "time_output_interval": "1",
+  "adaptive_dt": "False",
+  "stability_check": "False",
+  "results_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
+  "export_time": "2025-09-28 20:59:05",
   "device_info": "cuda"
 }

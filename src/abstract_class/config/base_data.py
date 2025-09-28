@@ -204,17 +204,25 @@ class BaseDataGenerator(ABC):
         
         # 简化的Boundary conditionsProcess逻辑 - Based onUVectorIndex
         for bc in self.config.boundary_conditions:
-            region = bc['region']
             bc_type = bc['type'].lower()
             points = bc['points']
-            
+
             # ProcessCycleBoundary conditions
             if bc_type == 'periodic':
-                # CycleBoundary conditionsNeed配对information
-                if 'pair_with' not in bc:
+                # 解析周期边界条件配对 - 支持新旧两种格式
+                if 'pairs' in bc:
+                    # 新格式: {"pairs": ["left", "right"]}
+                    if len(bc['pairs']) != 2:
+                        print(f"Warning: Periodic boundary pairs must contain exactly 2 regions, got {len(bc['pairs'])}")
+                        continue
+                    region, pair_region = bc['pairs'][0], bc['pairs'][1]
+                elif 'region' in bc and 'pair_with' in bc:
+                    # 旧格式兼容: {"region": "left", "pair_with": "right"}
+                    region = bc['region']
+                    pair_region = bc['pair_with']
+                else:
+                    print(f"Warning: Invalid periodic boundary condition format - missing 'pairs' or 'region'+'pair_with'")
                     continue
-                pair_region = bc['pair_with']
-                constraint_type = bc.get('constraint', 'dirichlet')  # Default为dirichletCycle
                 
                 # Generate两个Boundary的point
                 x_boundary_1 = self._generate_boundary_points(region, points)
@@ -227,27 +235,22 @@ class BaseDataGenerator(ABC):
                 segment_1 = self._region_to_segment(region)
                 segment_2 = self._region_to_segment(pair_region)
                 
-                # 添加CycleBoundary conditions对
+                # 添加统一的周期边界条件对 (只有函数值相等)
                 for var_idx in range(len(self.config.vars_list)):
                     periodic_pair = {
                         'segment_1': segment_1,  # 直接StoresegmentIndex
                         'segment_2': segment_2,  # 直接StoresegmentIndex
                         'x_1': x_boundary_1,
-                        'x_2': x_boundary_2,
-                        'constraint_type': constraint_type  # 'dirichlet' 或 'neumann'
+                        'x_2': x_boundary_2
+                        # 移除constraint_type - 周期边界条件只有一种：u(left) = u(right)
+                        # 移除normals - 不需要显式约束导数相等
                     }
-                    
-                    if constraint_type == 'neumann':
-                        # ForNeumannCycleCondition，还Need法Vector
-                        normals_1 = self._get_boundary_normals(region, x_boundary_1.shape[0])
-                        normals_2 = self._get_boundary_normals(pair_region, x_boundary_2.shape[0])
-                        periodic_pair['normals_1'] = normals_1
-                        periodic_pair['normals_2'] = normals_2
-                    
+
                     boundary_data[var_idx]['periodic']['pairs'].append(periodic_pair)
                 continue
-            
+
             # Process常规Boundary conditions
+            region = bc['region']
             value = bc['value']
             
             # GenerateBoundarypoint和法Vector
@@ -734,14 +737,12 @@ class BaseDataGenerator(ABC):
                                 x_seg_1 = x_boundary_1[mask_1]
                                 x_seg_1_norm = self._normalize_data(x_seg_1, x_min[segment_idx], x_max[segment_idx])
                                 segment_pair['x_1'] = x_seg_1_norm
-                                if 'normals_1' in pair:
-                                    segment_pair['normals_1'] = pair['normals_1'][mask_1]
+                                # 移除normals处理 - 简化的周期边界条件不需要法向量
                             if np.any(mask_2):
                                 x_seg_2 = x_boundary_2[mask_2]
                                 x_seg_2_norm = self._normalize_data(x_seg_2, x_min[segment_idx], x_max[segment_idx])
                                 segment_pair['x_2'] = x_seg_2_norm
-                                if 'normals_2' in pair:
-                                    segment_pair['normals_2'] = pair['normals_2'][mask_2]
+                                # 移除normals处理 - 简化的周期边界条件不需要法向量
                             
                             segment_boundary_data[var_idx][bc_type]['pairs'].append(segment_pair)
                     continue

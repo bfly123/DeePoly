@@ -28,9 +28,7 @@
     "boundary_conditions": [
         {
             "type": "periodic",
-            "region": "left",
-            "pair_with": "right",
-            "constraint": "dirichlet",
+            "pairs": ["left","right"],
             "points": 1
         }
     ],

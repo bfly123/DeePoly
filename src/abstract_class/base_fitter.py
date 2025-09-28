@@ -48,15 +48,16 @@ class BaseDeepPolyFitter(ABC):
                 return getattr(source, key)
             return default
 
-        self.max_derivatives = getattr(config, 'max_derivative_orders',
-                                     safe_get(operator_source, "max_derivative_orders"))
-        self.all_derivatives = getattr(config, 'all_derivatives',
-                                     safe_get(operator_source, "all_derivatives"))
-        self.derivatives = getattr(config, 'derivatives',
-                                 safe_get(operator_source, "derivatives"))
-        self.operator_terms = getattr(config, 'operator_terms',
-                                    safe_get(operator_source, "operator_terms"))
-            
+        # Priority: operator_parse first, then config attributes, then defaults
+        self.max_derivatives = (safe_get(operator_source, "max_derivative_orders") or
+                               getattr(config, 'max_derivative_orders', []))
+        self.all_derivatives = (safe_get(operator_source, "all_derivatives") or
+                               getattr(config, 'all_derivatives', {}))
+        self.derivatives = (safe_get(operator_source, "derivatives") or
+                           getattr(config, 'derivatives', []))
+        self.operator_terms = (safe_get(operator_source, "operator_terms") or
+                              getattr(config, 'operator_terms', {}))
+
         self.L1 = self.operator_terms.get("L1", None)
         self.L2 = self.operator_terms.get("L2", None)
         self.N = self.operator_terms.get("N", None)
@@ -467,43 +468,58 @@ class BaseDeepPolyFitter(ABC):
         x_boundary_1_local: np.ndarray,
         x_boundary_2_local: np.ndarray
     ):
-        """为CycleBoundary conditions对添加Constraint，Completely复用swap的Derivatives阶管理逻辑"""
-        # Completely复用swap的Process方式 - 对AllEquation都Process
-        ne = self.config.n_eqs
-        dgN = self.dgN
-        NS = self.ns
-        nw = min(x_boundary_1_local.shape[0], x_boundary_2_local.shape[0])  # Boundarypoint数量
-
-        for i in range(ne):  # 像swap一样遍历AllEquation
-            max_orders = self.max_derivatives[i]  # UsingEquationIndexi
-            reduced_orders = [max(0, order - 1) for order in max_orders]
-            ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
-
-            for derivative_tuple in product(*ranges):
-                derivative = list(derivative_tuple)
-                # Completely复用_add_swap_derivative的逻辑
-                self._add_periodic_derivative_pair(
-                    model, segment_1, segment_2, NS, nw, dgN, i, derivative,
-                    x_boundary_1_local, x_boundary_2_local
+        """Add periodic boundary constraints for a pair using unified constraint builder"""
+        # Add constraints for all equations and derivatives using unified interface
+        for i in range(self.config.n_eqs):
+            for derivative in self._iter_equation_derivatives(i):
+                self._add_dual_boundary_constraint(
+                    model=model,
+                    seg1=segment_1,
+                    x1_local=x_boundary_1_local,
+                    seg2=segment_2,
+                    x2_local=x_boundary_2_local,
+                    eq_idx=i,
+                    derivative=derivative,
+                    weight=10.0  # Default periodic constraint weight
                 )
 
-    def _add_periodic_derivative_pair(
+
+    def _add_dual_boundary_constraint(
         self,
         model: nn.Module,
         seg1: int,
+        x1_local: np.ndarray,
         seg2: int,
-        NS: int,
-        nw: int,
-        dgN: int,
+        x2_local: np.ndarray,
         eq_idx: int,
         derivative: List[int],
-        x_boundary_1_local: np.ndarray,
-        x_boundary_2_local: np.ndarray
+        weight: float = 10.0
     ):
-        """添加CycleBoundary conditions的DerivativesConstraint，Completely复制_add_swap_derivative的structure和Parameter"""
-        # GetFeature（Completely模仿_add_swap_derivative中的P1和P2）
+        """Unified function for adding dual boundary equality constraints
+
+        This function handles both swap and periodic boundary constraints by:
+        1. Extracting features from both boundary point sets
+        2. Constructing equality constraints: U1 - U2 = 0
+        3. Adding constraints to the global system
+
+        Args:
+            model: Neural network model
+            seg1: First segment index
+            x1_local: First boundary points (local coordinates)
+            seg2: Second segment index
+            x2_local: Second boundary points (local coordinates)
+            eq_idx: Equation index
+            derivative: Derivative orders for each dimension
+            weight: Constraint weight factor
+        """
+        # Ensure equal number of points for proper pairing
+        n1, n2 = x1_local.shape[0], x2_local.shape[0]
+        assert n1 == n2, f"Boundary points must match: seg{seg1} has {n1}, seg{seg2} has {n2}"
+        nw = n1
+
+        # Extract features for both boundaries
         P1 = self._get_segment_features(
-            x_boundary_1_local,
+            x1_local,
             self.config.x_min[seg1],
             self.config.x_max[seg1],
             model,
@@ -511,26 +527,45 @@ class BaseDeepPolyFitter(ABC):
         )
 
         P2 = self._get_segment_features(
-            x_boundary_2_local,
+            x2_local,
             self.config.x_min[seg2],
             self.config.x_max[seg2],
             model,
             derivative,
         )
 
-        # Completely复制_add_swap_derivative的ConstraintMatrixBuild
+        # Construct constraint matrix: U1 - U2 = 0
+        dgN = self.dgN
+        NS = self.ns
         cont = np.zeros((nw, dgN * NS * self.config.n_eqs), dtype=np.float64)
 
-        # Completely复制_add_swap_derivative的ndispCompute和CoefficientsSetup
+        # Add +P1 for first segment
         ndisp = seg1 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]  # 取Forwardnw行以匹配Dimensions
+        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]
 
+        # Add -P2 for second segment
         ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]  # 取Forwardnw行以匹配Dimensions
+        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]
 
-        # Completely复制_add_swap_derivative的Constraint添加方式
-        self.A.extend(10 * cont)
-        self.b.extend(10 * np.zeros((nw, 1)).flatten())
+        # Add to global constraint system
+        self.A.extend(weight * cont)
+        self.b.extend(weight * np.zeros((nw, 1)).flatten())
+
+    def _iter_equation_derivatives(self, eq_idx: int):
+        """Generate derivative combinations for given equation
+
+        Args:
+            eq_idx: Equation index
+
+        Yields:
+            List[int]: Derivative orders for each dimension
+        """
+        max_orders = self.max_derivatives[eq_idx]
+        reduced_orders = [max(0, order - 1) for order in max_orders]
+        ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
+
+        for derivative_tuple in product(*ranges):
+            yield list(derivative_tuple)
 
     def _add_swap_conditions(self, model: nn.Module):
         """Add interface continuity conditions"""
@@ -548,13 +583,7 @@ class BaseDeepPolyFitter(ABC):
                 self._add_dimension_swap(idx, dim, model)
 
     def _add_dimension_swap(self, idx: np.ndarray, dim: int, model: nn.Module):
-        """Add interface continuity conditions for specified dimension"""
-        n_dims = len(self.n_segments)
-        NS = np.prod(self.n_segments)
-        nw = self.config.points_per_swap
-        dgN = self.dgN
-        ne = self.config.n_eqs
-
+        """Add interface continuity conditions for specified dimension using unified constraint builder"""
         idx1 = idx.copy()
         idx2 = idx.copy()
         idx2[dim] += 1
@@ -562,56 +591,24 @@ class BaseDeepPolyFitter(ABC):
         seg1 = np.ravel_multi_index(idx1, self.n_segments, order="F")
         seg2 = np.ravel_multi_index(idx2, self.n_segments, order="F")
 
-        for i in range(ne):
-            max_orders = self.max_derivatives[i]
-            reduced_orders = [max(0, order - 1) for order in max_orders]
-            ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
+        # Get swap boundary points (already normalized)
+        x1_local = self.data["x_swap_norm"][seg1, 2 * dim + 1, :, :]  # seg1 upper boundary
+        x2_local = self.data["x_swap_norm"][seg2, 2 * dim, :, :]      # seg2 lower boundary
 
-            for derivative_tuple in product(*ranges):
-                derivative = list(derivative_tuple)
-                self._add_swap_derivative(
-                    model, seg1, seg2, NS, nw, dgN, i, derivative, dim
+        # Add constraints for all equations and derivatives
+        for i in range(self.config.n_eqs):
+            for derivative in self._iter_equation_derivatives(i):
+                self._add_dual_boundary_constraint(
+                    model=model,
+                    seg1=seg1,
+                    x1_local=x1_local,
+                    seg2=seg2,
+                    x2_local=x2_local,
+                    eq_idx=i,
+                    derivative=derivative,
+                    weight=10.0  # Default swap constraint weight
                 )
 
-    def _add_swap_derivative(
-        self,
-        model: nn.Module,
-        seg1: int,
-        seg2: int,
-        NS: int,
-        nw: int,
-        dgN: int,
-        eq_idx: int,
-        derivative: List[int],
-        dim: int,
-    ):
-        """Add derivative interface conditions for specified dimension"""
-        P1 = self._get_segment_features(
-            self.data["x_swap_norm"][seg1, 2 * dim + 1, :, :],
-            self.config.x_min[seg1],
-            self.config.x_max[seg1],
-            model,
-            derivative,
-        )
-
-        P2 = self._get_segment_features(
-            self.data["x_swap_norm"][seg2, 2 * dim, :, :],
-            self.config.x_min[seg2],
-            self.config.x_max[seg2],
-            model,
-            derivative,
-        )
-
-        cont = np.zeros((nw, dgN * NS * self.config.n_eqs), dtype=np.float64)
-
-        ndisp = seg1 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = P1
-
-        ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = -P2
-
-        self.A.extend(10 * cont)
-        self.b.extend(10 * np.zeros((nw, 1)).flatten())
 
     def construct(
         self,

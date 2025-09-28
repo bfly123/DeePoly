@@ -1,1 +1,43 @@
-============================================================\nTrain Data Error Statistics Report\n============================================================\n\nTime range: [0.001000, 1.000000]\nTotal time steps analyzed: 101\nSpatial points: 100\n\nTime-averaged Errors:\n------------------------------\nMean L2 Error:   1.343657e-03\nMean L∞ Error:   1.097793e-02\n\nMaximum Errors (across all times):\n------------------------------\nMax L2 Error:    6.465606e-03\nMax L∞ Error:    6.213668e-02\n\nConfiguration:\n------------------------------\nTime scheme:     onestep_predictor\nTime step:       0.01\nNeural network:  [12, 32, 32, 10]\nSegments:        [3]\nPolynomial deg:  [10]\n
+======================================================================
+                   ERROR STATISTICS REPORT                    
+======================================================================
+
+【Timeinformation】
+----------------------------------------
+  TimeRange:     [0.001000, 1.000000]
+  Time step数:     101
+  Time step size:     0.01
+  Spacepoint数:     100
+
+【ComputeTimeStatistics】
+----------------------------------------
+  PhysicalComputeTime: 89.76 second
+  Average每步耗时: 0.8887 second
+  ComputeEfficiency:     1.13 步/second
+  Physical/ComputeTime比: 0.0111
+
+【误差Statistics】
+----------------------------------------
+  TimeAverage误差:
+    - L2  误差:   9.672808e-04
+    - L∞  误差:   7.003103e-03
+
+  最大误差 (所Sometimes刻):
+    - L2  误差:   6.840754e-03
+    - L∞  误差:   6.195420e-02
+
+  Error analysis:
+    - L∞/L2 Rate: 7.24
+    - Phase对Precision:   3.0 位小数
+
+【Solve器Configuration】
+----------------------------------------
+  Timeformat:     onestep_predictor
+  Neural network:     [12, 32, 32, 10]
+  分Number of segments量:     [3]
+  Polynomial阶:     [10]
+  EquipmentType:     cuda
+
+======================================================================
+GenerateTime: 2025-09-28 23:35:48
+======================================================================

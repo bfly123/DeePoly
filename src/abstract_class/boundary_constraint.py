@@ -13,8 +13,8 @@ class BoundaryConstraint:
     normals: Optional[torch.Tensor] = None  # 法Vector(Neumann/RobinNeed)
     # CycleBoundary conditions特有field
     x_coords_pair: Optional[torch.Tensor] = None  # 配对Boundarycoordinatepoint
-    normals_pair: Optional[torch.Tensor] = None  # 配对Boundary法Vector
-    periodic_type: Optional[str] = None  # CycleConstraintType：'dirichlet'或'neumann'
+    # 移除normals_pair - 简化的周期边界条件不需要法向量
+    # 移除periodic_type - 周期边界条件统一为函数值相等
     
     def evaluate_dirichlet(self, U_pred: torch.Tensor) -> torch.Tensor:
         """Dirichlet: U[var_idx] = target_values"""
@@ -27,19 +27,9 @@ class BoundaryConstraint:
         return normal_derivative - self.target_values
     
     def evaluate_periodic(self, U_pred_1: torch.Tensor, U_pred_2: torch.Tensor, gradients_func=None) -> torch.Tensor:
-        """CycleBoundary conditions: Boundary对应point的value或DerivativesEqual"""
-        if self.periodic_type == 'dirichlet':
-            # CycleDirichlet: U(x1) = U(x2)
-            return U_pred_1[:, self.var_idx:self.var_idx+1] - U_pred_2[:, self.var_idx:self.var_idx+1]
-        elif self.periodic_type == 'neumann':
-            # CycleNeumann: ∂U/∂n(x1) = ∂U/∂n(x2)
-            grads_1 = gradients_func(U_pred_1[:, self.var_idx:self.var_idx+1], self.x_coords)[0]
-            grads_2 = gradients_func(U_pred_2[:, self.var_idx:self.var_idx+1], self.x_coords_pair)[0]
-            normal_deriv_1 = torch.sum(grads_1 * self.normals, dim=1, keepdim=True)
-            normal_deriv_2 = torch.sum(grads_2 * self.normals_pair, dim=1, keepdim=True)
-            return normal_deriv_1 - normal_deriv_2
-        else:
-            raise ValueError(f"Unknown periodic type: {self.periodic_type}")
+        """统一的周期边界条件: U(x1) = U(x2)"""
+        # 周期边界条件只有一种：函数值在配对边界点相等
+        return U_pred_1[:, self.var_idx:self.var_idx+1] - U_pred_2[:, self.var_idx:self.var_idx+1]
     
     def evaluate(self, U_pred: torch.Tensor, gradients_func=None, U_pred_pair: torch.Tensor = None) -> torch.Tensor:
         """UnifyEvaluationInterface"""
@@ -92,18 +82,15 @@ class BoundaryConstraintManager:
             # CycleBoundaryConstraint
             if 'periodic' in var_boundary_data and var_boundary_data['periodic']['pairs']:
                 for pair in var_boundary_data['periodic']['pairs']:
+                    # 简化的周期边界条件 - 只需要函数值相等
                     constraint = BoundaryConstraint(
                         var_idx=var_idx,
                         constraint_type='periodic',
                         x_coords=self._to_tensor(pair['x_1']),
-                        x_coords_pair=self._to_tensor(pair['x_2']),
-                        periodic_type=pair['constraint_type']
+                        x_coords_pair=self._to_tensor(pair['x_2'])
+                        # 移除periodic_type和normals - 统一为函数值相等约束
                     )
-                    
-                    if pair['constraint_type'] == 'neumann':
-                        constraint.normals = self._to_tensor(pair['normals_1'])
-                        constraint.normals_pair = self._to_tensor(pair['normals_2'])
-                    
+
                     self.constraints.append(constraint)
     
     def compute_boundary_loss(self, U_pred_func, gradients_func, weight: float = 10.0) -> torch.Tensor:

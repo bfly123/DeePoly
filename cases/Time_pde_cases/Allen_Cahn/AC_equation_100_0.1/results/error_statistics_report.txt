@@ -11,10 +11,10 @@
 
 【ComputeTimeStatistics】
 ----------------------------------------
-  PhysicalComputeTime: 12.76 second
-  Average每步耗时: 1.1598 second
+  PhysicalComputeTime: 12.79 second
+  Average每步耗时: 1.1627 second
   ComputeEfficiency:     0.86 步/second
-  Physical/ComputeTime比: 0.0776
+  Physical/ComputeTime比: 0.0774
 
 【误差Statistics】
 ----------------------------------------
@@ -39,5 +39,5 @@
   EquipmentType:     cuda
 
 ======================================================================
-GenerateTime: 2025-09-28 17:56:50
+GenerateTime: 2025-09-28 19:04:17
 ======================================================================

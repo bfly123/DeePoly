@@ -205,45 +205,13 @@ class LinearPDENet(BaseNet):
                     for pair in global_boundary_dict[var_idx]['periodic']['pairs']:
                         x_bc_1 = pair['x_1']
                         x_bc_2 = pair['x_2']
-                        constraint_type = pair['constraint_type']
-                        
-                        # Get model predictions at both boundary regions
+                        # 统一的周期边界条件: U(x1) = U(x2)
                         _, pred_bc_1 = self(x_bc_1)
                         _, pred_bc_2 = self(x_bc_2)
-                        
-                        if constraint_type == 'dirichlet':
-                            # Periodic Dirichlet: U(x1) = U(x2)
-                            periodic_error = (pred_bc_1 - pred_bc_2) ** 2
-                            boundary_loss += torch.mean(periodic_error)
-                        elif constraint_type == 'neumann':
-                            # Periodic Neumann: ∂U/∂n(x1) = ∂U/∂n(x2)
-                            normals_1 = pair['normals_1']
-                            normals_2 = pair['normals_2']
-                            
-                            # Calculate normal derivatives at both boundary regions
-                            all_periodic_errors = []
-                            for i in range(x_bc_1.shape[0]):
-                                x_point_1 = x_bc_1[i:i+1].clone().detach().requires_grad_(True)
-                                x_point_2 = x_bc_2[i:i+1].clone().detach().requires_grad_(True)
-                                
-                                _, u_pred_1 = self(x_point_1)
-                                _, u_pred_2 = self(x_point_2)
-                                
-                                grads_1 = self.gradients(u_pred_1, x_point_1)[0]
-                                grads_2 = self.gradients(u_pred_2, x_point_2)[0]
-                                
-                                normal_1 = normals_1[i]
-                                normal_2 = normals_2[i]
-                                
-                                normal_deriv_1 = torch.sum(grads_1 * normal_1)
-                                normal_deriv_2 = torch.sum(grads_2 * normal_2)
-                                
-                                periodic_error = (normal_deriv_1 - normal_deriv_2) ** 2
-                                all_periodic_errors.append(periodic_error)
-                            
-                            if all_periodic_errors:
-                                periodic_errors = torch.stack(all_periodic_errors)
-                                boundary_loss += torch.mean(periodic_errors)
+
+                        # 周期边界条件只有一种：函数值相等
+                        periodic_error = (pred_bc_1 - pred_bc_2) ** 2
+                        boundary_loss += torch.mean(periodic_error)
 
         # Combine losses with appropriate weights
         total_loss = pde_loss + boundary_loss_weight * boundary_loss

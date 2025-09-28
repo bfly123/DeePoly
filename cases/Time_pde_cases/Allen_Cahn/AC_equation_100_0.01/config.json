@@ -1,76 +1,227 @@
 {
-    "problem_type": "time_pde",
-    "method": "hybrid",
-    "auto_code": false,
-    "eq": {
-        "L1": [
-            "-0.0001*diff(u,x,2)"
-        ],
-        "L2": [],
-        "F": [],
-        "N": [
-            "5*u**3-5*u"
-        ]
+  "segment_ranges": [
+    [
+      -1.0,
+      -0.33333333333333337,
+      0.33333333333333326,
+      1.0
+    ]
+  ],
+  "case_dir": ".",
+  "vars_list": [
+    "u"
+  ],
+  "spatial_vars": [
+    "x"
+  ],
+  "eq": {
+    "L1": [
+      "-0.0001*diff(u,x,2)"
+    ],
+    "L2": [],
+    "F": [],
+    "N": [
+      "5*u**3-5*u"
+    ]
+  },
+  "eq_nonlinear": [],
+  "const_list": [],
+  "n_segments": [
+    "3"
+  ],
+  "poly_degree": [
+    10
+  ],
+  "x_domain": [
+    [
+      -1,
+      1
+    ]
+  ],
+  "method": "hybrid",
+  "hidden_dims": [
+    "12",
+    "32",
+    "32",
+    "10"
+  ],
+  "device": "cuda",
+  "linear_device": "cpu",
+  "learning_rate": "0.01",
+  "points_domain": "100",
+  "points_domain_test": [
+    "100"
+  ],
+  "points_per_swap": "1",
+  "seed": "42",
+  "boundary_conditions": [
+    {
+      "type": "periodic",
+      "pairs": [
+        "left",
+        "right"
+      ],
+      "points": "1"
+    }
+  ],
+  "operator_parse": {
+    "derivatives": [
+      [
+        "0"
+      ],
+      [
+        "2"
+      ]
+    ],
+    "all_derivatives": {
+      "U": [
+        "0",
+        "0"
+      ],
+      "U_xx": [
+        "0",
+        "1"
+      ]
     },
-    "vars_list": [
-        "u"
+    "max_derivative_orders": [
+      [
+        "2"
+      ]
     ],
-    "spatial_vars": [
-        "x"
-    ],
-    "Initial_conditions": [
+    "operator_terms": {
+      "L1": [
         {
-            "var": "u",
-            "value": "x**2*cos(pi*x)",
-            "points": 100
+          "derivative_indices": [
+            "1"
+          ],
+          "symbolic_expr": "-0.0001*U_xx"
         }
-    ],
-    "boundary_conditions": [
+      ],
+      "L2": [
         {
-            "type": "periodic",
-            "region": "left",
-            "pair_with": "right",
-            "constraint": "dirichlet",
-            "points": 1
+          "derivative_indices": [],
+          "symbolic_expr": "0"
         }
+      ],
+      "F": [
+        {
+          "derivative_indices": [],
+          "symbolic_expr": "1"
+        }
+      ],
+      "N": [
+        {
+          "derivative_indices": [
+            "0"
+          ],
+          "symbolic_expr": "5*U**3-5*U"
+        }
+      ],
+      "L2F": [
+        {
+          "derivative_indices": [],
+          "symbolic_expr": "0"
+        }
+      ]
+    }
+  },
+  "T": "1",
+  "dt": "0.01",
+  "spotter_skip": "1",
+  "epochs_adam": "20000",
+  "epochs_lbfgs": "0",
+  "max_retries": "1",
+  "DNNtol": "0.01",
+  "Initial_conditions": [
+    {
+      "var": "u",
+      "value": "x**2*cos(pi*x)",
+      "points": "100"
+    }
+  ],
+  "time_scheme": "onestep_predictor",
+  "time_scheme_params": {},
+  "eq_L1": [
+    "-0.0001*diff(u,x,2)"
+  ],
+  "eq_L2": [
+    "0"
+  ],
+  "eq_F": [
+    "1"
+  ],
+  "eq_N": [
+    "5*u**3-5*u"
+  ],
+  "eq_linear_list": [],
+  "deriv_orders": [],
+  "max_deriv_orders": [],
+  "eq_nonlinear_list": [],
+  "all_derivatives": [],
+  "f_L2": [
+    "1"
+  ],
+  "N": [
+    "5*u**3-5*u"
+  ],
+  "problem_type": "time_pde",
+  "auto_code": "True",
+  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
+  "reference_solution": "reference_data/allen_cahn_highres.mat",
+  "realtime_visualization": "True",
+  "animation_skip": "1",
+  "n_dim": "1",
+  "n_eqs": "1",
+  "x_min": [
+    [
+      -1.0
     ],
-    "hidden_dims": [
-        12,
-        32,
-        32,
-        10
+    [
+      -0.33333333333333337
     ],
-    "epochs_adam": 20000,
-    "epochs_lbfgs": 0,
-    "max_retries": 1,
-    "DNNtol": 0.01,
-    "note": "单步预测-校正格式：算子值预计算和时间步间复用，减少75%算子计算量",
-    "learning_rate": 0.01,
-    "n_segments": [
-        3
+    [
+      0.33333333333333326
+    ]
+  ],
+  "x_max": [
+    [
+      -0.33333333333333337
     ],
-    "points_domain": 100,
-    "points_per_swap": 1,
-    "points_domain_test": [
-        100
+    [
+      0.33333333333333326
     ],
-    "poly_degree": [
-        10
+    [
+      1.0
+    ]
+  ],
+  "x_min_norm": [
+    [
+      0.0
     ],
-    "x_domain": [
-        [
-            -1,
-            1
-        ]
+    [
+      0.0
     ],
-    "time_scheme": "onestep_predictor",
-    "T": 1,
-    "dt": 0.01,
-    "spotter_skip": 1,
-    "reference_solution": "reference_data/allen_cahn_highres.mat",
-    "realtime_visualization": true,
-    "animation_skip": 1,
-    "device": "cuda",
-    "linear_device": "cpu",
-    "seed": 42
+    [
+      0.0
+    ]
+  ],
+  "x_max_norm": [
+    [
+      1.0
+    ],
+    [
+      1.0
+    ],
+    [
+      1.0
+    ]
+  ],
+  "DNN_degree": "10",
+  "max_time_steps": "101",
+  "time_output_interval": "1",
+  "adaptive_dt": "False",
+  "stability_check": "False",
+  "results_dir": "./results",
+  "export_time": "2025-09-28 23:34:06",
+  "device_info": "cuda"
 }
