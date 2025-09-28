@@ -7,7 +7,7 @@ import json
 from src.meta_coding.auto_spotter import update_physics_loss_from_config
 
 def update_physics_loss_code(linear_equations, vars_list, spatial_vars, const_list, case_dir):
-    """兼容性包装函数"""
+    """CompatibilityPackage装function"""
     config_path = os.path.join(case_dir, "config.json")
     update_physics_loss_from_config(config_path)
 from src.meta_coding import parse_operators
@@ -126,17 +126,17 @@ class LinearPDEConfig(BaseConfig):
                 case_dir=self.case_dir
             )
 
-            # 自动将auto_code设置为false
+            # 自动将auto_codeSetup为false
             config_path = os.path.join(self.case_dir, "config.json")
             self._disable_auto_code(config_path)
             print("Auto code completed, please check the net.py file, restart the program")
 
-            # 退出程序
+            # ExitProcedure
             import sys
             sys.exit(0)
 
     def _disable_auto_code(self, config_path: str):
-        """将配置文件中的auto_code设置为false"""
+        """将ConfigurationFile中的auto_codeSetup为false"""
         try:
             import json
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -147,10 +147,10 @@ class LinearPDEConfig(BaseConfig):
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
 
-            print(f"自动将 auto_code 设置为 false 在文件: {config_path}")
+            print(f"自动将 auto_code Setup为 false AtFile: {config_path}")
 
         except Exception as e:
-            print(f"无法更新配置文件: {e}")
+            print(f"无法UpdateConfigurationFile: {e}")
 
     def _validate_config(self):
         """Validate configuration parameters"""

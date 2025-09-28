@@ -5,13 +5,13 @@ from scipy.sparse import linalg as splinalg
 
 
 class GaussNewtonSolver:
-    """优化的高斯-牛顿求解器，使用线搜索策略"""
+    """Optimize的Gauss-NewtonSolve器，UsingLineSearchStrategy"""
 
     def __init__(self, use_gpu: bool = True, use_linesearch: bool = True):
         """
         Args:
-            use_gpu: 是否使用GPU加速
-            use_linesearch: 是否使用线搜索
+            use_gpu: YesNoUsingGPU加速
+            use_linesearch: YesNoUsingLineSearch
         """
         self.use_gpu = use_gpu and cp.is_available()
         self.use_linesearch = use_linesearch
@@ -28,17 +28,17 @@ class GaussNewtonSolver:
         max_iter: int = 50,
         tol: float = 1e-8,
         initial_guess: Optional[np.ndarray] = None,
-        damping: float = 1e-4,  # Levenberg-Marquardt阻尼因子
+        damping: float = 1e-4,  # Levenberg-MarquardtDamping因子
     ) -> np.ndarray:
-        """使用优化的高斯-牛顿法求解非线性系统
+        """UsingOptimize的Gauss-Newton法SolveNonlinearSystem
 
-        特点:
-        1. 使用Levenberg-Marquardt阻尼提高稳定性
-        2. 采用自适应线搜索
-        3. 实现预条件共轭梯度求解线性子问题
-        4. 使用QR分解处理病态问题
+        特point:
+        1. UsingLevenberg-MarquardtDampingImprovementStability
+        2. 采用自适应LineSearch
+        3. Implementation预Condition共轭GradientSolveLinear子Problem
+        4. UsingQRDecomposeProcess病态Problem
         """
-        # 智能初始化
+        # 智能Initialize
         ns, n_eqs, dgN = shape
         if initial_guess is not None:
             x = initial_guess.reshape(-1, 1)
@@ -47,50 +47,50 @@ class GaussNewtonSolver:
         else:
             x = np.zeros((dgN * ns * n_eqs, 1))
 
-        # 预分配GPU内存
+        # 预AllocateGPUInner存
         if self.use_gpu:
             workspace = {"x": cp.asarray(x), "buffer": cp.empty_like(x)}
 
-        # 记录最佳解
+        # record最佳Solution
         best_x = x.copy()
         best_residual = float("inf")
 
-        # Wolfe线搜索参数
-        c1 = 1e-4  # Armijo条件参数
-        c2 = 0.9  # 曲率条件参数
+        # WolfeLineSearchParameter
+        c1 = 1e-4  # ArmijoConditionParameter
+        c2 = 0.9  # CurvatureConditionParameter
         alpha_init = 1.0
 
         for iter in range(max_iter):
-            # 计算残差和雅可比矩阵
+            # ComputeResidual和Jacobian matrix
             f_val, J = build_jacobian_fn(x, A, b, equations, variables)
             f_norm = float(np.linalg.norm(f_val))
 
-            # 更新最佳解
+            # Update最佳Solution
             if f_norm < best_residual:
                 best_residual = f_norm
                 best_x = x.copy()
 
-            # 收敛检查
+            # ConvergentCheck
             if f_norm < tol:
                 break
 
-            # 构建高斯-牛顿系统
+            # BuildGauss-NewtonSystem
             g = J.T @ f_val
 
-            # 使用QR分解求解正规方程
-            # 这比直接求解 J^T J 更稳定
+            # UsingQRDecomposeSolve正规Equation
+            # 这比直接Solve J^T J 更Stable
             try:
                 Q, R = np.linalg.qr(J)
                 delta = -np.linalg.solve(R.T @ R + damping * np.eye(R.shape[1]), g)
             except np.linalg.LinAlgError:
-                # 如果QR分解失败，回退到预条件共轭梯度
+                # IfQRDecomposeFail，Return退To预Condition共轭Gradient
                 B = J.T @ J + damping * np.eye(J.shape[1])
                 delta = self._solve_pcg(B, -g)
 
             delta = delta.reshape(-1, 1)
 
             if self.use_linesearch:
-                # 使用Wolfe线搜索
+                # UsingWolfeLineSearch
                 alpha = self._wolfe_linesearch(
                     x,
                     delta,
@@ -109,43 +109,43 @@ class GaussNewtonSolver:
             else:
                 step = delta
 
-            # 更新解
+            # UpdateSolution
             x_new = x + step
 
-            # 计算实际改进
+            # Compute实际Enhancement
             new_f_val, _ = build_jacobian_fn(x_new, A, b, equations, variables)
             new_f_norm = float(np.linalg.norm(new_f_val))
             mean_f_norm = np.mean(np.abs(new_f_val))
 
-            # 自适应阻尼更新
+            # 自适应DampingUpdate
             if new_f_norm < f_norm:
-                damping = max(damping * 0.1, 1e-7)  # 减小阻尼
+                damping = max(damping * 0.1, 1e-7)  # 减小Damping
                 x = x_new
             else:
-                damping = min(damping * 10, 1e2)  # 增大阻尼
+                damping = min(damping * 10, 1e2)  # IncreaseDamping
 
-            # 输出诊断信息
+            # Output诊断information
             print(f"Iteration {iter+1}")
             print(f"Step size: {float(np.linalg.norm(step)):.6f}")
             print(f"Residual: {new_f_norm:.6f}")
             print(f"Mean Residual: {mean_f_norm:.6f}")
             print(f"Damping: {damping:.6e}\n")
 
-            # 收敛检查
+            # ConvergentCheck
             if np.linalg.norm(step) < tol * (1 + np.linalg.norm(x)):
                 break
 
-        # 保存结果用于热启动
+        # SaveResult用于热Start
         self._last_solution = best_x
 
         return best_x.reshape(ns, n_eqs, dgN)
 
     def _solve_pcg(self, A, b, tol=1e-10, max_iter=None):
-        """预条件共轭梯度法求解线性系统"""
+        """预Condition共轭Gradient法SolveLinearSystem"""
         n = len(b)
         max_iter = n if max_iter is None else max_iter
 
-        # 简单的对角线预条件子
+        # 简单的对CornerLine预Condition子
         M = np.diag(np.diag(A))
 
         x = np.zeros_like(b)
@@ -190,7 +190,7 @@ class GaussNewtonSolver:
         alpha_init,
         max_iter=10,
     ):
-        """Wolfe线搜索以确定最优步长"""
+        """WolfeLineSearch以确定最优Step size"""
         phi_0 = float(np.linalg.norm(f_val))
         dphi_0 = float(2 * f_val.T @ (J @ p))
 
@@ -199,12 +199,12 @@ class GaussNewtonSolver:
         phi_prev = phi_0
 
         for i in range(max_iter):
-            # 计算新点的函数值
+            # Compute新point的函Numerical
             x_new = x + alpha * p
             f_new, J_new = build_jacobian_fn(x_new, A, b, equations, variables)
             phi = float(np.linalg.norm(f_new))
 
-            # Armijo条件检查
+            # ArmijoConditionCheck
             if phi > phi_0 + c1 * alpha * dphi_0:
                 return self._zoom(
                     alpha_prev,
@@ -224,10 +224,10 @@ class GaussNewtonSolver:
                     c2,
                 )
 
-            # 计算新导数
+            # Compute新Derivatives
             dphi = float(2 * f_new.T @ (J_new @ p))
 
-            # 曲率条件检查
+            # CurvatureConditionCheck
             if abs(dphi) <= -c2 * dphi_0:
                 return alpha
 
@@ -274,12 +274,12 @@ class GaussNewtonSolver:
         c1,
         c2,
     ):
-        """Zoom阶段的线搜索"""
+        """ZoomPhase的LineSearch"""
         for i in range(10):
-            # 二分法选择新的alpha
+            # 二分法选择Newalpha
             alpha = (alpha_lo + alpha_hi) / 2.0
 
-            # 计算新点的函数值
+            # Compute新point的函Numerical
             x_new = x + alpha * p
             f_new, J_new = build_jacobian_fn(x_new, A, b, equations, variables)
             phi = float(np.linalg.norm(f_new))

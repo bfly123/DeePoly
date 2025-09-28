@@ -1,14 +1,14 @@
 """
-函数拟合求解器工具组件
+functionFittingSolve器ToolComponent
 """
 
-# 导出配置类
+# ExportConfigurationclass
 from .config import FuncFittingConfig
 
-# 导出数据生成器
+# ExportData generator
 from .data import FuncFittingDataGenerator
 
-# 导出可视化工具
+# ExportVisualizationTool
 from .visualize import FuncFittingVisualizer
 
 __all__ = [

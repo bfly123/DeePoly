@@ -14,22 +14,22 @@ import re
 class EquationProcessor:
     def __init__(self, dimensions: List[str], vars_list: List[str]):
         """
-        初始化方程处理器
+        InitializeEquationProcessor
         
         Args:
-            dimensions: 维度列表 (例如: ['x'] 表示1D, ['x', 'y'] 表示2D)
-            vars_list: 变量列表 (例如: ['u', 'v', 'p'])
+            dimensions: DimensionsList (For example: ['x'] 表示1D, ['x', 'y'] 表示2D)
+            vars_list: Variable list (For example: ['u', 'v', 'p'])
         """
         self.dimensions = dimensions
         self.vars_list = vars_list
 
-        # 创建符号变量
+        # Create符号variable
         self.vars = {dim: sp.Symbol(dim) for dim in dimensions}
 
-        # 创建基本变量
+        # Create基本variable
         self.var_symbols = {var: sp.Symbol(var) for var in vars_list}
 
-        # 创建导数符号
+        # CreateDerivatives符号
         self.derivatives = {}
         for var in vars_list:
             for dim in dimensions:
@@ -37,31 +37,31 @@ class EquationProcessor:
 
     def parse_equation(self, eq_str: str) -> sp.Expr:
         """
-        解析方程字符串为sympy表达式
+        AnalyticalEquation字符串为sympyExpression
         
         Args:
-            eq_str: 方程字符串
+            eq_str: Equation字符串
             
         Returns:
-            解析后的sympy表达式
+            AnalyticalBackward的sympyExpression
             
         Raises:
-            ValueError: 方程解析错误
+            ValueError: EquationAnalyticalError
         """
         if eq_str == "0":
             return sp.Integer(0)
 
-        # 替换导数表达式
+        # 替换DerivativesExpression
         for var in self.vars_list:
             for dim in self.dimensions:
                 eq_str = eq_str.replace(f"diff({var},{dim})", f"{var}_{dim}")
-                # 处理高阶导数
-                for order in range(2, 6):  # 支持到5阶导数
+                # Process高阶Derivatives
+                for order in range(2, 6):  # SupportTo5阶Derivatives
                     old_pattern = f"diff({var},{dim},{order})"
                     new_pattern = f"{var}_" + dim * order
                     eq_str = eq_str.replace(old_pattern, new_pattern)
 
-        # 将方程字符串转换为表达式
+        # 将Equation字符串Convert为Expression
         if '=' in eq_str:
             lhs, rhs = eq_str.split('=')
             eq_str = f"({lhs}) - ({rhs})"
@@ -70,21 +70,21 @@ class EquationProcessor:
             expr = sp.sympify(eq_str)
             return expr
         except Exception as e:
-            raise ValueError(f"方程解析错误: {str(e)}, 原方程: {eq_str}")
+            raise ValueError(f"EquationAnalyticalError: {str(e)}, 原Equation: {eq_str}")
 
     def _find_used_derivatives(self, equations: Union[List[str], Dict[str, List[str]]]) -> Dict[str, int]:
         """
-        分析方程中使用的导数及其最高阶数
+        AnalyzeEquation中Using的Derivatives及其最高阶数
         
         Args:
-            equations: 方程组
+            equations: EquationGroup
             
         Returns:
-            使用的导数及其最高阶数的字典
+            Using的Derivatives及其最高阶数的Dictionary
         """
         used_derivatives = {}
         
-        # 统一处理格式
+        # UnifyProcessformat
         eq_list = []
         if isinstance(equations, dict):
             for op_name, eq_items in equations.items():
@@ -99,15 +99,15 @@ class EquationProcessor:
             if eq == "0":
                 continue
                 
-            # 分析各种导数模式
+            # Analyze各种Derivativespattern
             for var in self.vars_list:
-                # 检查变量本身
+                # Checkvariable本身
                 if var in eq:
                     key = f"{var}"
                     used_derivatives[key] = max(used_derivatives.get(key, 0), 0)
                 
                 for dim in self.dimensions:
-                    # 检查各阶导数
+                    # Check各阶Derivatives
                     for order in range(1, 6):
                         if order == 1:
                             pattern = f"diff({var},{dim})"
@@ -115,7 +115,7 @@ class EquationProcessor:
                             pattern = f"diff({var},{dim},{order})"
                         
                         if pattern in eq:
-                            # 对于高阶导数，也需要所有低阶导数
+                            # For高阶Derivatives，也NeedAll低阶Derivatives
                             for lower_order in range(1, order + 1):
                                 if lower_order == 1:
                                     key = f"{var}_{dim}"
@@ -127,24 +127,24 @@ class EquationProcessor:
 
     def generate_pytorch_derivatives(self, equations: Union[List[str], Dict[str, List[str]]]) -> str:
         """
-        生成PyTorch神经网络的导数计算代码
+        GeneratePyTorchNeural network的DerivativesCompute代yard
         
         Args:
-            equations: 方程组
+            equations: EquationGroup
             
         Returns:
-            生成的导数计算代码
+            Generate的DerivativesCompute代yard
         """
         used_derivatives = self._find_used_derivatives(equations)
         derivatives_code = []
         
-        # 生成变量提取代码
+        # Generatevariable提取代yard
         derivatives_code.append("        # Extract physical quantities from output")
         for i, var in enumerate(self.vars_list):
             if any(key.startswith(var) for key in used_derivatives.keys()):
                 derivatives_code.append(f"        {var} = U[..., {i}]")
         
-        # 生成一阶导数代码
+        # Generate一阶Derivatives代yard
         first_order_added = False
         for var in self.vars_list:
             for i, dim in enumerate(self.dimensions):
@@ -156,7 +156,7 @@ class EquationProcessor:
                         first_order_added = True
                     derivatives_code.append(f"        d{var}_{dim} = self.gradients({var}, x_train)[0][..., {i}]")
         
-        # 生成高阶导数代码
+        # Generate高阶Derivatives代yard
         for order in range(2, 6):
             order_added = False
             for var in self.vars_list:
@@ -186,19 +186,19 @@ class EquationProcessor:
 
     def _convert_equation_to_pytorch(self, eq: str) -> str:
         """
-        将方程字符串转换为PyTorch格式
+        将Equation字符串Convert为PyTorchformat
         
         Args:
-            eq: 方程字符串
+            eq: Equation字符串
             
         Returns:
-            PyTorch格式的方程字符串
+            PyTorchformat的Equation字符串
         """
         eq_pytorch = eq
         for var in self.vars_list:
             for dim in self.dimensions:
-                # 处理高阶导数
-                for order in range(5, 0, -1):  # 从高阶到低阶
+                # Process高阶Derivatives
+                for order in range(5, 0, -1):  # From高阶To低阶
                     if order == 1:
                         old_pattern = f"diff({var},{dim})"
                         new_pattern = f"d{var}_{dim}"
@@ -211,51 +211,95 @@ class EquationProcessor:
 
     def generate_unified_operators(self, config_dict: Dict) -> str:
         """
-        生成统一的算子代码，适用于所有问题类型
-        
+        GenerateUnify的Operators代yard，适用于AllProblemType
+
         Args:
-            config_dict: 配置字典
-            
+            config_dict: ConfigurationDictionary
+
         Returns:
-            生成的算子代码
+            Generate的Operators代yard
         """
         operators_code = []
-        
-        # 获取eq字段
+
+        # Geteqfield
         eq_dict = config_dict.get("eq", {})
-        
-        # 处理不同的算子类型
-        for op_name, eq_list in eq_dict.items():
-            operators_code.append(f"        # {op_name} operators")
-            
-            if isinstance(eq_list, list):
-                # 生成列表格式
-                eq_terms = []
-                for eq in eq_list:
-                    eq_pytorch = self._convert_equation_to_pytorch(eq)
-                    eq_terms.append(eq_pytorch)
-                
-                if len(eq_terms) == 1:
-                    operators_code.append(f"        {op_name} = [{eq_terms[0]}]")
+        problem_type = config_dict.get("problem_type", "linear_pde")
+
+        # For linear_pde, only process L1 operators, skip S (handled separately in data processing)
+        if problem_type == "linear_pde":
+            # Only generate L1 operators for linear PDEs
+            if "L1" in eq_dict:
+                operators_code.append("        # L1 operators")
+                eq_list = eq_dict["L1"]
+
+                if isinstance(eq_list, list):
+                    eq_terms = []
+                    for eq in eq_list:
+                        eq_pytorch = self._convert_equation_to_pytorch(eq)
+                        eq_terms.append(eq_pytorch)
+
+                    if len(eq_terms) == 1:
+                        operators_code.append(f"        L1 = [{eq_terms[0]}]")
+                    else:
+                        operators_code.append("        L1 = [")
+                        for i, term in enumerate(eq_terms):
+                            if i == len(eq_terms) - 1:
+                                operators_code.append(f"            {term}")
+                            else:
+                                operators_code.append(f"            {term},")
+                        operators_code.append("        ]")
                 else:
-                    operators_code.append(f"        {op_name} = [")
-                    for i, term in enumerate(eq_terms):
-                        if i == len(eq_terms) - 1:
-                            operators_code.append(f"            {term}")
-                        else:
-                            operators_code.append(f"            {term},")
-                    operators_code.append("        ]")
-            else:
-                # 如果不是列表，当作单个方程处理
-                eq_pytorch = self._convert_equation_to_pytorch(eq_list)
-                operators_code.append(f"        {op_name} = [{eq_pytorch}]")
-            
-            if op_name != list(eq_dict.keys())[-1]:  # 不是最后一个算子，添加空行
-                operators_code.append("")
+                    eq_pytorch = self._convert_equation_to_pytorch(eq_list)
+                    operators_code.append(f"        L1 = [{eq_pytorch}]")
+
+            # Add empty placeholders for other operators to maintain code structure
+            operators_code.append("")
+            operators_code.append("        # L2 operators (not used in linear PDEs)")
+            operators_code.append("        L2 = []")
+            operators_code.append("")
+            operators_code.append("        # F operators (not used in linear PDEs)")
+            operators_code.append("        F = []")
+            operators_code.append("")
+            operators_code.append("        # N operators (not used in linear PDEs)")
+            operators_code.append("        N = []")
+
+        else:
+            # For other problem types, process all operators as before
+            for op_name, eq_list in eq_dict.items():
+                # Skip S field for all problem types (handled in data processing)
+                if op_name == "S":
+                    continue
+
+                operators_code.append(f"        # {op_name} operators")
+
+                if isinstance(eq_list, list):
+                    # GenerateListformat
+                    eq_terms = []
+                    for eq in eq_list:
+                        eq_pytorch = self._convert_equation_to_pytorch(eq)
+                        eq_terms.append(eq_pytorch)
+
+                    if len(eq_terms) == 1:
+                        operators_code.append(f"        {op_name} = [{eq_terms[0]}]")
+                    else:
+                        operators_code.append(f"        {op_name} = [")
+                        for i, term in enumerate(eq_terms):
+                            if i == len(eq_terms) - 1:
+                                operators_code.append(f"            {term}")
+                            else:
+                                operators_code.append(f"            {term},")
+                        operators_code.append("        ]")
+                else:
+                    # If不YesList，When作SingleEquationProcess
+                    eq_pytorch = self._convert_equation_to_pytorch(eq_list)
+                    operators_code.append(f"        {op_name} = [{eq_pytorch}]")
+
+                if op_name != list(eq_dict.keys())[-1]:  # 不YesFinally一个Operators，添加空行
+                    operators_code.append("")
         
-        # 对于时间PDE，还需要处理额外的算子字段
+        # ForTimePDE，还NeedProcessExtra的Operatorsfield
         if config_dict.get("problem_type") == "time_pde":
-            # 处理时间PDE特有的算子
+            # Processing timePDE特有的Operators
             time_operators = ["eq_L1", "eq_L2", "f_L2", "N"]
             for op_type in time_operators:
                 if op_type in config_dict and config_dict[op_type]:
@@ -276,7 +320,7 @@ class EquationProcessor:
                         operators_code.append("        # Additional L2 operators (semi-implicit linear)")
                         op_display_name = "L2_extra"
                     
-                    # 生成列表格式
+                    # GenerateListformat
                     eq_terms = []
                     for eq in config_dict[op_type]:
                         eq_pytorch = self._convert_equation_to_pytorch(eq)
@@ -302,22 +346,22 @@ class EquationProcessor:
         config_dict: Dict = None
     ) -> None:
         """
-        生成PyTorch神经网络的完整代码，只包含导数和算子部分
+        GeneratePyTorchNeural network的Intact代yard，只IncludeDerivatives和OperatorsPartial
         
         Args:
-            equations: 方程组（现在主要用于导数分析）
-            output_path: 输出文件路径
-            problem_type: 问题类型
-            config_dict: 配置字典
+            equations: EquationGroup（NowMain用于DerivativesAnalyze）
+            output_path: OutputFilePath
+            problem_type: ProblemType
+            config_dict: ConfigurationDictionary
             
         Raises:
-            Exception: 代码生成错误
+            Exception: 代yardGenerateError
         """
         try:
-            # 收集所有方程用于导数分析
+            # CollectAllEquation用于DerivativesAnalyze
             all_equations = []
             
-            # 从eq字段收集方程
+            # FromeqfieldCollectEquation
             if config_dict and "eq" in config_dict:
                 eq_dict = config_dict["eq"]
                 for op_name, eq_list in eq_dict.items():
@@ -326,25 +370,25 @@ class EquationProcessor:
                     else:
                         all_equations.append(eq_list)
             
-            # 对于时间PDE，还要从其他字段收集方程
+            # ForTimePDE，还要From其他fieldCollectEquation
             if problem_type == "time_pde" and config_dict:
                 time_operators = ["eq_L1", "eq_L2", "f_L2", "N"]
                 for op_type in time_operators:
                     if op_type in config_dict and config_dict[op_type]:
                         all_equations.extend(config_dict[op_type])
             
-            # 生成导数计算代码
+            # GenerateDerivativesCompute代yard
             derivatives_code = self.generate_pytorch_derivatives(all_equations)
             
-            # 生成统一的算子代码
+            # GenerateUnify的Operators代yard
             operators_code = self.generate_unified_operators(config_dict) if config_dict else ""
 
-            # 生成配置签名（用于后续一致性检查）
+            # GenerateConfiguration签名（用于Backward续ConsistencyCheck）
             config_signature = ""
             if config_dict:
-                # 提取算子配置
+                # 提取OperatorsConfiguration
                 sig_dict = {}
-                if "eq" in config_dict:  # 新格式
+                if "eq" in config_dict:  # 新format
                     eq = config_dict["eq"]
                     sig_dict = {
                         "L1": eq.get("L1", []),
@@ -352,7 +396,7 @@ class EquationProcessor:
                         "F": eq.get("F", []),
                         "N": eq.get("N", [])
                     }
-                else:  # 兼容旧格式
+                else:  # 兼容旧format
                     sig_dict = {
                         "L1": config_dict.get("eq_L1", []),
                         "L2": config_dict.get("eq_L2", []),
@@ -364,7 +408,7 @@ class EquationProcessor:
                 sig_str = json.dumps(sig_dict, sort_keys=True)
                 config_signature = f"# Config signature: {sig_str}\n"
 
-            # 组合代码
+            # Combination代yard
             code = f"""# auto code begin
 {config_signature}{derivatives_code}
 
@@ -372,25 +416,25 @@ class EquationProcessor:
 
 # auto code end"""
             
-            # 写入文件
+            # WriteFile
             with open(output_path, "w") as f:
                 f.write(code)
 
-            print(f"PyTorch神经网络代码已生成到: {output_path}")
+            print(f"PyTorchNeural network代yard已GenerateTo: {output_path}")
 
         except Exception as e:
-            print(f"生成PyTorch代码时出错: {str(e)}")
+            print(f"GeneratePyTorch代yard时Exit错: {str(e)}")
             raise
 
 
 class AutoCodeGenerator:
-    """自动代码生成器类"""
+    """自动代yardGeneratorclass"""
     def __init__(self, config_path: str):
         """
-        初始化自动代码生成器
+        Initialize自动代yardGenerator
         
         Args:
-            config_path: 配置文件路径
+            config_path: ConfigurationFilePath
         """
         self.config_path = config_path
         self.config_dict = self._load_config()
@@ -401,53 +445,53 @@ class AutoCodeGenerator:
         self.processor = EquationProcessor(self.dimensions, self.vars_list)
 
     def _load_config(self) -> Dict:
-        """加载配置文件"""
+        """LoadingConfigurationFile"""
         try:
             with open(self.config_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            raise ValueError(f"加载配置文件失败: {str(e)}")
+            raise ValueError(f"LoadingConfigurationFileFail: {str(e)}")
 
     def check_config_net_consistency(self, net_file_path: str) -> Tuple[bool, str]:
         """
-        检查配置文件中的算子定义与net.py中生成代码的一致性
+        CheckConfigurationFile中的OperatorsDefinition与net.py中Generate代yard的Consistency
 
         Args:
-            net_file_path: net.py文件路径
+            net_file_path: net.pyFilePath
 
         Returns:
-            (需要重新生成, 原因说明)
+            (NeedRe-Generate, 原因description)
         """
-        # 检查net.py是否存在
+        # Checknet.pyYesNo存At
         if not os.path.exists(net_file_path):
-            return True, "net.py文件不存在"
+            return True, "net.pyFile不存At"
 
-        # 读取net.py内容
+        # Readnet.pycontent
         with open(net_file_path, 'r') as f:
             net_content = f.read()
 
-        # 检查是否有auto code块
+        # CheckYesNo有auto codeBlock
         if "# auto code begin" not in net_content or "# auto code end" not in net_content:
-            return True, "net.py中没有auto code标记"
+            return True, "net.py中没有auto codeMark"
 
-        # 提取auto code块
+        # 提取auto codeBlock
         begin_idx = net_content.find("# auto code begin")
         end_idx = net_content.find("# auto code end")
         auto_code_block = net_content[begin_idx:end_idx]
 
-        # 检查auto code块是否为空
+        # Checkauto codeBlockYesNo为空
         lines = auto_code_block.split('\n')[1:-1]
         has_code = any(line.strip() and not line.strip().startswith('#') for line in lines)
 
         if not has_code:
-            return True, "auto code块为空，需要生成代码"
+            return True, "auto codeBlock为空，NeedGenerate代yard"
 
-        # 提取当前配置的算子签名
+        # 提取CurrentConfiguration的Operators签名
         config_signature = self._extract_config_signature()
 
-        # 在auto code块中查找配置签名
+        # Atauto codeBlock中SearchConfiguration签名
         if "# Config signature:" in auto_code_block:
-            # 提取保存的签名
+            # 提取Save的签名
             for line in lines:
                 if "# Config signature:" in line:
                     saved_sig = line.split("# Config signature:")[1].strip()
@@ -455,24 +499,24 @@ class AutoCodeGenerator:
                         saved_dict = json.loads(saved_sig)
                         current_dict = json.loads(config_signature)
 
-                        # 比较两个签名
+                        # Compare两个签名
                         if saved_dict == current_dict:
-                            return False, "config与net.py代码一致"
+                            return False, "config与net.py代yard一致"
                         else:
-                            # 找出具体的差异
+                            # 找ExitSpecific的差异
                             diff_msg = self._find_signature_diff(saved_dict, current_dict)
-                            return True, f"config算子定义已更改: {diff_msg}"
+                            return True, f"configOperatorsDefinition已更改: {diff_msg}"
                     except:
-                        return True, "无法解析保存的签名"
+                        return True, "无法AnalyticalSave的签名"
 
-        # 如果没有签名，通过更抽象的方式检查
+        # If没有签名，Pass更Abstract的方式Check
         return self._abstract_consistency_check(auto_code_block, config_signature)
 
     def _extract_config_signature(self) -> str:
-        """提取配置文件的算子签名"""
+        """提取ConfigurationFile的Operators签名"""
         sig_dict = {}
 
-        if "eq" in self.config_dict:  # 新格式
+        if "eq" in self.config_dict:  # 新format
             eq = self.config_dict["eq"]
             sig_dict = {
                 "L1": eq.get("L1", []),
@@ -480,7 +524,7 @@ class AutoCodeGenerator:
                 "F": eq.get("F", []),
                 "N": eq.get("N", [])
             }
-        else:  # 兼容旧格式
+        else:  # 兼容旧format
             sig_dict = {
                 "L1": self.config_dict.get("eq_L1", []),
                 "L2": self.config_dict.get("eq_L2", []),
@@ -491,7 +535,7 @@ class AutoCodeGenerator:
         return json.dumps(sig_dict, sort_keys=True)
 
     def _find_signature_diff(self, saved_dict: Dict, current_dict: Dict) -> str:
-        """找出两个签名字典的差异"""
+        """找Exit两个签名Dictionary的差异"""
         diffs = []
 
         for key in ["L1", "L2", "F", "N"]:
@@ -500,28 +544,28 @@ class AutoCodeGenerator:
 
             if saved != current:
                 if not saved and current:
-                    diffs.append(f"{key}添加了算子")
+                    diffs.append(f"{key}添加了Operators")
                 elif saved and not current:
-                    diffs.append(f"{key}删除了算子")
+                    diffs.append(f"{key}删ExceptOperators")
                 else:
-                    diffs.append(f"{key}算子已修改")
+                    diffs.append(f"{key}Operators已Modification")
 
         return ", ".join(diffs) if diffs else "未知差异"
 
     def _abstract_consistency_check(self, auto_code_block: str, config_signature: str) -> Tuple[bool, str]:
         """
-        抽象的一致性检查，不依赖签名
-        通过分析代码结构和算子模式进行判断
+        Abstract的ConsistencyCheck，不Dependency签名
+        PassAnalyze代yardstructure和OperatorspatternEnter行判断
         """
         try:
             config_dict = json.loads(config_signature)
 
-            # 检查每种算子类型
+            # Check每种OperatorsType
             for op_type, ops in config_dict.items():
                 if not ops:
                     continue
 
-                # 根据算子类型确定代码中的标记
+                # According toOperatorsType确定代yard中的Mark
                 if op_type == "L1":
                     pattern = r"L1\s*=\s*\[(.*?)\]"
                 elif op_type == "L2":
@@ -533,35 +577,35 @@ class AutoCodeGenerator:
                 else:
                     continue
 
-                # 在代码中查找对应的算子定义
+                # At代yard中Search对应的OperatorsDefinition
                 match = re.search(pattern, auto_code_block, re.DOTALL)
 
                 if not match and ops:
-                    return True, f"{op_type}算子在代码中未找到"
+                    return True, f"{op_type}OperatorsAt代yard中未Find"
 
                 if match:
                     code_content = match.group(1).strip()
 
-                    # 简单检查：算子数量是否一致
-                    # 通过计算逗号数量来估计算子个数
+                    # 简单Check：Operators数量YesNo一致
+                    # PassCompute逗号数量ComeEstimationOperators个数
                     expected_count = len(ops)
                     if code_content:
-                        # 简单估计：如果有内容，至少有一个算子
+                        # 简单Estimation：If有content，At least有一个Operators
                         code_has_content = bool(code_content and not code_content.isspace())
                         if expected_count > 0 and not code_has_content:
-                            return True, f"{op_type}算子定义不匹配"
+                            return True, f"{op_type}OperatorsDefinition不匹配"
                     elif expected_count > 0:
-                        return True, f"{op_type}算子在代码中为空"
+                        return True, f"{op_type}OperatorsAt代yard中为空"
 
-            # 默认认为一致
-            return False, "通过抽象检查，代码与配置基本一致"
+            # Default认为一致
+            return False, "PassAbstractCheck，代yard与Configuration基本一致"
 
         except Exception as e:
-            # 出错时保守处理，认为需要重新生成
-            return True, f"一致性检查出错: {str(e)}"
+            # Exit错时保守Process，认为NeedRe-Generate
+            return True, f"ConsistencyCheckExit错: {str(e)}"
 
     def _get_net_file_path(self) -> str:
-        """根据问题类型确定net.py文件路径"""
+        """According toProblemType确定net.pyFilePath"""
         case_dir = os.path.dirname(self.config_path)
         
         if self.problem_type == "linear_pde":
@@ -571,13 +615,13 @@ class AutoCodeGenerator:
         elif self.problem_type == "func_fitting":
             return "src/problem_solvers/func_fitting_solver/core/net.py"
         else:
-            raise ValueError(f"不支持的问题类型: {self.problem_type}")
+            raise ValueError(f"不Support的ProblemType: {self.problem_type}")
 
     def _get_equations(self) -> Union[List[str], Dict[str, List[str]]]:
-        """获取方程组用于导数分析"""
+        """GetEquationGroup用于DerivativesAnalyze"""
         all_equations = []
         
-        # 从eq字段收集方程
+        # FromeqfieldCollectEquation
         if "eq" in self.config_dict and self.config_dict["eq"]:
             eq_dict = self.config_dict["eq"]
             for op_name, eq_list in eq_dict.items():
@@ -586,7 +630,7 @@ class AutoCodeGenerator:
                 else:
                     all_equations.append(eq_list)
         
-        # 对于时间PDE，还要从其他字段收集方程
+        # ForTimePDE，还要From其他fieldCollectEquation
         if self.problem_type == "time_pde":
             time_operators = ["eq_L1", "eq_L2", "f_L2", "N"]
             for op_type in time_operators:
@@ -597,58 +641,58 @@ class AutoCodeGenerator:
 
     def update_code(self) -> None:
         """
-        更新神经网络文件中的代码
+        UpdateNeural networkFile中的代yard
         
         Raises:
-            FileNotFoundError: 找不到目标文件
-            ValueError: 未找到需要替换的代码段
-            Exception: 其他更新错误
+            FileNotFoundError: 找Less than目标File
+            ValueError: 未FindNeed替换的代yard段
+            Exception: 其他UpdateError
         """
         try:
             net_file_path = self._get_net_file_path()
             
             if not os.path.exists(net_file_path):
-                raise FileNotFoundError(f"找不到文件: {net_file_path}")
+                raise FileNotFoundError(f"找Less thanFile: {net_file_path}")
 
-            # 不再创建备份
+            # 不再Create备份
             # backup_path = self._backup_file(net_file_path)
 
-            # 生成和更新代码
+            # Generate和Update代yard
             self._generate_and_update_code(net_file_path, None)
             
         except Exception as e:
-            print(f"更新代码时出错: {str(e)}")
+            print(f"Update代yard时Exit错: {str(e)}")
             raise
 
     def _backup_file(self, file_path: str) -> str:
         """
-        创建文件备份
+        CreateFile备份
         
         Args:
-            file_path: 要备份的文件路径
+            file_path: 要备份的FilePath
             
         Returns:
-            备份文件路径
+            备份FilePath
         """
-        # 不再创建备份文件
+        # 不再Create备份File
         # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # backup_path = f"{file_path}.{timestamp}.bak"
         # shutil.copy2(file_path, backup_path)
-        print(f"跳过备份创建 (已禁用)")
-        return file_path  # 返回原文件路径
+        print(f"跳过备份Create (已Disable)")
+        return file_path  # Return原FilePath
 
     def _generate_and_update_code(self, net_file_path: str, backup_path: str = None) -> None:
         """
-        生成并更新代码
+        Generate并Update代yard
 
         Args:
-            net_file_path: 目标文件路径
-            backup_path: 备份文件路径（已废弃，保留参数以兼容）
+            net_file_path: 目标FilePath
+            backup_path: 备份FilePath（已废弃，保留Parameter以兼容）
             
         Raises:
-            Exception: 代码生成或更新错误
+            Exception: 代yardGenerate或UpdateError
         """
-        # 生成临时代码文件
+        # GenerateTemporary代yardFile
         temp_file = os.path.join(os.path.dirname(__file__), "temp_pytorch_code.txt")
         equations = self._get_equations()
         
@@ -660,33 +704,33 @@ class AutoCodeGenerator:
         )
 
         try:
-            # 读取生成的代码
+            # ReadGenerate的代yard
             with open(temp_file, "r") as f:
                 generated_code = f.read()
 
-            # 更新原文件
+            # Update原File
             self._update_file_content(net_file_path, generated_code)
             
-            # 清理临时文件
+            # CleanupTemporaryFile
             os.remove(temp_file)
-            print(f"已成功更新 {net_file_path}")
+            print(f"已SuccessUpdate {net_file_path}")
             
         except Exception as e:
-            # 不再恢复备份，因为没有创建备份
-            print(f"更新文件时出错: {str(e)}")
-            print("注意：未创建备份文件，原文件可能已被修改")
+            # 不再Redo备份，Because没有Create备份
+            print(f"UpdateFile时Exit错: {str(e)}")
+            print("Note：未Create备份File，原File可能已被Modification")
             raise
 
     def _update_file_content(self, file_path: str, generated_code: str) -> None:
         """
-        更新文件内容
+        UpdateFilecontent
         
         Args:
-            file_path: 文件路径
-            generated_code: 生成的代码
+            file_path: FilePath
+            generated_code: Generate的代yard
             
         Raises:
-            ValueError: 未找到需要替换的代码段
+            ValueError: 未FindNeed替换的代yard段
         """
         start_marker = "# auto code begin"
         end_marker = "# auto code end"
@@ -710,7 +754,7 @@ class AutoCodeGenerator:
                 new_lines.append(line)
 
         if not found_section:
-            raise ValueError(f"在文件 {file_path} 中未找到需要替换的代码段")
+            raise ValueError(f"AtFile {file_path} 中未FindNeed替换的代yard段")
 
         with open(file_path, "w") as f:
             f.writelines(new_lines)
@@ -718,16 +762,16 @@ class AutoCodeGenerator:
 
 def update_physics_loss_from_config(config_path: str) -> None:
     """
-    从配置文件自动更新physics loss代码的便捷函数
+    FromConfigurationFile自动Updatephysics loss代yard的便捷function
     
     Args:
-        config_path: 配置文件路径
+        config_path: ConfigurationFilePath
     """
     generator = AutoCodeGenerator(config_path)
     generator.update_code()
 
 
-# 保留原有函数以保持向后兼容性
+# 保留原有function以MaintainTowardBackwardCompatibility
 def update_pytorch_net_code(
     equations: Tuple[str, ...],
     vars_list: List[str],
@@ -735,22 +779,22 @@ def update_pytorch_net_code(
     net_file_path: str,
 ) -> None:
     """
-    更新PyTorch神经网络类中的代码的便捷函数（保持向后兼容性）
+    UpdatePyTorchNeural networkclass中的代yard的便捷function（MaintainTowardBackwardCompatibility）
     
     Args:
-        equations: 方程组
-        vars_list: 变量列表
-        dimensions: 维度列表
-        net_file_path: net.py的路径
+        equations: EquationGroup
+        vars_list: Variable list
+        dimensions: DimensionsList
+        net_file_path: net.py的Path
     """
     processor = EquationProcessor(dimensions, vars_list)
     
-    # 不再创建备份
+    # 不再Create备份
     # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     # backup_path = f"{net_file_path}.{timestamp}.bak"
     # shutil.copy2(net_file_path, backup_path)
     
-    # 生成代码
+    # Generate代yard
     temp_file = os.path.join(os.path.dirname(__file__), "temp_pytorch_code.txt")
     processor.generate_code_for_pytorch_net(list(equations), temp_file)
     
@@ -758,7 +802,7 @@ def update_pytorch_net_code(
         with open(temp_file, "r") as f:
             generated_code = f.read()
         
-        # 更新文件
+        # UpdateFile
         start_marker = "# auto code begin"
         end_marker = "# auto code end"
         
@@ -781,18 +825,18 @@ def update_pytorch_net_code(
                 new_lines.append(line)
 
         if not found_section:
-            raise ValueError(f"在文件 {net_file_path} 中未找到需要替换的代码段")
+            raise ValueError(f"AtFile {net_file_path} 中未FindNeed替换的代yard段")
 
         with open(net_file_path, "w") as f:
             f.writelines(new_lines)
             
         os.remove(temp_file)
-        print(f"已成功更新 {net_file_path}")
+        print(f"已SuccessUpdate {net_file_path}")
         
     except Exception as e:
-        # 不再恢复备份，因为没有创建备份
-        print(f"更新文件时出错: {str(e)}")
-        print("注意：未创建备份文件，原文件可能已被修改")
+        # 不再Redo备份，Because没有Create备份
+        print(f"UpdateFile时Exit错: {str(e)}")
+        print("Note：未Create备份File，原File可能已被Modification")
         raise
 
 
@@ -803,26 +847,26 @@ def update_hybrid_fitter_code(
     hybrid_fitter_path: Optional[str] = None,
 ) -> None:
     """
-    更新HybridFitter类中的代码的便捷函数（保持向后兼容性）
+    UpdateHybridFitterclass中的代yard的便捷function（MaintainTowardBackwardCompatibility）
     
     Args:
-        equations: 方程组
-        vars_list: 变量列表
-        dimensions: 维度列表
-        hybrid_fitter_path: hybrid_fitter.py的路径，默认为None则使用预设路径
+        equations: EquationGroup
+        vars_list: Variable list
+        dimensions: DimensionsList
+        hybrid_fitter_path: hybrid_fitter.py的Path，Default为None则Using预设Path
     """
-    print("警告: update_hybrid_fitter_code 已弃用，请使用 update_physics_loss_from_config")
-    # 为了兼容性，保留一个空实现
+    print("Warning: update_hybrid_fitter_code 已弃用，请Using update_physics_loss_from_config")
+    # 为了Compatibility，保留一个空Implementation
     pass
 
 
-# 测试代码
+# Test代yard
 if __name__ == "__main__":
-    # 示例用法
+    # exampleUsage
     config_path = "cases/linear_pde_cases/poisson_2d_sinpixsinpiy/config.json"
     
     try:
         update_physics_loss_from_config(config_path)
-        print("代码生成成功!")
+        print("代yardGenerateSuccess!")
     except Exception as e:
-        print(f"代码生成失败: {str(e)}")
+        print(f"代yardGenerateFail: {str(e)}")

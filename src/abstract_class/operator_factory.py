@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Any, Callable
 
 
 class OperatorFactory:
-    """Optimized operator function factory - 简洁高效版本"""
+    """Optimized operator function factory - 简洁高效Version"""
 
     def __init__(self, all_derivatives: Dict, constants: Dict = None):
         self.all_derivatives = all_derivatives
@@ -24,7 +24,7 @@ class OperatorFactory:
     def _create_nonlinear_operator_function(
         self, operator_terms: List[Dict], operator_name: str
     ) -> Callable:
-        """创建非线性算子函数 - 简化版本"""
+        """CreateNonlinear operatorfunction - 简化Version"""
 
         def nonlinear_operator_function(features=None, u=None, coeffs=None, segment_idx=None):
             results = []
@@ -38,51 +38,50 @@ class OperatorFactory:
                 for const_name, const_value in self.constants.items():
                     expr = re.sub(rf"\b{const_name}\b", str(const_value), expr)
 
-                # 创建局部变量字典
+                # Create局部variableDictionary
                 local_vars = {"np": np}
 
-                # 检查是否只包含零阶导数
+                # CheckYesNo只Include零阶Derivatives
                 only_zeroth_derivatives = all(
                     any(d_idx == 0 for _, (_, d_idx) in self.all_derivatives.items() if d_idx == deriv_idx)
                     for deriv_idx in derivative_indices
                 )
                 
                 if only_zeroth_derivatives and u is not None:
-                    # 直接使用u值
+                    # 直接Usinguvalue
                     for deriv_idx in derivative_indices:
                         for name, (v_idx, d_idx) in self.all_derivatives.items():
                             if d_idx == deriv_idx and d_idx == 0:
-                                # 简化：假设u是标准的2D数组 (n_points, n_eqs)
-                                local_vars[name] = u[:, v_idx] if u.ndim == 2 and v_idx < u.shape[1] else u
+                                # Unified u access - eliminate dimension checking branches
+                                u_reshaped = u.reshape(-1, max(1, u.shape[-1])) if u.ndim > 1 else u.reshape(-1, 1)
+                                local_vars[name] = u_reshaped[:, min(v_idx, u_reshaped.shape[1] - 1)]
                 else:
-                    # 使用 features@coeffs
+                    # Using features@coeffs
                     for deriv_idx in derivative_indices:
                         for name, (v_idx, d_idx) in self.all_derivatives.items():
                             if d_idx == deriv_idx:
                                 if coeffs is not None:
-                                    # 简化索引：直接使用标准形式
-                                    current_coeffs = (
-                                        coeffs[segment_idx, deriv_idx, :] if coeffs.ndim == 3 else
-                                        coeffs[deriv_idx, :] if coeffs.ndim == 2 else
-                                        coeffs[deriv_idx]
-                                    )
+                                    # Unified coefficient indexing - eliminate dimension branching
+                                    coeffs_standardized = np.atleast_3d(coeffs)
+                                    seg_idx = min(segment_idx if segment_idx is not None else 0, coeffs_standardized.shape[0] - 1)
+                                    current_coeffs = coeffs_standardized[seg_idx, deriv_idx, :]
                                     local_vars[name] = features[deriv_idx] @ current_coeffs
                                 else:
                                     local_vars[name] = features[deriv_idx]
 
-                # 处理数学函数
+                # ProcessMathematicalfunction
                 expr = self._process_math_functions(expr)
 
-                # 计算结果
+                # ComputeResult
                 try:
                     result = eval(expr, {"__builtins__": {}}, local_vars)
                     results.append(result)
                 except:
-                    # 简化错误处理：直接用零数组
+                    # 简化ErrorProcess：直接用零Array
                     fallback_size = u.shape[0] if u is not None else features[0].shape[0]
                     results.append(np.zeros(fallback_size))
 
-            # F算子标准化输出
+            # FOperatorsStandardizationOutput
             if operator_name == "F":
                 n_points = u.shape[0]
                 ne = len(results)
@@ -102,15 +101,15 @@ class OperatorFactory:
     def _create_linear_operator_function(
         self, operator_terms: List[Dict], operator_name: str
     ) -> Callable:
-        """创建线性算子函数 - 简化版本"""
+        """CreateLinear operatorsfunction - 简化Version"""
 
         def linear_operator_function(features):
-            # 获取维度信息
+            # GetDimensionsinformation
             n_points = features[0].shape[0]
             dgN = features[0].shape[1]
             ne = len(operator_terms)
             
-            # 初始化结果矩阵
+            # InitializeResultMatrix
             result_matrix = np.zeros((ne, n_points, ne * dgN))
             
             for eq_idx, term in enumerate(operator_terms):
@@ -123,21 +122,21 @@ class OperatorFactory:
                 for const_name, const_value in self.constants.items():
                     expr = re.sub(rf"\b{const_name}\b", str(const_value), expr)
 
-                # 创建变量字典
+                # CreatevariableDictionary
                 local_vars = {"np": np}
                 for deriv_idx in derivative_indices:
                     for name, (v_idx, d_idx) in self.all_derivatives.items():
                         if d_idx == deriv_idx:
                             local_vars[name] = features[deriv_idx]
 
-                # 处理数学函数
+                # ProcessMathematicalfunction
                 expr = self._process_math_functions(expr)
 
-                # 计算线性组合结果
+                # ComputeLinearCombinationResult
                 try:
                     linear_result = eval(expr, {"__builtins__": {}}, local_vars)
                     
-                    # 放入结果矩阵
+                    # 放入ResultMatrix
                     if linear_result.shape == (n_points, dgN):
                         start_col = var_idx * dgN
                         end_col = start_col + dgN
@@ -157,7 +156,7 @@ class OperatorFactory:
         return linear_operator_function
 
     def _process_math_functions(self, expr: str) -> str:
-        """处理数学函数替换"""
+        """ProcessMathematicalfunction替换"""
         replacements = {
             r"(?<!np\.)sin": "np.sin",
             r"(?<!np\.)cos": "np.cos", 
@@ -173,7 +172,7 @@ class OperatorFactory:
         return expr
 
     def create_all_operators(self, operator_terms_dict: Dict) -> Dict[str, Callable]:
-        """批量创建所有算子函数"""
+        """BatchCreateAllOperatorsfunction"""
         operators = {}
         operator_types = {"L1": False, "L2": False, "N": True, "F": True}
 
@@ -189,7 +188,7 @@ class OperatorFactory:
 
 
 class OptimizedOperatorFactory(OperatorFactory):
-    """预编译优化版本"""
+    """预CompilationOptimizeVersion"""
 
     def __init__(self, all_derivatives: Dict, constants: Dict = None):
         super().__init__(all_derivatives, constants)
@@ -198,7 +197,7 @@ class OptimizedOperatorFactory(OperatorFactory):
     def _create_nonlinear_operator_function(
         self, operator_terms: List[Dict], operator_name: str
     ) -> Callable:
-        """创建预编译非线性算子函数"""
+        """Create预CompilationNonlinear operatorfunction"""
         compiled_terms = self._precompile_terms(operator_terms, operator_name, True)
 
         def optimized_nonlinear_operator_function(features=None, u=None, coeffs=None, segment_idx=None):
@@ -209,7 +208,7 @@ class OptimizedOperatorFactory(OperatorFactory):
                     results.append(np.zeros(u.shape[0]))
                     continue
 
-                # 快速构建局部变量
+                # 快速Build局部variable
                 local_vars = {"np": np}
                 
                 only_zeroth_derivatives = all(
@@ -217,12 +216,12 @@ class OptimizedOperatorFactory(OperatorFactory):
                 )
 
                 if only_zeroth_derivatives and u is not None:
-                    # 直接使用u值
+                    # 直接Usinguvalue
                     for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
                         if deriv_idx == 0:
                             local_vars[var_name] = u[:, var_idx] if u.ndim == 2 and var_idx < u.shape[1] else u
                 else:
-                    # 使用features@coeffs
+                    # Usingfeatures@coeffs
                     for var_name, var_idx, deriv_idx in compiled_term["var_mappings"]:
                         if coeffs is not None:
                             current_coeffs = (
@@ -239,14 +238,14 @@ class OptimizedOperatorFactory(OperatorFactory):
                         else:
                             local_vars[var_name] = features[deriv_idx]
 
-                # 使用预编译表达式
+                # Using预CompilationExpression
                 try:
                     result = eval(compiled_term["compiled_expr"], {"__builtins__": {}}, local_vars)
                     results.append(result)
                 except:
                     results.append(np.zeros(u.shape[0]))
 
-            # F算子标准化输出
+            # FOperatorsStandardizationOutput
             if operator_name == "F":
                 n_points = u.shape[0]
                 ne = len(results)
@@ -266,7 +265,7 @@ class OptimizedOperatorFactory(OperatorFactory):
     def _create_linear_operator_function(
         self, operator_terms: List[Dict], operator_name: str
     ) -> Callable:
-        """创建预编译线性算子函数"""
+        """Create预CompilationLinear operatorsfunction"""
         compiled_terms = self._precompile_terms(operator_terms, operator_name, False)
 
         def optimized_linear_operator_function(features):
@@ -279,12 +278,12 @@ class OptimizedOperatorFactory(OperatorFactory):
                 if compiled_term is None:
                     continue
 
-                # 快速构建局部变量
+                # 快速Build局部variable
                 local_vars = {"np": np}
                 for var_name, deriv_idx in compiled_term["var_mappings"]:
                     local_vars[var_name] = features[deriv_idx]
 
-                # 使用预编译表达式
+                # Using预CompilationExpression
                 try:
                     linear_result = eval(compiled_term["compiled_expr"], {"__builtins__": {}}, local_vars)
                     
@@ -306,7 +305,7 @@ class OptimizedOperatorFactory(OperatorFactory):
         return optimized_linear_operator_function
 
     def _precompile_terms(self, operator_terms: List[Dict], operator_name: str, is_nonlinear: bool) -> List[Dict]:
-        """预编译算子项"""
+        """预CompilationOperatorsItem"""
         compiled_terms = []
 
         for term in operator_terms:
@@ -318,10 +317,10 @@ class OptimizedOperatorFactory(OperatorFactory):
             for const_name, const_value in self.constants.items():
                 expr = re.sub(rf"\b{const_name}\b", str(const_value), expr)
 
-            # 处理数学函数
+            # ProcessMathematicalfunction
             expr = self._process_math_functions(expr)
 
-            # 预处理变量映射
+            # 预ProcessvariableMapping
             var_mappings = []
             for deriv_idx in derivative_indices:
                 for name, (v_idx, d_idx) in self.all_derivatives.items():
@@ -331,7 +330,7 @@ class OptimizedOperatorFactory(OperatorFactory):
                         else:
                             var_mappings.append((name, deriv_idx))
 
-            # 预编译表达式
+            # 预CompilationExpression
             try:
                 compiled_expr = compile(expr, "<string>", "eval")
                 compiled_terms.append({
@@ -348,7 +347,7 @@ class OptimizedOperatorFactory(OperatorFactory):
 def create_operator_factory(
     all_derivatives: Dict, constants: Dict = None, optimized: bool = True
 ) -> OperatorFactory:
-    """创建算子工厂实例"""
+    """CreateOperator factoryinstance"""
     if optimized:
         return OptimizedOperatorFactory(all_derivatives, constants)
     else:

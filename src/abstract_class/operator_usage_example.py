@@ -950,8 +950,8 @@ def test_operators_unified(ops: Dict, features: List[np.ndarray], coeffs: np.nda
                                     max_idx = max(deriv_indices) if deriv_indices else -1
                                     if max_idx >= n_deriv_types:
                                         print(f"          ERROR: max index {max_idx} >= n_deriv_types {n_deriv_types}")
-                    except Exception as debug_e:
-                        print(f"      Debug error: {debug_e}")
+                    except Exception as e:
+                        print(f"      Error: {e}")
 
 def demonstrate_unified_approach():
     """Demonstrate key features of the unified multi-equation approach"""
@@ -1481,34 +1481,34 @@ def test_single_segment_multi_equation():
     return ops, features, coeffs, operator_results, segment_pred, total_residual
 
 def verify_base_fitter_compatibility():
-    """完整验证与base_fitter.py的兼容性"""
+    """IntactVerification与base_fitter.py的Compatibility"""
     print("\n" + "="*80)
     print("BASE_FITTER COMPATIBILITY VERIFICATION")
     print("="*80)
     
-    # === 系统配置 ===
-    n_segments = 1      # 单段测试
-    n_equations = 3     # 3个方程 (u, v, p)
-    n_points = 100      # 每段的点数
-    dgN = 8            # 每个方程的特征数 (degN from base_fitter)
+    # === SystemConfiguration ===
+    n_segments = 1      # 单段Test
+    n_equations = 3     # 3个Equation (u, v, p)
+    n_points = 100      # 每段的point数
+    dgN = 8            # EachEquation的Feature数 (degN from base_fitter)
     
     var_names = ['u', 'v', 'p']
     
-    print(f"验证配置:")
-    print(f"  方程数量: {n_equations}")
-    print(f"  变量: {var_names}")
-    print(f"  段数: {n_segments}")
-    print(f"  每段点数: {n_points}")
-    print(f"  特征数 (dgN): {dgN}")
+    print(f"VerificationConfiguration:")
+    print(f"  Number of equations量: {n_equations}")
+    print(f"  variable: {var_names}")
+    print(f"  Number of segments: {n_segments}")
+    print(f"  每段point数: {n_points}")
+    print(f"  Feature数 (dgN): {dgN}")
     
-    # === 生成导数映射 ===
+    # === GenerateDerivativesMapping ===
     all_derivatives = generate_derivatives_for_n_vars(n_equations, var_names)
     n_deriv_types = len(set(info[1] for info in all_derivatives.values()))
     
-    print(f"  导数类型数: {n_deriv_types}")
-    print(f"  导数映射: {len(all_derivatives)} 项")
+    print(f"  DerivativesType数: {n_deriv_types}")
+    print(f"  DerivativesMapping: {len(all_derivatives)} Item")
     
-    # === 创建算子 ===
+    # === CreateOperators ===
     constants = {'nu': 0.01, 'Re': 100.0}
     operator_terms = generate_operator_terms_for_n_eqs(n_equations, var_names)
     
@@ -1519,117 +1519,117 @@ def verify_base_fitter_compatibility():
     )
     
     ops = factory.create_all_operators(operator_terms)
-    print(f"  创建算子: {list(ops.keys())}")
+    print(f"  CreateOperators: {list(ops.keys())}")
     
-    # === 核心维度验证 ===
-    print(f"\n=== 核心维度验证 ===")
+    # === CoreDimensionsVerification ===
+    print(f"\n=== CoreDimensionsVerification ===")
     
-    # 1. 特征数据 - 模拟 base_fitter._get_features()
+    # 1. FeatureData - 模拟 base_fitter._get_features()
     features = []
     for deriv_idx in range(n_deriv_types):
         feat = np.random.rand(n_points, dgN)
         features.append(feat)
     
-    print(f"✓ 特征 (features): List[{len(features)}], 每个形状 {features[0].shape}")
-    print(f"  -> 等价于 base_fitter._get_features() 输出")
+    print(f"✓ Feature (features): List[{len(features)}], EachShape {features[0].shape}")
+    print(f"  -> Equivalent于 base_fitter._get_features() Output")
     
-    # 2. 系数数据 - 模拟 base_fitter.construct 格式
+    # 2. CoefficientsData - 模拟 base_fitter.construct format
     coeffs = np.random.rand(n_segments, n_equations, dgN)
-    print(f"✓ 系数 (coeffs): {coeffs.shape}")
-    print(f"  -> 等价于 base_fitter.construct 中的 coeffs[i, j, :] 格式")
+    print(f"✓ Coefficients (coeffs): {coeffs.shape}")
+    print(f"  -> Equivalent于 base_fitter.construct 中的 coeffs[i, j, :] format")
     
-    # 3. 非线性算子系数
+    # 3. Nonlinear operatorCoefficients
     coeffs_nonlinear = np.random.rand(n_deriv_types, n_equations)
-    print(f"✓ 非线性系数: {coeffs_nonlinear.shape}")
+    print(f"✓ NonlinearCoefficients: {coeffs_nonlinear.shape}")
     print(f"  -> 用于 operator_factory 中的 N_func, F_func")
     
-    # === 关键操作验证 ===
-    print(f"\n=== 关键操作验证 ===")
+    # === KeyOperationVerification ===
+    print(f"\n=== KeyOperationVerification ===")
     
-    # 验证 base_fitter.construct 的核心操作
-    print(f"1. base_fitter.construct 核心操作验证:")
+    # Verification base_fitter.construct 的CoreOperation
+    print(f"1. base_fitter.construct CoreOperationVerification:")
     print(f"   segment_pred[:, j] = features @ coeffs[i, j, :]")
     
     segment_pred = np.zeros((n_points, n_equations))
     for j in range(n_equations):
         # 模拟 base_fitter.construct 第605行
-        feature_matrix = features[0]  # 使用第0个特征 (n_points, dgN)
-        coeff_vector = coeffs[0, j, :]  # 方程j的系数 (dgN,)
+        feature_matrix = features[0]  # Using第0个Feature (n_points, dgN)
+        coeff_vector = coeffs[0, j, :]  # Equationj的Coefficients (dgN,)
         
-        # 关键操作: (n_points, dgN) @ (dgN,) = (n_points,)
+        # KeyOperation: (n_points, dgN) @ (dgN,) = (n_points,)
         pred_j = feature_matrix @ coeff_vector
         segment_pred[:, j] = pred_j
         
-        print(f"   方程 {var_names[j]}: {feature_matrix.shape} @ {coeff_vector.shape} = {pred_j.shape}")
+        print(f"   Equation {var_names[j]}: {feature_matrix.shape} @ {coeff_vector.shape} = {pred_j.shape}")
     
-    print(f"   ✓ 最终预测形状: {segment_pred.shape} (期望: ({n_points}, {n_equations}))")
+    print(f"   ✓ FinalPredictionShape: {segment_pred.shape} (Expect: ({n_points}, {n_equations}))")
     
-    # === 算子兼容性验证 ===
-    print(f"\n=== 算子兼容性验证 ===")
+    # === OperatorsCompatibilityVerification ===
+    print(f"\n=== OperatorsCompatibilityVerification ===")
     
     operator_results = {}
     
-    # 验证线性算子 (L1, L2)
-    print(f"2. 线性算子验证 (base_fitter._build_segment_equations_and_variables):")
+    # VerificationLinear operators (L1, L2)
+    print(f"2. Linear operatorsVerification (base_fitter._build_segment_equations_and_variables):")
     for op_name in ['L1_func', 'L2_func']:
         if op_name in ops:
             results = ops[op_name](features)
             operator_results[op_name] = results
             
             print(f"   {op_name}:")
-            print(f"     输入: features (List[{len(features)}], 每个 {features[0].shape})")
-            print(f"     输出: {len(results)} 个方程结果")
+            print(f"     Input: features (List[{len(features)}], Each {features[0].shape})")
+            print(f"     Output: {len(results)} 个EquationResult")
             
             for i, result in enumerate(results):
                 eq_name = var_names[i] if i < len(var_names) else f'eq_{i}'
                 expected_shape = f"({n_points}, {dgN})"
                 status = "✓" if result.shape == (n_points, dgN) else "⚠"
-                print(f"       {eq_name}: {result.shape} {status} (期望: {expected_shape})")
+                print(f"       {eq_name}: {result.shape} {status} (Expect: {expected_shape})")
                 
-                # 检查是否与特征维度兼容
+                # CheckYesNo与FeatureDimensions兼容
                 if result.shape == features[0].shape:
-                    print(f"         ✓ 与特征维度兼容，可用于残差计算")
+                    print(f"         ✓ 与FeatureDimensions兼容，Available于ResidualCompute")
     
-    # 验证非线性算子 (N, F)
-    print(f"\n3. 非线性算子验证:")
+    # VerificationNonlinear operator (N, F)
+    print(f"\n3. Nonlinear operatorVerification:")
     for op_name in ['N_func', 'F_func']:
         if op_name in ops:
             results = ops[op_name](features, coeffs_nonlinear, 0)
             operator_results[op_name] = results
             
             print(f"   {op_name}:")
-            print(f"     输入: features + coeffs_nonlinear {coeffs_nonlinear.shape}")
-            print(f"     输出: {len(results)} 个方程结果")
+            print(f"     Input: features + coeffs_nonlinear {coeffs_nonlinear.shape}")
+            print(f"     Output: {len(results)} 个EquationResult")
             
             for i, result in enumerate(results):
                 eq_name = var_names[i] if i < len(var_names) else f'eq_{i}'
                 expected_shape = f"({n_points},)"
                 status = "✓" if result.shape == (n_points,) else "⚠"
-                print(f"       {eq_name}: {result.shape} {status} (期望: {expected_shape})")
+                print(f"       {eq_name}: {result.shape} {status} (Expect: {expected_shape})")
                 
-                # 检查是否可直接用于残差
+                # CheckYesNo可直接用于Residual
                 if result.shape == (n_points,):
-                    print(f"         ✓ 1D结果，可直接用于残差计算")
+                    print(f"         ✓ 1DResult，可直接用于ResidualCompute")
     
-    # === 系统组装验证 ===
-    print(f"\n=== 系统组装验证 (模拟 base_fitter._build_segment_jacobian) ===")
+    # === SystemAssembleVerification ===
+    print(f"\n=== SystemAssembleVerification (模拟 base_fitter._build_segment_jacobian) ===")
     
-    # 模拟 base_fitter 中的系统组装
+    # 模拟 base_fitter 中的SystemAssemble
     total_residual = np.zeros((n_points, n_equations))
     
     for eq_idx in range(n_equations):
         eq_name = var_names[eq_idx]
-        print(f"4. {eq_name} 方程组装:")
+        print(f"4. {eq_name} EquationAssemble:")
         
         eq_residual = np.zeros(n_points)
         term_count = 0
         
-        # 添加线性算子贡献
+        # 添加Linear operators贡献
         for op_name in ['L1_func', 'L2_func']:
             if op_name in operator_results and eq_idx < len(operator_results[op_name]):
                 term = operator_results[op_name][eq_idx]
                 if term.ndim == 2:
-                    # 线性算子返回特征矩阵，需要转换为1D残差
+                    # Linear operatorsReturnFeature matrix，NeedConvert为1DResidual
                     term_1d = np.mean(term, axis=1)
                 else:
                     term_1d = term.flatten()[:n_points]
@@ -1638,27 +1638,27 @@ def verify_base_fitter_compatibility():
                 term_count += 1
                 print(f"   + {op_name.replace('_func', '')}: {term.shape} -> {term_1d.shape}")
         
-        # 添加非线性算子贡献
+        # 添加Nonlinear operator贡献
         for op_name in ['N_func', 'F_func']:
             if op_name in operator_results and eq_idx < len(operator_results[op_name]):
                 term = operator_results[op_name][eq_idx]
                 if term.shape == (n_points,):
                     eq_residual += term
                     term_count += 1
-                    print(f"   + {op_name.replace('_func', '')}: {term.shape} (直接使用)")
+                    print(f"   + {op_name.replace('_func', '')}: {term.shape} (直接Using)")
         
         total_residual[:, eq_idx] = eq_residual
-        print(f"   ✓ {eq_name} 方程: {term_count} 项, 残差形状 {eq_residual.shape}")
+        print(f"   ✓ {eq_name} Equation: {term_count} Item, ResidualShape {eq_residual.shape}")
     
-    print(f"\n✓ 系统残差形状: {total_residual.shape}")
-    print(f"  期望: ({n_points}, {n_equations}) for base_fitter jacobian")
+    print(f"\n✓ SystemResidualShape: {total_residual.shape}")
+    print(f"  Expect: ({n_points}, {n_equations}) for base_fitter jacobian")
     
-    # === 性能对比 ===
-    print(f"\n=== 性能对比 ===")
+    # === Performance对比 ===
+    print(f"\n=== Performance对比 ===")
     
     import time
     
-    # 测试算子调用性能
+    # TestOperators调用Performance
     n_calls = 100
     
     for op_name in ops:
@@ -1670,29 +1670,29 @@ def verify_base_fitter_compatibility():
                 _ = ops[op_name](features)
         
         avg_time = (time.time() - start_time) / n_calls
-        print(f"  {op_name}: 平均 {avg_time*1000:.3f} ms/调用")
+        print(f"  {op_name}: Average {avg_time*1000:.3f} ms/调用")
     
-    # === 最终兼容性报告 ===
+    # === FinalCompatibilityReport ===
     print(f"\n" + "="*80)
-    print("兼容性验证报告")
+    print("CompatibilityVerificationReport")
     print("="*80)
     
     checks = [
-        ("特征格式", "List[np.ndarray], 每个 (n_points, dgN)", "✓"),
-        ("系数格式", "(n_segments, n_equations, dgN)", "✓"),
-        ("线性算子输出", "特征兼容矩阵 (n_points, dgN)", "✓"),
-        ("非线性算子输出", "1D结果 (n_points,)", "✓"),
-        ("预测操作", "features @ coeffs[i, j, :] -> (n_points,)", "✓"),
-        ("系统组装", "残差矩阵 (n_points, n_equations)", "✓"),
-        ("多方程支持", "2-5+ 方程系统", "✓"),
-        ("性能", "< 1ms/算子调用", "✓")
+        ("Featureformat", "List[np.ndarray], Each (n_points, dgN)", "✓"),
+        ("Coefficientsformat", "(n_segments, n_equations, dgN)", "✓"),
+        ("Linear operatorsOutput", "Feature兼容Matrix (n_points, dgN)", "✓"),
+        ("Nonlinear operatorOutput", "1DResult (n_points,)", "✓"),
+        ("PredictionOperation", "features @ coeffs[i, j, :] -> (n_points,)", "✓"),
+        ("SystemAssemble", "ResidualMatrix (n_points, n_equations)", "✓"),
+        ("多EquationSupport", "2-5+ EquationSystem", "✓"),
+        ("Performance", "< 1ms/Operators调用", "✓")
     ]
     
     for check_name, description, status in checks:
         print(f"{status} {check_name}: {description}")
     
-    print(f"\n结论: operator_factory 与 base_fitter.py 完全兼容")
-    print(f"可以安全地在 BaseDeepPolyFitter 及其子类中使用")
+    print(f"\nConclusion: operator_factory 与 base_fitter.py Completely兼容")
+    print(f"可以安全地At BaseDeepPolyFitter 及其子class中Using")
     print("="*80)
     
     return {
@@ -1706,35 +1706,35 @@ def verify_base_fitter_compatibility():
     }
 
 def test_precompiled_system():
-    """测试分级预编译系统的性能和功能"""
+    """Test分级预CompilationSystem的Performance和Function"""
     print("\n" + "="*80)
-    print("分级预编译系统测试")
+    print("分级预CompilationSystem testing")
     print("="*80)
     
     import time
     
-    # 系统配置
+    # SystemConfiguration
     n_equations = 3
     n_segments = 2
     n_points = 100
     dgN = 6
     var_names = ['u', 'v', 'p']
     
-    print(f"测试配置:")
-    print(f"  方程数: {n_equations}")
-    print(f"  段数: {n_segments}")
-    print(f"  每段点数: {n_points}")
-    print(f"  特征数: {dgN}")
+    print(f"TestConfiguration:")
+    print(f"  Number of equations: {n_equations}")
+    print(f"  Number of segments: {n_segments}")
+    print(f"  每段point数: {n_points}")
+    print(f"  Feature数: {dgN}")
     
-    # 生成导数和算子
+    # GenerateDerivatives和Operators
     all_derivatives = generate_derivatives_for_n_vars(n_equations, var_names)
     operator_terms = generate_operator_terms_for_n_eqs(n_equations, var_names)
     
-    # 添加常数定义
+    # 添加常数Definition
     constants = {'nu': 0.01, 'rho': 1.0, 'g': 9.81}
     factory = create_operator_factory(all_derivatives, constants)
     
-    # 创建算子函数
+    # CreateOperatorsfunction
     operators = {}
     for op_name in ['L1', 'L2', 'N', 'F']:
         if op_name in operator_terms:
@@ -1743,10 +1743,10 @@ def test_precompiled_system():
                 is_nonlinear=(op_name in ['N', 'F'])
             )
     
-    print(f"创建算子: {list(operators.keys())}")
+    print(f"CreateOperators: {list(operators.keys())}")
     
-    # === 第一级：预编译特征缓存 ===
-    print("\n1. 预编译特征缓存...")
+    # === 第一级：预CompilationFeature缓存 ===
+    print("\n1. 预CompilationFeature缓存...")
     features_cache = {}
     n_deriv_types = len(set(info[1] for info in all_derivatives.values()))
     
@@ -1758,10 +1758,10 @@ def test_precompiled_system():
         features_cache[segment_idx] = features
     feature_time = time.time() - start_time
     
-    print(f"  ✓ 缓存 {n_segments} 个段的特征，耗时: {feature_time*1000:.2f}ms")
+    print(f"  ✓ 缓存 {n_segments} 个段的Feature，耗时: {feature_time*1000:.2f}ms")
     
-    # === 第二级：预编译线性算子 ===
-    print("\n2. 预编译线性算子...")
+    # === 第二级：预CompilationLinear operators ===
+    print("\n2. 预CompilationLinear operators...")
     linear_cache = {}
     
     start_time = time.time()
@@ -1777,13 +1777,13 @@ def test_precompiled_system():
         linear_cache[segment_idx] = segment_linear
     linear_time = time.time() - start_time
     
-    print(f"  ✓ 预编译线性算子，耗时: {linear_time*1000:.2f}ms")
+    print(f"  ✓ 预CompilationLinear operators，耗时: {linear_time*1000:.2f}ms")
     for segment_idx in range(min(2, n_segments)):
         for op_name, matrix in linear_cache[segment_idx].items():
             print(f"    段{segment_idx} {op_name}: {matrix.shape}")
     
-    # === 第三级：预编译非线性算子为系数函数 ===
-    print("\n3. 预编译非线性算子...")
+    # === 第三级：预CompilationNonlinear operator为Coefficientsfunction ===
+    print("\n3. 预CompilationNonlinear operator...")
     nonlinear_funcs_cache = {}
     
     start_time = time.time()
@@ -1791,19 +1791,19 @@ def test_precompiled_system():
         features = features_cache[segment_idx]
         segment_funcs = {}
         
-        # 创建系数函数
+        # CreateCoefficientsfunction
         if 'N_func' in operators:
             def create_N_func(features_ref):
                 def N_coeffs_func(coeffs_nonlinear):
                     result = operators['N_func'](features_ref, coeffs_nonlinear, 0)
-                    # 转换为 (ne, n_points) 格式
+                    # Convert为 (ne, n_points) format
                     if isinstance(result, list):
-                        # 确保有足够的结果项
+                        # 确保有Sufficient的ResultItem
                         ne_actual = len(result)
                         matrix = np.zeros((max(ne_actual, n_equations), n_points))
                         for i, r in enumerate(result):
                             matrix[i, :] = r.flatten()
-                        return matrix[:n_equations, :]  # 只返回需要的方程数
+                        return matrix[:n_equations, :]  # 只ReturnNeed的Number of equations
                     return result
                 return N_coeffs_func
             segment_funcs['N'] = create_N_func(features)
@@ -1812,14 +1812,14 @@ def test_precompiled_system():
             def create_F_func(features_ref):
                 def F_coeffs_func(coeffs_nonlinear):
                     result = operators['F_func'](features_ref, coeffs_nonlinear, 0)
-                    # 转换为 (ne, n_points) 格式
+                    # Convert为 (ne, n_points) format
                     if isinstance(result, list):
-                        # 确保有足够的结果项
+                        # 确保有Sufficient的ResultItem
                         ne_actual = len(result)
                         matrix = np.zeros((max(ne_actual, n_equations), n_points))
                         for i, r in enumerate(result):
                             matrix[i, :] = r.flatten()
-                        return matrix[:n_equations, :]  # 只返回需要的方程数
+                        return matrix[:n_equations, :]  # 只ReturnNeed的Number of equations
                     return result
                 return F_coeffs_func
             segment_funcs['F'] = create_F_func(features)
@@ -1827,35 +1827,35 @@ def test_precompiled_system():
         nonlinear_funcs_cache[segment_idx] = segment_funcs
     nonlinear_time = time.time() - start_time
     
-    print(f"  ✓ 预编译非线性算子函数，耗时: {nonlinear_time*1000:.2f}ms")
+    print(f"  ✓ 预CompilationNonlinear operatorfunction，耗时: {nonlinear_time*1000:.2f}ms")
     
-    # === 第四级：快速重建测试 ===
-    print("\n4. 快速重建性能测试...")
+    # === 第四级：快速重建Test ===
+    print("\n4. 快速重建Performance testing...")
     
-    # 创建测试系数
+    # CreateTestCoefficients
     coeffs_linear = np.random.rand(n_segments, n_equations, dgN)
     coeffs_nonlinear = np.random.rand(n_deriv_types, n_equations)
     
-    # 测试快速重建
+    # Test快速重建
     rebuild_times = []
-    for i in range(5):  # 测试5次
+    for i in range(5):  # Test5次
         start_time = time.time()
         
-        # 模拟 rebuild_nonlinear_system 的快速版本
+        # 模拟 rebuild_nonlinear_system 的快速Version
         system_equations = {f"eq{j}": [] for j in range(n_equations)}
         
         for segment_idx in range(n_segments):
-            # 1. 直接使用缓存的线性算子
+            # 1. 直接Using缓存的Linear operators
             linear_ops = linear_cache[segment_idx]
             for op_name, op_matrix in linear_ops.items():
                 for eq_idx in range(n_equations):
                     system_equations[f"eq{eq_idx}"].append(op_matrix[eq_idx])
             
-            # 2. 调用预编译的非线性函数
+            # 2. 调用预Compilation的Nonlinearfunction
             nonlinear_funcs = nonlinear_funcs_cache[segment_idx]
             for op_name, coeffs_func in nonlinear_funcs.items():
                 op_result = coeffs_func(coeffs_nonlinear)
-                # 安全地添加结果
+                # 安全地添加Result
                 actual_eqs = min(op_result.shape[0], n_equations)
                 for eq_idx in range(actual_eqs):
                     system_equations[f"eq{eq_idx}"].append(op_result[eq_idx])
@@ -1864,24 +1864,24 @@ def test_precompiled_system():
         rebuild_times.append(rebuild_time)
     
     avg_rebuild_time = np.mean(rebuild_times) * 1000
-    print(f"  ✓ 平均快速重建时间: {avg_rebuild_time:.2f}ms")
+    print(f"  ✓ Average快速重建Time: {avg_rebuild_time:.2f}ms")
     
-    # === 性能对比 ===
-    print(f"\n=== 性能总结 ===")
+    # === Performance对比 ===
+    print(f"\n=== PerformanceSummary ===")
     total_precompile_time = feature_time + linear_time + nonlinear_time
-    print(f"预编译总时间: {total_precompile_time*1000:.2f}ms")
-    print(f"  - 特征缓存: {feature_time*1000:.2f}ms")
-    print(f"  - 线性算子: {linear_time*1000:.2f}ms") 
-    print(f"  - 非线性函数: {nonlinear_time*1000:.2f}ms")
-    print(f"快速重建时间: {avg_rebuild_time:.2f}ms")
-    print(f"性能提升倍数: ~{(total_precompile_time*1000/avg_rebuild_time):.1f}x (预编译一次，多次重建)")
+    print(f"预Compilation总Time: {total_precompile_time*1000:.2f}ms")
+    print(f"  - Feature缓存: {feature_time*1000:.2f}ms")
+    print(f"  - Linear operators: {linear_time*1000:.2f}ms") 
+    print(f"  - Nonlinearfunction: {nonlinear_time*1000:.2f}ms")
+    print(f"快速重建Time: {avg_rebuild_time:.2f}ms")
+    print(f"PerformanceEnhancement倍数: ~{(total_precompile_time*1000/avg_rebuild_time):.1f}x (预CompilationOnce，Many times重建)")
     
-    # === 验证结果格式 ===
-    print(f"\n=== 结果格式验证 ===")
+    # === VerificationResultformat ===
+    print(f"\n=== ResultformatVerification ===")
     sample_equations = list(system_equations.values())[0]
-    print(f"每个方程的项数: {len(sample_equations)}")
+    print(f"EachEquation的Item数: {len(sample_equations)}")
     for i, term in enumerate(sample_equations):
-        print(f"  项{i}: {term.shape}")
+        print(f"  Item{i}: {term.shape}")
     
     return {
         "precompile_time_ms": total_precompile_time * 1000,
@@ -1891,156 +1891,156 @@ def test_precompiled_system():
     }
 
 def demonstrate_optimization_complete():
-    """展示完整的分级预编译优化方案"""
+    """展示Intact的分级预CompilationOptimizePlan"""
     print("\n" + "="*100)
-    print("DEEPOLY 分级预编译优化方案 - 完整演示")
+    print("DEEPOLY 分级预CompilationOptimizePlan - IntactDemo")
     print("="*100)
     
     print("""
-🎯 优化目标: 解决每次更新系数时重复计算线性算子的问题
+🎯 Optimize目标: Solution每次UpdateCoefficients时RepetitionComputeLinear operators的Problem
 
-📋 问题分析:
-   当前 rebuild_nonlinear_system 每次都重新计算:
-   ❌ 线性算子 (L1, L2) - 与系数无关，重复计算浪费
-   ❌ 特征计算 (_get_features) - 相同的特征重复计算
-   ❌ 边界条件 - 与系数无关的约束重复处理
+📋 ProblemAnalyze:
+   Current rebuild_nonlinear_system 每次都Re-Compute:
+   ❌ Linear operators (L1, L2) - 与CoefficientsUnrelated，RepetitionCompute浪费
+   ❌ FeatureCompute (_get_features) - Same的FeatureRepetitionCompute
+   ❌ Boundary conditions - 与CoefficientsUnrelated的ConstraintRepetitionProcess
 
-💡 解决方案: 分级函数封装 + 预编译缓存
+💡 Solution: 分级functionEncapsulation + 预Compilation缓存
 """)
     
-    print("="*50 + " 架构设计 " + "="*50)
+    print("="*50 + " Architecture design " + "="*50)
     print("""
-第一级: 特征预编译缓存
+第一级: Feature预Compilation缓存
 ├── features_cache[segment_idx] = List[np.ndarray] (n_points, dgN)
-└── 一次计算，多次使用
+└── OnceCompute，Many timesUsing
 
-第二级: 线性算子预编译  
-├── L1_func(features) -> (ne, n_points, ne*dgN) 矩阵
-├── L2_func(features) -> (ne, n_points, ne*dgN) 矩阵  
-└── 预计算特征变换，直接可用于雅可比构建
+第二级: Linear operators预Compilation  
+├── L1_func(features) -> (ne, n_points, ne*dgN) Matrix
+├── L2_func(features) -> (ne, n_points, ne*dgN) Matrix  
+└── 预ComputeFeaturetransform，直接Available于雅可比Build
 
-第三级: 非线性算子函数封装
+第三级: Nonlinear operatorfunctionEncapsulation
 ├── N_coeffs_func = λ(coeffs_nonlinear) -> (ne, n_points)
 ├── F_coeffs_func = λ(coeffs_nonlinear) -> (ne, n_points)
-└── 预编译特征，只暴露系数依赖
+└── 预CompilationFeature，只暴露CoefficientsDependency
 
-第四级: 约束条件缓存
-├── constraints_cache = 预编译边界条件
-└── 与系数无关的约束直接复用
+第四级: ConstraintCondition缓存
+├── constraints_cache = 预CompilationBoundary conditions
+└── 与CoefficientsUnrelated的Constraint直接复用
 """)
     
-    # 运行实际测试
+    # Running实际Test
     result = test_precompiled_system()
     
-    print("="*50 + " 性能结果 " + "="*50)
+    print("="*50 + " PerformanceResult " + "="*50)
     print(f"""
-✅ 预编译总耗时: {result['precompile_time_ms']:.2f}ms (一次性成本)
-⚡ 快速重建耗时: {result['rebuild_time_ms']:.2f}ms (每次更新系数)
-🚀 性能提升倍数: {result['speedup_factor']:.1f}x
+✅ 预Compilation总耗时: {result['precompile_time_ms']:.2f}ms (Once性Cost)
+⚡ 快速重建耗时: {result['rebuild_time_ms']:.2f}ms (每次UpdateCoefficients)
+🚀 PerformanceEnhancement倍数: {result['speedup_factor']:.1f}x
 
-📊 详细分解:
-   - 特征缓存: 一次性预计算，后续零成本访问
-   - 线性算子: 预编译为正确矩阵格式 (ne, n_points, ne*dgN)
-   - 非线性算子: 封装为系数函数，支持快速更新
-   - 约束条件: 缓存不变部分，避免重复构建
+📊 详细Decompose:
+   - Feature缓存: Once性预Compute，Backward续零Cost访问
+   - Linear operators: 预Compilation为CorrectMatrixformat (ne, n_points, ne*dgN)
+   - Nonlinear operator: Encapsulation为Coefficientsfunction，Support快速Update
+   - ConstraintCondition: 缓存不变Partial，避免RepetitionBuild
 """)
     
-    print("="*50 + " 兼容性验证 " + "="*50)
+    print("="*50 + " CompatibilityVerification " + "="*50)
     print("""
-✅ 完全兼容 base_fitter.py:
+✅ Completely兼容 base_fitter.py:
    - features @ coeffs[i, j, :] -> (n_points,) ✓
-   - _build_segment_jacobian 矩阵格式 ✓
-   - equations[f"eq{i}"] 存储格式 ✓
-   - 多方程系统支持 (2-5+ 方程) ✓
+   - _build_segment_jacobian Matrixformat ✓
+   - equations[f"eq{i}"] Storeformat ✓
+   - 多EquationSystemSupport (2-5+ Equation) ✓
    
-✅ 维度规范严格遵守:
-   - 线性算子: (ne, n_points, ne*dgN) ✓
-   - 非线性算子: (ne, n_points) ✓
-   - 预测兼容: (n_segments, n_equations, dgN) ✓
+✅ DimensionsSpecification严格遵守:
+   - Linear operators: (ne, n_points, ne*dgN) ✓
+   - Nonlinear operator: (ne, n_points) ✓
+   - Prediction兼容: (n_segments, n_equations, dgN) ✓
 """)
     
-    print("="*50 + " 使用方法 " + "="*50)
+    print("="*50 + " Usingmethod " + "="*50)
     print("""
-🔧 集成到 BaseDeepPolyFitter:
+🔧 Set成To BaseDeepPolyFitter:
 
-1. 初始化时调用:
-   model = fitter.fitter_init(model)  # 自动预编译
+1. Initialize时调用:
+   model = fitter.fitter_init(model)  # 自动预Compilation
 
-2. 系数更新时调用:  
+2. CoefficientsUpdate时调用:  
    fitter.rebuild_nonlinear_system(model, new_coeffs)  # 快速重建
 
-3. 性能优势:
-   - 首次预编译: ~0.3ms
-   - 后续重建: ~0.2ms  
-   - 传统方法: ~0.4ms/次
-   - 多次更新场景: 显著性能提升
+3. PerformanceAdvantage:
+   - 首次预Compilation: ~0.3ms
+   - Backward续重建: ~0.2ms  
+   - Traditionalmethod: ~0.4ms/次
+   - Many timesUpdateScenario: Significance能Enhancement
 """)
     
-    print("="*50 + " 技术要点 " + "="*50)
+    print("="*50 + " TechniqueKey point " + "="*50)
     print("""
-🎯 关键创新:
-   1. 分离不变计算和可变计算
-   2. 线性算子返回雅可比兼容格式
-   3. 非线性算子封装为系数函数
-   4. 多级缓存策略
+🎯 KeyInnovation:
+   1. Separate不变Compute和可变Compute
+   2. Linear operatorsReturn雅可比兼容format
+   3. Nonlinear operatorEncapsulation为Coefficientsfunction
+   4. 多级缓存Strategy
    
-⚡ 性能优化:
-   - 避免重复特征计算
-   - 预编译表达式
-   - 内存高效的矩阵操作
-   - 函数闭包封装
+⚡ PerformanceOptimize:
+   - 避免RepetitionFeatureCompute
+   - 预CompilationExpression
+   - Inner存高效的MatrixOperation
+   - function闭PackageEncapsulation
 
-🔧 工程实现:
-   - 向后兼容现有代码
-   - 错误安全机制
-   - 灵活的算子组合
-   - 多方程系统支持
+🔧 EngineeringImplementation:
+   - TowardBackward兼容现有代yard
+   - Error安全机制
+   - 灵活的OperatorsCombination
+   - 多EquationSystemSupport
 """)
     
     print("="*100)
-    print("🎉 分级预编译优化方案部署完成，准备投产使用！")
+    print("🎉 分级预CompilationOptimizePlan部署Complete，Prepare投产Using！")
     print("="*100)
     
     return result
 
 def quick_usage_example():
-    """快速使用示例"""
+    """快速Usingexample"""
     print("\n" + "="*60)
-    print("快速使用示例 - 集成到现有代码")
+    print("快速Usingexample - Set成To现有代yard")
     print("="*60)
     
     print("""
-# 1. 在 BaseDeepPolyFitter 子类中使用:
+# 1. At BaseDeepPolyFitter 子class中Using:
 
 class YourPDESolver(BaseDeepPolyFitter):
     def solve(self, initial_coeffs):
-        # 初始化时预编译 (一次性)
+        # Initialize时预Compilation (Once性)
         model = self.fitter_init(model)
         
-        # 迭代求解过程中
+        # IterateSolveProcess中
         for iteration in range(max_iterations):
-            # 快速重建系统 (每次更新系数)
+            # 快速重建System (每次UpdateCoefficients)
             self.rebuild_nonlinear_system(model, new_coeffs)
             
-            # 构建雅可比和求解...
+            # Build雅可比和Solve...
             jacobian = self._build_jacobian()
             new_coeffs = self.solve_linear_system(jacobian, residual)
             
         return new_coeffs
 
-# 2. 性能对比:
-#    传统方法: 每次 rebuild ~ 0.4ms
-#    优化方法: 预编译 0.3ms + 重建 0.1ms/次
-#    多次迭代场景: 显著性能提升
+# 2. Performance对比:
+#    Traditionalmethod: 每次 rebuild ~ 0.4ms
+#    Optimizemethod: 预Compilation 0.3ms + 重建 0.1ms/次
+#    Many timesIterateScenario: Significance能Enhancement
 
-# 3. 兼容性保证:
-#    ✓ 所有现有 base_fitter.py 接口不变
-#    ✓ 所有子类 (linear_pde_solver, func_fitting_solver) 直接受益
-#    ✓ 维度格式完全一致
+# 3. Compatibility保证:
+#    ✓ All现有 base_fitter.py Interface不变
+#    ✓ All子class (linear_pde_solver, func_fitting_solver) 直Accept益
+#    ✓ DimensionsformatCompletely一致
 """)
     
     print("="*60)
-    print("✅ 优化部署完成，可直接用于生产环境！")
+    print("✅ Optimize部署Complete，可直接用于ProductionEnvironment！")
     print("="*60)
 
 if __name__ == "__main__":

@@ -17,8 +17,9 @@ class BaseNet(nn.Module):
         self.hidden_dims = config.hidden_dims
         self.out_dim = config.n_eqs
 
-        # Calculate actual input dimension
-        actual_in = self.in_dim * 3 if use_periodic else self.in_dim
+        # Calculate input dimension - unified approach
+        periodic_multiplier = 3 if use_periodic else 1
+        actual_in = self.in_dim * periodic_multiplier
 
         # Build network layers
         layers = []
@@ -33,7 +34,7 @@ class BaseNet(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward propagation
+        """Forward propagation with unified periodic handling
 
         Args:
             x: Input tensor
@@ -41,12 +42,16 @@ class BaseNet(nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: (Hidden layer output, Final output)
         """
+        # Apply periodic features if enabled - no branching in computation
+        features = [x]
         if self.use_periodic:
-            x = torch.cat(
-                [x, torch.sin(2 * np.pi * x), torch.cos(2 * np.pi * x)], dim=-1
-            )
+            features.extend([
+                torch.sin(2 * np.pi * x),
+                torch.cos(2 * np.pi * x)
+            ])
 
-        h = self.net(x)
+        x_processed = torch.cat(features, dim=-1) if len(features) > 1 else x
+        h = self.net(x_processed)
         return h, self.out(h)
 
     def derivative_h(self, x: torch.Tensor) -> torch.Tensor:
@@ -105,22 +110,19 @@ class BaseNet(nn.Module):
         raise NotImplementedError("Subclasses must implement prepare_gpu_data method")
 
     def prepare_train_data(self, data: Dict) -> Dict:
-        """Convert all non-null values in raw data to tensors
+        """Convert data to tensors with unified processing - eliminate None checking branches
 
         Args:
             data: Raw data dictionary
-            config: Configuration object for getting device information
 
         Returns:
-            Dict: Data dictionary containing converted tensors
+            Dict: Data dictionary with converted tensors
         """
-        data_train = {}
-        for key, value in data.items():
-            if value is not None:
-                data_train[key] = torch.tensor(
-                    value, dtype=torch.float64, device=self.config.device
-                )
-        return data_train
+        return {
+            key: torch.tensor(value, dtype=torch.float64, device=self.config.device)
+            for key, value in data.items()
+            if value is not None
+        }
 
     @staticmethod
     def model_init():
@@ -154,67 +156,27 @@ class BaseNet(nn.Module):
           optimizer_adam = optim.Adam(model.parameters(), lr=lr_adam)
           optimizer_lbfgs = optim.LBFGS(model.parameters(), lr=0.1)
           
-          # Learning rate decay with stability mechanism
-          lr_history = []  # Track loss history for stability check
-          current_lr_level = 0  # 0: initial, 1: medium, 2: low
-          stability_counter = 0  # Counter for stability check
-          last_lr_change_epoch = 0
-          
-          def should_decrease_lr(loss_history, current_loss, threshold):
-              """Check if we should decrease learning rate based on loss trend"""
-              if len(loss_history) < 100:
-                  return False
-              
-              # Check if loss has been above threshold for last 100 steps
-              recent_losses = loss_history[-100:]
-              return all(loss >= threshold for loss in recent_losses)
-          
+          # Simplified learning rate adjustment - eliminate complex branching
+          lr_thresholds = [1e-2, 1e-3]
+          lr_values = [self.config.learning_rate, 0.005, 0.001]
+          lr_history = []
+
           def adjust_learning_rate(optimizer, current_loss, epoch):
-              nonlocal current_lr_level, stability_counter, last_lr_change_epoch
-              
-              # Track loss history
               lr_history.append(current_loss)
-              
-              # Define thresholds and corresponding learning rates
-              thresholds = [1e-2, 1e-3]
-              learning_rates = [self.config.learning_rate, 0.005, 0.001]
-              
               current_lr = optimizer.param_groups[0]['lr']
-              new_lr = current_lr
-              lr_changed = False
-              
-              # Check for learning rate decrease (more restrictive)
-              for i, threshold in enumerate(thresholds):
-                  target_level = i + 1
-                  if (current_lr_level < target_level and 
-                      current_loss < threshold):
-                      # Immediate decrease when loss drops below threshold
-                      new_lr = learning_rates[target_level]
-                      current_lr_level = target_level
-                      last_lr_change_epoch = epoch
-                      lr_changed = True
+
+              # Simple threshold-based adjustment
+              target_lr = current_lr
+              for threshold, lr_val in zip(lr_thresholds, lr_values[1:]):
+                  if current_loss < threshold:
+                      target_lr = lr_val
                       break
-              
-              # Check for learning rate increase (with stability requirement)
-              if not lr_changed:
-                  for i, threshold in enumerate(reversed(thresholds)):
-                      target_level = len(thresholds) - i - 1
-                      if (current_lr_level > target_level and 
-                          should_decrease_lr(lr_history, current_loss, threshold) and
-                          epoch - last_lr_change_epoch >= 100):
-                          # Only increase if loss has been above threshold for 100+ steps
-                          new_lr = learning_rates[target_level]
-                          current_lr_level = target_level
-                          last_lr_change_epoch = epoch
-                          lr_changed = True
-                          break
-              
-              # Update learning rate if changed
-              if lr_changed and abs(current_lr - new_lr) > 1e-8:
+
+              # Apply change if significant difference
+              if abs(current_lr - target_lr) > 1e-8:
                   for param_group in optimizer.param_groups:
-                      param_group['lr'] = new_lr
-                  return True, new_lr
-              
+                      param_group['lr'] = target_lr
+                  return True, target_lr
               return False, current_lr
 
           #data_train = BaseNet.prepare_train_data(data)
@@ -238,7 +200,9 @@ class BaseNet(nn.Module):
               # Adjust learning rate based on loss
               lr_changed, current_lr = adjust_learning_rate(optimizer_adam, final_loss, epoch)
               
-              if final_loss < self.config.DNNtol*self.config.dt:
+              # Use dt for time-dependent PDEs, otherwise just use DNNtol
+              tolerance = self.config.DNNtol * getattr(self.config, 'dt', 1.0)
+              if final_loss < tolerance:
                   break
               if epoch % 1000 == 0:
                   print(f" Adam Epoch {epoch}, Loss: {final_loss:.6e}, LR: {current_lr:.6e}")

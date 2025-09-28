@@ -7,7 +7,7 @@
       1.0
     ]
   ],
-  "case_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1",
+  "case_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1",
   "vars_list": [
     "u"
   ],
@@ -162,7 +162,7 @@
     ]
   ],
   "DNN_degree": "10",
-  "results_dir": "/home/bfly/workspace/computeforcfd/\u6df7\u5408\u7f51\u7edc/DeePoly_git/cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
+  "results_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
   "operator_parse": {
     "derivatives": [
       [
@@ -237,6 +237,6 @@
       }
     ]
   },
-  "export_time": "2025-09-27 07:36:59",
+  "export_time": "2025-09-27 09:13:53",
   "device_info": "cuda"
 }

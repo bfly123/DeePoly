@@ -3,27 +3,27 @@ from typing import Dict
 from src.abstract_class.base_net import BaseNet
 
 class FuncFittingNet(BaseNet):
-    """函数拟合问题的神经网络实现"""
+    """functionFittingProblem的Neural networkImplementation"""
     
     def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
-        """计算物理损失
+        """ComputePhysicalLoss
         
         Args:
-            data_GPU: GPU数据字典，包含训练所需的GPU数据
-            data_train: 训练数据字典，包含训练所需的CPU数据
-            **kwargs: 额外参数
+            data_GPU: GPUDataDictionary，IncludeTraining所需的GPUData
+            data_train: TrainingDataDictionary，IncludeTraining所需的CPUData
+            **kwargs: ExtraParameter
             
         Returns:
-            torch.Tensor: 损失值
+            torch.Tensor: Lossvalue
         """
-        # 获取训练数据
+        # GetTrainingData
         x_train = data_GPU["x_train"]
         u_train = data_GPU["u_train"]
         
-        # 获取模型预测
+        # GetModelPrediction
         _, output = self(x_train)
         
-        # 提取预测值
+        # 提取Predictionvalue
         u = output[..., 0]
 
 # auto code begin
@@ -35,11 +35,11 @@ class FuncFittingNet(BaseNet):
 
 # auto code end
         
-        # 计算拟合误差
+        # ComputeFitting误差
         fit_error = (u - u_train[..., 0]) ** 2
         fit_loss = torch.mean(fit_error)
         loss = fit_loss
-        # 随机打印损失组件（1%的概率）
+        # 随机打印LossComponent（1%的Probability）
         if torch.rand(1).item() < 0.01:
             print(f"\nLoss Components:")
             print(f"Fitting Loss: {fit_loss.item():.8f}")
@@ -63,11 +63,11 @@ class FuncFittingNet(BaseNet):
     }
 
     def model_init(self):
-        """初始化模型
+        """InitializeModel
         
         Returns:
-            FuncFittingNet: 初始化后的模型
+            FuncFittingNet: InitializeBackward的Model
         """
-        # 设置默认的隐藏层维度
+        # SetupDefault的Hidden layerDimensions
         model = FuncFittingNet(self.config).to(self.config.device)
         return model 

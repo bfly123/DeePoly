@@ -182,11 +182,11 @@ class TimePDESolver:
         # Execute time evolution
         U_final, U_seg_final, model_final, coeffs_final = self.solve_time_evolution()
 
-        # 计算总时间
+        # Compute总Time
         total_time = time.time() - start_time
         print(f"Total solving time: {total_time:.2f} seconds")
 
-        # 后处理和可视化
+        # BackwardProcess和Visualization
         self._postprocess_results(U_final, U_seg_final, model_final, coeffs_final)
 
         return U_final, U_seg_final, model_final, coeffs_final
@@ -198,7 +198,7 @@ class TimePDESolver:
         # Initialize time evolution
         it, T, dt, U, U_seg, coeffs = self._initialize_time_evolution()
 
-        # 记录物理计算开始时间（不包括初始化）
+        # recordPhysicalComputeStartTime（不IncludingInitialize）
         self.physics_start_time = time.time()
 
         # Main time stepping loop
@@ -223,21 +223,21 @@ class TimePDESolver:
             T += dt
             it += 1
 
-            # 动画数据更新和解监控（传递solver实例以便访问参考解，直接使用时间步输出的U）
+            # animationDataUpdate和SolutionMonitoring（Transfersolverinstance以便访问Reference solution，直接UsingTime stepOutput的U）
             self.visualizer.update_animation_data(it, T, self.data_train, self.model, coeffs, self.fitter, solver=self, U_direct=U, U_seg_direct=U_seg)
             self._monitor_solution(it, U)
 
         print(f"Time evolution completed. Final time: T = {T:.6f}")
 
-        # 记录物理计算结束时间（不包括画图）
+        # recordPhysicalComputeEnd time（不Including画Graph）
         self.physics_end_time = time.time()
         self.physics_compute_time = self.physics_end_time - self.physics_start_time
 
-        # 完成实时动画显示（与standalone solver一致）
+        # CompleteReal-timeanimationdisplay（与standalone solver一致）
         if getattr(self.config, 'realtime_visualization', False):
             self.visualizer.finalize_realtime_animation()
 
-        # 从可视化器获取动画数据统计
+        # FromVisualization器GetanimationDataStatistics
         time_history, solution_history = self.visualizer.get_animation_data()
         print(f"Collected {len(time_history)} time steps for animation")
 
@@ -260,57 +260,57 @@ class TimePDESolver:
         # Initialize fitter with model for operator precompilation
         self.fitter.fitter_init(self.model)
 
-        # 不在初始化时调用update_animation_data，等到第一个真正的时间步
+        # 不AtInitialize时调用update_animation_data，等To第一个True正的Time step
         print(f"Initialized at T = {T:.6f}, ready for time stepping")
 
         return it, T, dt, U, U_seg, coeffs
 
     def _compute_adaptive_timestep(self, it: int, T: float, dt: float, U: np.ndarray) -> float:
-        """计算自适应时间步长"""
+        """Compute自适应Time step size"""
         base_dt = self.config.dt
         
-        # 自适应时间步策略
+        # 自适应Time stepStrategy
         #if hasattr(self.config, 'adaptive_dt') and self.config.adaptive_dt:
-            # CFL条件限制
+            # CFLConditionRestriction
          #   if hasattr(self.config, 'cfl_number'):
          #       cfl_dt = self._compute_cfl_timestep(U)
          #       dt = min(base_dt, cfl_dt)
             
-            # 稳定性限制
+            # StabilityRestriction
          #   if hasattr(self.fitter, "estimate_stable_dt"):
          #       dt_stable = self.fitter.estimate_stable_dt(U)
          #       dt = min(dt, dt_stable)
          #       
-         #   # 解变化率限制
+         #   # SolutionChange率Restriction
          #   if it > 0 and hasattr(self, '_previous_U'):
          #       dt_change = self._compute_solution_change_limit(U, self._previous_U, dt)
          #       dt = min(dt, dt_change)
         #else:
-            # 固定时间步
+            # 固定Time step
         dt = base_dt
 
-        # 根据时间格式进行首步特殊处理
+        # According toTimeformatEnter行首步SpecialProcess
         time_scheme = getattr(self.config, 'time_scheme', 'imex_rk_222')
         if time_scheme == "onestep_predictor" and it == 0:
-            # OneStep Predictor: 首步时间缩减到1/10
+            # OneStep Predictor: 首步Time缩减To1/10
             dt *= 0.1
             print(f"  OneStep Predictor: First step dt reduction, dt = {dt:.6f}")
         elif it == 0 and hasattr(self.config, 'initial_dt_factor'):
-            # 其他格式的首步处理
+            # 其他format的首步Process
             dt *= self.config.initial_dt_factor
 
-        # 确保不超过最终时间
+        # 确保No more thanFinalTime
         if T + dt > self.config.T:
             dt = self.config.T - T
 
-        # 存储当前解用于下一步比较
+        # StoreCurrentSolution用于Down一步Compare
         self._previous_U = U.copy()
 
         return dt
     
     def _compute_cfl_timestep(self, U: np.ndarray) -> float:
-        """基于CFL条件计算时间步长"""
-        # 估计特征速度
+        """Based onCFLConditionComputeTime step size"""
+        # EstimationFeatureSpeed
         u_max = np.max(np.abs(U))
         dx_min = np.min(np.diff(self.data_train["x"].flatten()))
         
@@ -321,18 +321,18 @@ class TimePDESolver:
         return dt_cfl
     
     def _compute_solution_change_limit(self, U_new: np.ndarray, U_old: np.ndarray, dt: float) -> float:
-        """基于解变化率限制时间步"""
+        """Based onSolutionChange率RestrictionTime step"""
         rel_change = np.linalg.norm(U_new - U_old) / (np.linalg.norm(U_old) + 1e-12)
         max_change_rate = getattr(self.config, 'max_solution_change_rate', 0.1)
         
         if rel_change > max_change_rate:
-            # 减小时间步
+            # 减小Time step
             dt_new = dt * max_change_rate / rel_change
-            return max(dt_new, dt * 0.5)  # 不超过50%减少
+            return max(dt_new, dt * 0.5)  # No more than50%Decrease
         
         return dt
 
-    # 动画数据更新已移至可视化器的update_animation_data方法
+    # animationDataUpdate已移至Visualization器的update_animation_datamethod
 
     def _monitor_solution(self, it: int, U: np.ndarray) -> None:
         """Monitor solution progress"""
@@ -342,41 +342,41 @@ class TimePDESolver:
     def _train_neural_network_step(
         self, it: int, dt: float, U_current: np.ndarray = None
     ) -> None:
-        """神经网络训练在当前时间步，支持skip和参数继承"""
+        """Neural networkTrainingAtCurrent time步，Supportskip和ParameterInheritance"""
         
-        # 检查是否需要跳过神经网络训练
-        spotter_skip = getattr(self.config, 'spotter_skip', 1)  # 默认每步都训练
-        skip_training = (it % spotter_skip != 0) and (it > 0)  # 第一步总是训练
+        # CheckYesNoNeed跳过Neural networkTraining
+        spotter_skip = getattr(self.config, 'spotter_skip', 1)  # Default每步都Training
+        skip_training = (it % spotter_skip != 0) and (it > 0)  # 第一步AlwaysTraining
         
         if skip_training:
             print(f"  Skipping neural network training (spotter_skip={spotter_skip}, it={it})")
-            # 仍然需要重新初始化fitter，但使用现有模型参数
+            # 仍然NeedRe-Initializefitter，但Using现有ModelParameter
             self.fitter.fitter_init(self.model)
             return
         
         print(f"  Training neural network (it={it}, inheriting from previous parameters)...")
         
-        # 不重新初始化模型参数，保持从上次训练继承
+        # 不Re-InitializeModelParameter，MaintainFromUp次TrainingInheritance
         data_GPU = self.model.prepare_gpu_data(self.data_train, U_current)
 
-        # 从上一次的模型状态开始训练（不重置参数）
-        self.model.train()  # 设置为训练模式
+        # FromUpOnce的ModelStateStartTraining（不ResetParameter）
+        self.model.train()  # Setup为Trainingpattern
         
-        # 执行训练，从上次的权重继承
+        # ExecutionTraining，FromUp次的WeightsInheritance
         self.model.train_net(self.data_train, self.model, data_GPU, dt=dt)
         
-        # 计算最终损失
+        # ComputeFinalLoss
         self.model.eval()
         final_loss = self.model.physics_loss(data_GPU, dt=dt).item()
         print(f"  Neural network training completed, loss: {final_loss:.8e}")
         
-        # 记录损失历史
+        # recordLossHistory
         self.loss_history.append(final_loss)
         
-        # 重新初始化fitter以使用更新后的模型
+        # Re-Initializefitter以UsingUpdateBackward的Model
         self.fitter.fitter_init(self.model)
 
-        # 可选的可视化（只在训练时绘制）
+        # Optional的Visualization（只AtTraining时绘制）
         if getattr(self.config, 'plot_nn_predictions', False):
             self._plot_neural_network_predictions(it, dt)
 
@@ -396,31 +396,9 @@ class TimePDESolver:
                 self.data_test["x"], dtype=torch.float64, device=self.config.device
             )
             x_tensor.requires_grad_(True)  # Enable gradients for x
-            print(f"  Debug: x_tensor shape: {x_tensor.shape}")
-
-            # Check network parameters first
-            total_params = sum(p.numel() for p in self.model.parameters())
-            param_norm = sum(p.norm().item() for p in self.model.parameters())
-            print(
-                f"  Debug: Total parameters: {total_params}, Parameter norm: {param_norm:.6e}"
-            )
-
-            # Check input normalization
-            print(
-                f"  Debug: x_tensor stats - mean: {torch.mean(x_tensor):.6f}, std: {torch.std(x_tensor):.6f}"
-            )
-
             # Don't use no_grad for prediction since we need gradients during forward pass
             self.model.eval()
             features, u_pred = self.model(x_tensor)
-            print(f"  Debug: features shape: {features.shape}")
-            print(f"  Debug: u_pred shape: {u_pred.shape}")
-            print(
-                f"  Debug: u_pred range: [{torch.min(u_pred):.6f}, {torch.max(u_pred):.6f}]"
-            )
-            print(
-                f"  Debug: features range: [{torch.min(features):.6f}, {torch.max(features):.6f}]"
-            )
 
             # Check if u_pred is all zeros or very small
             u_pred_abs_max = torch.max(torch.abs(u_pred))
@@ -505,14 +483,14 @@ class TimePDESolver:
         except Exception as e:
             print(f"  Warning: Failed to create neural network prediction plot: {e}")
 
-    # ==================== 后处理和可视化方法 ====================
+    # ==================== BackwardProcess和Visualizationmethod ====================
 
     def _postprocess_results(self, U_final: np.ndarray, U_seg_final: list,
                            model_final: torch.nn.Module, coeffs_final: np.ndarray):
-        """后处理结果 - 专注于train数据与参考解对比"""
+        """BackwardProcessResult - 专注于trainData与Reference solution对比"""
         print("=== Post-processing and Visualization ===")
 
-        # 设置matplotlib样式以获得更专业的图形
+        # Setupmatplotlibstyle以Obtain更Professional的Graph形
         plt.style.use('default')
         plt.rcParams.update({
             'font.size': 11,
@@ -530,36 +508,36 @@ class TimePDESolver:
             'figure.facecolor': 'white'
         })
 
-        # 从可视化器获取时间演化数据（使用train数据）
+        # FromVisualization器GetTime演化Data（UsingtrainData）
         time_history, solution_history = self.visualizer.get_animation_data()
 
         if len(time_history) == 0 or len(solution_history) == 0:
             print("Warning: No time evolution data available for analysis")
             return
 
-        # 1. 最终时刻train结果与参考解对比
-        print("1. 分析最终时刻解与参考解的对比...")
+        # 1. Final时刻trainResult与Reference solution对比
+        print("1. AnalyzeFinal时刻Solution与Reference solution的对比...")
         self._plot_final_time_comparison(time_history, solution_history)
 
-        # 2. t-x二维图：train解、参考解和逐点误差
-        print("2. 生成时空二维图...")
+        # 2. t-x二维Graph：trainSolution、Reference solution和逐point误差
+        print("2. Generate时空二维Graph...")
         self._plot_spacetime_comparison(time_history, solution_history)
 
-        # 3. 统计所有时刻的平均误差
-        print("3. 统计所有时刻的误差...")
+        # 3. Statistics所Sometimes刻的Average误差
+        print("3. Statistics所Sometimes刻的误差...")
         self._compute_overall_error_statistics(time_history, solution_history)
 
-        # 4. 生成时间演化动画GIF
-        print("4. 生成时间演化动画...")
+        # 4. GenerateTime演化animationGIF
+        print("4. GenerateTime演化animation...")
         try:
             gif_filename = os.path.join(self.config.results_dir, "time_evolution.gif")
-            # 根据动画跳帧设置决定采样
+            # According toanimation跳帧Setup决定Sampling
             animation_skip = getattr(self.config, 'animation_skip', 1)
             if animation_skip > 1:
-                # 采样时间历史和解历史
+                # SamplingTimeHistory和SolutionHistory
                 sampled_time_history = time_history[::animation_skip]
                 sampled_solution_history = solution_history[::animation_skip]
-                print(f"  使用采样数据生成动画 (每 {animation_skip} 步采样一次)")
+                print(f"  UsingSamplingDataGenerateanimation (每 {animation_skip} 步SamplingOnce)")
             else:
                 sampled_time_history = time_history
                 sampled_solution_history = solution_history
@@ -571,34 +549,34 @@ class TimePDESolver:
                 filename=gif_filename,
                 solver=self
             )
-            print(f"  动画已保存至: {gif_filename}")
+            print(f"  animation已Save至: {gif_filename}")
         except Exception as e:
-            print(f"  动画生成失败: {e}")
+            print(f"  animationGenerateFail: {e}")
 
-        # 5. 导出数据供MATLAB使用
-        print("5. 导出数据供MATLAB分析...")
+        # 5. ExportData供MATLABUsing
+        print("5. ExportData供MATLABAnalyze...")
         self._export_data_for_matlab(time_history, solution_history)
 
         print(f"=== Analysis results saved to: {self.config.results_dir} ===")
         print("=== To generate MATLAB plots, run: matlab -batch 'plot_comparison' in the reference_data directory ===")
 
     def _plot_final_time_comparison(self, time_history, solution_history):
-        """1. 最终时刻train结果与参考解对比和逐点误差"""
+        """1. Final时刻trainResult与Reference solution对比和逐point误差"""
         if not self.reference_solution:
             print("  No reference solution available for comparison")
             return
 
-        # 获取最终时刻
+        # GetFinal时刻
         T_final = time_history[-1]
         U_final = solution_history[-1]
 
-        # 获取参考解
+        # GetReference solution
         u_ref_final = self.get_reference_solution_at_time(T_final)
         if u_ref_final is None:
             print("  Cannot get reference solution at final time")
             return
 
-        # 获取空间坐标
+        # GetSpacecoordinate
         x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
         if isinstance(x_coords, list):
             x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
@@ -606,7 +584,7 @@ class TimePDESolver:
             x_plot = x_coords
         x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
 
-        # 插值参考解到train网格
+        # InterpolationReference solutionTotrainMesh
         from scipy.interpolate import interp1d
         x_ref = self.reference_solution['x_ref']
         interp_func = interp1d(x_ref, u_ref_final, kind='cubic', bounds_error=False, fill_value='extrapolate')
@@ -614,23 +592,18 @@ class TimePDESolver:
 
         U_flat = U_final.flatten()
 
-        # 计算逐点误差
+        # Compute逐point误差
         pointwise_error = np.abs(U_flat - u_ref_interp)
 
-        # 绘图 - 使用更专业的样式
+        # 绘Graph - Using更Professional的style
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
 
-        # 上图：解对比
-        # Debug: 打印参考解信息
-        print(f"  DEBUG - Reference solution: x_ref.shape={x_ref.shape}, u_ref_final.shape={u_ref_final.shape}")
-        print(f"  DEBUG - x_ref range: [{x_ref.min():.6f}, {x_ref.max():.6f}]")
-        print(f"  DEBUG - u_ref_final range: [{u_ref_final.min():.6f}, {u_ref_final.max():.6f}]")
-        print(f"  DEBUG - x_ref is sorted: {np.all(np.diff(x_ref) >= 0)}")
+        # UpGraph：Solution对比
 
-        # 先绘制参考解（连续线）作为背景
+        # 先绘制Reference solution（ContinuousLine）作为background
         ax1.plot(x_ref, u_ref_final, 'b-', linewidth=2.5, alpha=0.8,
                 label='Reference Solution', zorder=1)
-        # 再绘制train数据（散点）突出显示
+        # 再绘制trainData（散point）突Exitdisplay
         scatter1 = ax1.scatter(x_flat, U_flat, c='red', s=35, alpha=0.9,
                               edgecolors='darkred', linewidths=0.5,
                               label='Train Solution', zorder=2)
@@ -642,13 +615,13 @@ class TimePDESolver:
         ax1.legend(fontsize=11, loc='best')
         ax1.grid(True, alpha=0.3)
 
-        # 设置坐标轴范围
+        # SetupcoordinateAxisRange
         u_min_plot = min(np.min(U_flat), np.min(u_ref_final))
         u_max_plot = max(np.max(U_flat), np.max(u_ref_final))
         u_margin = (u_max_plot - u_min_plot) * 0.05
         ax1.set_ylim([u_min_plot - u_margin, u_max_plot + u_margin])
 
-        # 下图：逐点误差 - 使用单一颜色
+        # DownGraph：逐point误差 - Using单一color
         scatter2 = ax2.scatter(x_flat, pointwise_error, c='red', s=25, alpha=0.8,
                               edgecolors='darkred', linewidths=0.3)
         ax2.set_xlabel('x', fontsize=12)
@@ -658,9 +631,9 @@ class TimePDESolver:
         ax2.set_yscale('log')
         ax2.grid(True, alpha=0.3)
 
-        # 移除颜色条，不再需要
+        # Removecolor条，不再Need
 
-        # 添加误差统计信息
+        # 添加误差Statisticsinformation
         max_error = np.max(pointwise_error)
         l2_error = np.sqrt(np.mean(pointwise_error**2))
         ax2.text(0.02, 0.98, f'Max Error: {max_error:.2e}\\nL2 Error: {l2_error:.2e}',
@@ -676,12 +649,12 @@ class TimePDESolver:
         print(f"  Final time error - Max: {max_error:.2e}, L2: {l2_error:.2e}")
 
     def _plot_spacetime_comparison(self, time_history, solution_history):
-        """2. t-x二维图：train解、参考解和逐点误差"""
+        """2. t-x二维Graph：trainSolution、Reference solution和逐point误差"""
         if not self.reference_solution:
             print("  No reference solution available for spacetime plot")
             return
 
-        # 获取空间坐标
+        # GetSpacecoordinate
         x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
         if isinstance(x_coords, list):
             x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
@@ -689,7 +662,7 @@ class TimePDESolver:
             x_plot = x_coords
         x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
 
-        # 构建时空网格数据
+        # Build时空MeshData
         nt = len(time_history)
         nx = len(x_flat)
 
@@ -698,12 +671,12 @@ class TimePDESolver:
 
         x_ref = self.reference_solution['x_ref']
 
-        # 填充数据
+        # paddingData
         for i, (t, U_t) in enumerate(zip(time_history, solution_history)):
-            # Train解
+            # TrainSolution
             U_spacetime[i, :] = U_t.flatten()
 
-            # 参考解（插值到train网格）
+            # Reference solution（InterpolationTotrainMesh）
             u_ref_t = self.get_reference_solution_at_time(t)
             if u_ref_t is not None:
                 from scipy.interpolate import interp1d
@@ -712,20 +685,20 @@ class TimePDESolver:
             else:
                 U_ref_spacetime[i, :] = 0
 
-        # 计算逐点误差
+        # Compute逐point误差
         error_spacetime = np.abs(U_spacetime - U_ref_spacetime)
 
-        # 创建网格
+        # CreateMesh
         T_grid, X_grid = np.meshgrid(time_history, x_flat, indexing='ij')
 
-        # 绘制三个子图 - 使用更好的可视化方法
+        # 绘制三个子Graph - Using更好的Visualizationmethod
         fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-        # 设置全局颜色范围以便对比
+        # Setup全局colorRange以便对比
         u_min = min(np.min(U_spacetime), np.min(U_ref_spacetime))
         u_max = max(np.max(U_spacetime), np.max(U_ref_spacetime))
 
-        # 子图1: Train解 - 使用scatter显示随机采样点
+        # 子Graph1: TrainSolution - Usingscatterdisplay随机Samplingpoint
         t_scatter = []
         x_scatter = []
         u_scatter = []
@@ -744,49 +717,49 @@ class TimePDESolver:
         cbar1 = plt.colorbar(scatter1, ax=axes[0])
         cbar1.set_label('u', fontsize=11)
 
-        # 子图2: 参考解 - 使用pcolormesh模拟MATLAB的pcolor效果
-        # 创建高分辨率参考解网格
+        # 子Graph2: Reference solution - Usingpcolormesh模拟MATLAB的pcoloreffect
+        # Create高resolutionReference solutionMesh
         t_ref_grid = self.reference_solution['t_ref']
         x_ref_grid = self.reference_solution['x_ref']
         u_ref_grid = self.reference_solution['u_ref']
 
-        # 使用pcolormesh获得更好的效果（类似MATLAB的pcolor）
+        # UsingpcolormeshObtain更好的effect（SimilarMATLAB的pcolor）
         T_ref_mesh, X_ref_mesh = np.meshgrid(t_ref_grid, x_ref_grid)
         im2 = axes[1].pcolormesh(T_ref_mesh, X_ref_mesh, u_ref_grid.T, cmap='RdBu_r',
                                 shading='gouraud', vmin=u_min, vmax=u_max)
         axes[1].set_xlabel('t', fontsize=12)
-        axes[1].set_ylabel('x', fontsize=12)  # 所有图现在都是统一方向：x轴时间，y轴空间
+        axes[1].set_ylabel('x', fontsize=12)  # AllGraphNow都YesUnify方Toward：xAxisTime，yAxisSpace
         axes[1].set_title('Reference Solution (High-Res)', fontsize=12, fontweight='bold')
         cbar2 = plt.colorbar(im2, ax=axes[1])
         cbar2.set_label('u', fontsize=11)
 
-        # 子图3: 逐点误差 - 使用scatter显示
+        # 子Graph3: 逐point误差 - Usingscatterdisplay
         error_scatter = []
         for i, t in enumerate(time_history):
             for j, x in enumerate(x_flat):
                 error_scatter.append(error_spacetime[i, j])
 
-        # 改进误差可视化 - 使用更好的颜色映射和范围控制
+        # Enhancement误差Visualization - Using更好的colorMapping和RangeControl
         from matplotlib.colors import LogNorm
 
-        # 计算误差统计信息以优化颜色范围
+        # Compute误差Statisticsinformation以OptimizecolorRange
         error_array = np.array(error_scatter)
         error_nonzero = np.maximum(error_array, 1e-12)  # 避免log(0)
 
-        # 计算合理的颜色范围（去除极端值影响）
+        # Compute合理的colorRange（Go除极EndvalueImpact）
         error_p05 = np.percentile(error_nonzero, 5)   # 5%分位数
         error_p95 = np.percentile(error_nonzero, 95)  # 95%分位数
         error_median = np.median(error_nonzero)
 
-        # 设置颜色范围，突出中等误差的变化
+        # SetupcolorRange，突Exit中等误差的Change
         vmin_error = max(error_p05, 1e-10)
-        vmax_error = min(error_p95 * 5, np.max(error_nonzero))  # 扩展上限以显示高误差区域
+        vmax_error = min(error_p95 * 5, np.max(error_nonzero))  # ExpansionUp限以display高误差Region
 
         print(f"  Error colormap range: [{vmin_error:.2e}, {vmax_error:.2e}], median: {error_median:.2e}")
 
-        # 使用更具对比度的颜色映射
+        # Using更具contrast的colorMapping
         scatter3 = axes[2].scatter(t_scatter, x_scatter, c=error_nonzero,
-                                  cmap='plasma',  # 使用plasma colormap获得更好的对比度
+                                  cmap='plasma',  # Usingplasma colormapObtain更好的contrast
                                   s=10, alpha=0.9,
                                   norm=LogNorm(vmin=vmin_error, vmax=vmax_error),
                                   edgecolors='none')
@@ -805,12 +778,12 @@ class TimePDESolver:
         print(f"  Spacetime comparison saved to: {spacetime_path}")
 
     def _compute_overall_error_statistics(self, time_history, solution_history):
-        """3. 统计所有时刻的平均L2误差和L∞误差"""
+        """3. Statistics所Sometimes刻的AverageL2误差和L∞误差"""
         if not self.reference_solution:
             print("  No reference solution available for error statistics")
             return
 
-        # 获取空间坐标
+        # GetSpacecoordinate
         x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
         if isinstance(x_coords, list):
             x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
@@ -822,19 +795,19 @@ class TimePDESolver:
         l2_errors = []
         linf_errors = []
 
-        # 计算每个时刻的误差
+        # ComputeEach时刻的误差
         for t, U_t in zip(time_history, solution_history):
-            # 获取参考解
+            # GetReference solution
             u_ref_t = self.get_reference_solution_at_time(t)
             if u_ref_t is None:
                 continue
 
-            # 插值参考解到train网格
+            # InterpolationReference solutionTotrainMesh
             from scipy.interpolate import interp1d
             interp_func = interp1d(x_ref, u_ref_t, kind='cubic', bounds_error=False, fill_value='extrapolate')
             u_ref_interp = interp_func(x_flat)
 
-            # 计算误差
+            # Compute误差
             U_flat = U_t.flatten()
             error = np.abs(U_flat - u_ref_interp)
 
@@ -848,85 +821,85 @@ class TimePDESolver:
             print("  No valid time points for error calculation")
             return
 
-        # 计算时间平均误差
+        # ComputeTimeAverage误差
         mean_l2_error = np.mean(l2_errors)
         mean_linf_error = np.mean(linf_errors)
         max_l2_error = np.max(l2_errors)
         max_linf_error = np.max(linf_errors)
 
-        # 保存误差统计报告
+        # Save误差StatisticsReport
         report_path = os.path.join(self.config.results_dir, "error_statistics_report.txt")
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write("=" * 70 + "\n")
             f.write("                   ERROR STATISTICS REPORT                    \n")
             f.write("=" * 70 + "\n\n")
 
-            # 时间信息部分
-            f.write("【时间信息】\n")
+            # TimeinformationPartial
+            f.write("【Timeinformation】\n")
             f.write("-" * 40 + "\n")
-            f.write(f"  时间范围:     [{time_history[0]:.6f}, {time_history[-1]:.6f}]\n")
-            f.write(f"  时间步数:     {len(l2_errors)}\n")
-            f.write(f"  时间步长:     {self.config.dt}\n")
-            f.write(f"  空间点数:     {len(x_flat)}\n\n")
+            f.write(f"  TimeRange:     [{time_history[0]:.6f}, {time_history[-1]:.6f}]\n")
+            f.write(f"  Time step数:     {len(l2_errors)}\n")
+            f.write(f"  Time step size:     {self.config.dt}\n")
+            f.write(f"  Spacepoint数:     {len(x_flat)}\n\n")
 
-            # 计算时间统计部分
-            f.write("【计算时间统计】\n")
+            # ComputeTimeStatisticsPartial
+            f.write("【ComputeTimeStatistics】\n")
             f.write("-" * 40 + "\n")
             if hasattr(self, 'physics_compute_time'):
-                f.write(f"  物理计算时间: {self.physics_compute_time:.2f} 秒\n")
-                f.write(f"  平均每步耗时: {self.physics_compute_time/len(l2_errors):.4f} 秒\n")
-                f.write(f"  计算效率:     {len(l2_errors)/self.physics_compute_time:.2f} 步/秒\n")
+                f.write(f"  PhysicalComputeTime: {self.physics_compute_time:.2f} second\n")
+                f.write(f"  Average每步耗时: {self.physics_compute_time/len(l2_errors):.4f} second\n")
+                f.write(f"  ComputeEfficiency:     {len(l2_errors)/self.physics_compute_time:.2f} 步/second\n")
 
-                # 计算物理时间与计算时间的比率
+                # ComputePhysicalTime与ComputeTime的Rate
                 physical_time_range = time_history[-1] - time_history[0]
                 speedup_ratio = physical_time_range / self.physics_compute_time
-                f.write(f"  物理/计算时间比: {speedup_ratio:.4f}\n")
+                f.write(f"  Physical/ComputeTime比: {speedup_ratio:.4f}\n")
             else:
-                f.write("  物理计算时间: N/A\n")
+                f.write("  PhysicalComputeTime: N/A\n")
             f.write("\n")
 
-            # 误差统计部分
-            f.write("【误差统计】\n")
+            # 误差StatisticsPartial
+            f.write("【误差Statistics】\n")
             f.write("-" * 40 + "\n")
-            f.write("  时间平均误差:\n")
+            f.write("  TimeAverage误差:\n")
             f.write(f"    - L2  误差:   {mean_l2_error:.6e}\n")
             f.write(f"    - L∞  误差:   {mean_linf_error:.6e}\n\n")
-            f.write("  最大误差 (所有时刻):\n")
+            f.write("  最大误差 (所Sometimes刻):\n")
             f.write(f"    - L2  误差:   {max_l2_error:.6e}\n")
             f.write(f"    - L∞  误差:   {max_linf_error:.6e}\n\n")
 
-            # 误差比率分析
+            # 误差RateAnalyze
             if mean_l2_error > 0:
-                f.write("  误差分析:\n")
-                f.write(f"    - L∞/L2 比率: {mean_linf_error/mean_l2_error:.2f}\n")
-                f.write(f"    - 相对精度:   {-np.log10(mean_l2_error):.1f} 位小数\n\n")
+                f.write("  Error analysis:\n")
+                f.write(f"    - L∞/L2 Rate: {mean_linf_error/mean_l2_error:.2f}\n")
+                f.write(f"    - Phase对Precision:   {-np.log10(mean_l2_error):.1f} 位小数\n\n")
 
-            # 配置信息部分
-            f.write("【求解器配置】\n")
+            # ConfigurationinformationPartial
+            f.write("【Solve器Configuration】\n")
             f.write("-" * 40 + "\n")
-            f.write(f"  时间格式:     {getattr(self.config, 'time_scheme', 'N/A')}\n")
-            f.write(f"  神经网络:     {self.config.hidden_dims}\n")
-            f.write(f"  分段数量:     {self.config.n_segments}\n")
-            f.write(f"  多项式阶:     {self.config.poly_degree}\n")
-            f.write(f"  设备类型:     {getattr(self.config, 'device', 'cpu')}\n\n")
+            f.write(f"  Timeformat:     {getattr(self.config, 'time_scheme', 'N/A')}\n")
+            f.write(f"  Neural network:     {self.config.hidden_dims}\n")
+            f.write(f"  分Number of segments量:     {self.config.n_segments}\n")
+            f.write(f"  Polynomial阶:     {self.config.poly_degree}\n")
+            f.write(f"  EquipmentType:     {getattr(self.config, 'device', 'cpu')}\n\n")
 
-            # 添加时间戳
+            # 添加Time戳
             from datetime import datetime
             f.write("=" * 70 + "\n")
-            f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"GenerateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("=" * 70 + "\n")
 
-        print(f"  误差统计报告已保存至: {report_path}")
+        print(f"  误差StatisticsReport已Save至: {report_path}")
 
-        # 打印物理计算时间统计
+        # 打印PhysicalComputeTimeStatistics
         if hasattr(self, 'physics_compute_time'):
-            print(f"  物理计算时间: {self.physics_compute_time:.2f} 秒 (不含初始化和画图)")
-            print(f"  计算效率: {len(l2_errors)/self.physics_compute_time:.2f} 时间步/秒")
+            print(f"  PhysicalComputeTime: {self.physics_compute_time:.2f} second (不含Initialize和画Graph)")
+            print(f"  ComputeEfficiency: {len(l2_errors)/self.physics_compute_time:.2f} Time step/second")
 
-        # 绘制误差随时间变化图 - 更专业的样式
+        # 绘制误差随TimeChangeGraph - 更Professional的style
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
 
-        # L2误差演化 - 使用单一颜色
+        # L2误差演化 - Using单一color
         scatter_l2 = ax1.scatter(time_history[:len(l2_errors)], l2_errors,
                                 c='blue', s=40, alpha=0.8,
                                 edgecolors='navy', linewidths=0.5, label='L2 Error')
@@ -937,14 +910,14 @@ class TimePDESolver:
         ax1.set_yscale('log')
         ax1.grid(True, alpha=0.3)
 
-        # 添加趋势线
+        # 添加趋势Line
         if len(l2_errors) > 2:
             z = np.polyfit(time_history[:len(l2_errors)], np.log10(l2_errors), 1)
             p = np.poly1d(z)
             ax1.plot(time_history[:len(l2_errors)], 10**p(time_history[:len(l2_errors)]),
                     'b--', alpha=0.5, linewidth=1.5, label='Trend')
 
-        # L∞误差演化 - 使用单一颜色
+        # L∞误差演化 - Using单一color
         scatter_linf = ax2.scatter(time_history[:len(linf_errors)], linf_errors,
                                   c='red', s=40, alpha=0.8,
                                   edgecolors='darkred', linewidths=0.5, label='L∞ Error')
@@ -955,14 +928,14 @@ class TimePDESolver:
         ax2.set_yscale('log')
         ax2.grid(True, alpha=0.3)
 
-        # 添加趋势线
+        # 添加趋势Line
         if len(linf_errors) > 2:
             z = np.polyfit(time_history[:len(linf_errors)], np.log10(linf_errors), 1)
             p = np.poly1d(z)
             ax2.plot(time_history[:len(linf_errors)], 10**p(time_history[:len(linf_errors)]),
                     'r--', alpha=0.5, linewidth=1.5, label='Trend')
 
-        # 添加图例
+        # 添加Graph例
         ax1.legend(fontsize=10)
         ax2.legend(fontsize=10)
 
@@ -980,11 +953,11 @@ class TimePDESolver:
         print(f"    Maximum L∞ Error:        {max_linf_error:.6e}")
 
     def _export_data_for_matlab(self, time_history, solution_history):
-        """导出train数据供MATLAB分析使用"""
+        """ExporttrainData供MATLABAnalyzeUsing"""
         try:
             import scipy.io
 
-            # 获取空间坐标
+            # GetSpacecoordinate
             x_coords = self.data_train.get('x', self.data_train.get('x_segments', []))
             if isinstance(x_coords, list):
                 x_plot = np.vstack(x_coords) if x_coords else np.array([[0]])
@@ -992,7 +965,7 @@ class TimePDESolver:
                 x_plot = x_coords
             x_flat = x_plot[:, 0] if x_plot.ndim > 1 else x_plot
 
-            # 构建解矩阵 (nx, nt)
+            # BuildSolutionMatrix (nx, nt)
             nt = len(time_history)
             nx = len(x_flat)
             U_matrix = np.zeros((nx, nt))
@@ -1000,7 +973,7 @@ class TimePDESolver:
             for i, U_t in enumerate(solution_history):
                 U_matrix[:, i] = U_t.flatten()
 
-            # 准备导出数据
+            # PrepareExportData
             export_data = {
                 'time_history': np.array(time_history),
                 'x_coords': x_flat,
@@ -1015,7 +988,7 @@ class TimePDESolver:
                 }
             }
 
-            # 导出到reference_data目录
+            # ExportToreference_dataDirectory
             case_dir = getattr(self.config, 'case_dir', os.getcwd())
             ref_data_dir = os.path.join(case_dir, 'reference_data')
             os.makedirs(ref_data_dir, exist_ok=True)
@@ -1034,22 +1007,22 @@ class TimePDESolver:
             print(f"  Warning: Failed to export MATLAB data: {e}")
 
     def _generate_reference_comparison_analysis(self, model: torch.nn.Module, coeffs: np.ndarray):
-        """生成参考解对比分析"""
+        """GenerateReference solution对比Analyze"""
         print("=== Generating Reference Solution Comparison Analysis ===")
         
         try:
-            # 在最终时刻获取数值解
+            # AtFinal时刻GetNumerical solution
             T_final = getattr(self.config, 'T', 0.2)
             numerical_solution, _ = self.fitter.construct(self.data_test, model, coeffs)
             
-            # 获取最终时刻的参考解
+            # GetFinal时刻的Reference solution
             reference_solution = self.get_reference_solution_at_time(T_final)
             
             if reference_solution is None:
                 print("Warning: Cannot obtain reference solution for comparison")
                 return
                 
-            # 获取空间坐标
+            # GetSpacecoordinate
             if 'x_segments' in self.data_test:
                 x_coords = np.vstack(self.data_test['x_segments'])
             elif 'x' in self.data_test:
@@ -1060,7 +1033,7 @@ class TimePDESolver:
             
             x_test = x_coords[:, 0] if x_coords.ndim > 1 else x_coords
             
-            # 插值参考解到测试网格
+            # InterpolationReference solutionToTestMesh
             if len(reference_solution) != len(numerical_solution):
                 from scipy.interpolate import interp1d
                 x_ref = self.reference_solution['x_ref']
@@ -1070,7 +1043,7 @@ class TimePDESolver:
             else:
                 reference_interp = reference_solution
                 
-            # 计算各种误差指标
+            # Compute各种误差Indicator
             abs_error = np.abs(numerical_solution.flatten() - reference_interp)
             rel_error = abs_error / (np.abs(reference_interp) + 1e-12)
             
@@ -1079,12 +1052,12 @@ class TimePDESolver:
             l_inf_error = np.max(abs_error)
             mean_rel_error = np.mean(rel_error)
             
-            # 保存对比分析图
+            # Save对比AnalyzeGraph
             comparison_path = os.path.join(self.config.results_dir, "reference_comparison.png")
             self._plot_reference_comparison(x_test, numerical_solution.flatten(), reference_interp, 
                                           abs_error, comparison_path)
             
-            # 生成误差报告
+            # Generate误差Report
             report_path = os.path.join(self.config.results_dir, "error_analysis_report.txt")
             self._generate_error_report(T_final, max_error, l2_error, l_inf_error, 
                                       mean_rel_error, report_path)
@@ -1093,17 +1066,17 @@ class TimePDESolver:
             print(f"  最大误差: {max_error:.2e}")
             print(f"  L2误差: {l2_error:.2e}")
             print(f"  L∞误差: {l_inf_error:.2e}")
-            print(f"  平均相对误差: {mean_rel_error:.2e}")
+            print(f"  AveragePhase对误差: {mean_rel_error:.2e}")
             
         except Exception as e:
-            print(f"参考解对比分析失败: {e}")
+            print(f"Reference solution对比AnalyzeFail: {e}")
     
     def _plot_reference_comparison(self, x: np.ndarray, u_numerical: np.ndarray, 
                                  u_reference: np.ndarray, abs_error: np.ndarray, save_path: str):
-        """绘制参考解对比图"""
+        """绘制Reference solution对比Graph"""
         fig = plt.figure(figsize=(15, 10))
         
-        # 解对比
+        # Solution对比
         ax1 = fig.add_subplot(2, 2, 1)
         ax1.plot(x, u_reference, 'b-', linewidth=2, label='Reference Solution', alpha=0.8)
         ax1.plot(x, u_numerical, 'r--', linewidth=2, label='Numerical Solution', alpha=0.8)
@@ -1122,7 +1095,7 @@ class TimePDESolver:
         ax2.set_yscale('log')
         ax2.grid(True, alpha=0.3)
         
-        # 相对误差
+        # Phase对误差
         ax3 = fig.add_subplot(2, 2, 3)
         rel_error = abs_error / (np.abs(u_reference) + 1e-12)
         ax3.plot(x, rel_error, 'g-', linewidth=2)
@@ -1132,7 +1105,7 @@ class TimePDESolver:
         ax3.set_yscale('log')
         ax3.grid(True, alpha=0.3)
         
-        # 误差统计
+        # 误差Statistics
         ax4 = fig.add_subplot(2, 2, 4)
         ax4.hist(np.log10(abs_error + 1e-16), bins=30, alpha=0.7, edgecolor='black')
         ax4.set_xlabel('log10(Absolute Error)')
@@ -1146,64 +1119,64 @@ class TimePDESolver:
     
     def _generate_error_report(self, T_final: float, max_error: float, l2_error: float, 
                              l_inf_error: float, mean_rel_error: float, report_path: str):
-        """生成误差分析报告"""
+        """GenerateError analysisReport"""
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write("=" * 60 + "\n")
-            f.write("Allen-Cahn方程数值解误差分析报告\n")
+            f.write("Allen-CahnEquationNumerical solutionError analysisReport\n")
             f.write("=" * 60 + "\n\n")
             
-            f.write(f"分析时刻: T = {T_final:.6f}\n")
-            f.write(f"参考解: {self.reference_solution['file_path']}\n")
-            f.write(f"参考解精度: {len(self.reference_solution['x_ref'])} 空间点, {len(self.reference_solution['t_ref'])} 时间点\n\n")
+            f.write(f"Analyze时刻: T = {T_final:.6f}\n")
+            f.write(f"Reference solution: {self.reference_solution['file_path']}\n")
+            f.write(f"Reference solutionPrecision: {len(self.reference_solution['x_ref'])} Spacepoint, {len(self.reference_solution['t_ref'])} Timepoint\n\n")
             
-            f.write("误差指标:\n")
+            f.write("误差Indicator:\n")
             f.write("-" * 30 + "\n")
             f.write(f"最大绝对误差 (L∞): {max_error:.6e}\n")
             f.write(f"L2误差:              {l2_error:.6e}\n")
-            f.write(f"平均相对误差:        {mean_rel_error:.6e}\n\n")
+            f.write(f"AveragePhase对误差:        {mean_rel_error:.6e}\n\n")
             
-            f.write("配置信息:\n")
+            f.write("Configurationinformation:\n")
             f.write("-" * 30 + "\n")
-            f.write(f"神经网络层数: {len(self.config.hidden_dims)}\n")
-            f.write(f"隐藏层维度: {self.config.hidden_dims}\n")
-            f.write(f"多项式段数: {self.config.n_segments}\n")
-            f.write(f"多项式阶数: {self.config.poly_degree}\n")
-            f.write(f"训练点数: {self.config.points_domain}\n")
-            f.write(f"测试点数: {self.config.points_domain_test}\n")
-            f.write(f"时间步长: {self.config.dt}\n")
-            f.write(f"神经网络跳过间隔: {getattr(self.config, 'spotter_skip', 1)}\n\n")
+            f.write(f"Neural network层数: {len(self.config.hidden_dims)}\n")
+            f.write(f"Hidden layerDimensions: {self.config.hidden_dims}\n")
+            f.write(f"PolynomialNumber of segments: {self.config.n_segments}\n")
+            f.write(f"Polynomial阶数: {self.config.poly_degree}\n")
+            f.write(f"Trainingpoint数: {self.config.points_domain}\n")
+            f.write(f"Testpoint数: {self.config.points_domain_test}\n")
+            f.write(f"Time step size: {self.config.dt}\n")
+            f.write(f"Neural network跳过Between隔: {getattr(self.config, 'spotter_skip', 1)}\n\n")
             
-            # 收敛信息
+            # Convergentinformation
             if self.loss_history:
-                f.write("收敛信息:\n")
+                f.write("Convergentinformation:\n")
                 f.write("-" * 30 + "\n")
-                f.write(f"初始损失: {self.loss_history[0]:.6e}\n")
-                f.write(f"最终损失: {self.loss_history[-1]:.6e}\n")
-                f.write(f"损失下降比: {self.loss_history[0]/self.loss_history[-1]:.2e}\n")
+                f.write(f"初BeginningLoss: {self.loss_history[0]:.6e}\n")
+                f.write(f"FinalLoss: {self.loss_history[-1]:.6e}\n")
+                f.write(f"LossDecrease比: {self.loss_history[0]/self.loss_history[-1]:.2e}\n")
 
-    # 移除冗余方法，使用可视化器的功能
+    # RemoveRedundancymethod，UsingVisualization器的Function
 
-    # 移除冗余方法，使用可视化器的plot_loss_history方法
+    # RemoveRedundancymethod，UsingVisualization器的plot_loss_historymethod
 
-    # ==================== 便利接口 ====================
+    # ==================== 便利Interface ====================
 
     def get_solution_at_time(self, T_target: float) -> Tuple[np.ndarray, float]:
-        """获取指定时间的解"""
+        """Get指定Time的Solution"""
         time_history, solution_history = self.visualizer.get_animation_data()
         
         if not time_history:
-            raise RuntimeError("需要先运行solve()方法")
+            raise RuntimeError("Need先Runningsolve()method")
             
-        # 找到最接近的时间点
+        # Find最Close to的Timepoint
         time_array = np.array(time_history)
         idx = np.argmin(np.abs(time_array - T_target))
         
         return solution_history[idx], time_array[idx]
 
     def get_convergence_info(self) -> Dict:
-        """获取收敛信息"""
+        """GetConvergentinformation"""
         if not self.loss_history:
-            return {"error": "没有可用的收敛数据"}
+            return {"error": "没有Available的ConvergentData"}
             
         return {
             "final_loss": self.loss_history[-1],
@@ -1214,8 +1187,8 @@ class TimePDESolver:
         }
 
     def export_solution_data(self, filepath: str):
-        """导出解数据"""
-        # 从可视化器获取时间演化数据
+        """ExportSolutionData"""
+        # FromVisualization器GetTime演化Data
         time_history, solution_history = self.visualizer.get_animation_data()
         
         export_data = {
@@ -1227,13 +1200,13 @@ class TimePDESolver:
         }
         
         np.savez_compressed(filepath, **export_data)
-        print(f"解数据导出至: {filepath}")
+        print(f"SolutionDataExport至: {filepath}")
 
 
-# ==================== 便利函数 ====================
+# ==================== 便利function ====================
 
 def solve_time_pde(case_dir: str) -> TimePDESolver:
-    """便利函数：直接求解时间PDE"""
+    """便利function：直接SolveTimePDE"""
     solver = TimePDESolver(case_dir=case_dir)
     solver.solve()
     return solver

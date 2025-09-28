@@ -13,93 +13,103 @@ class TimePDEVisualizer(BaseVisualizer):
     
     def __init__(self, config):
         super().__init__(config)
-        # Detect problem dimension
+        # Unified dimension handling - eliminate dimension-based branching
         self.n_dim = len(config.spatial_vars) if hasattr(config, 'spatial_vars') else len(config.x_domain)
-        self.is_1d = (self.n_dim == 1)
 
-        # 初始化交互式绘图（与standalone solver一致）
         plt.ion()
 
-        # 根据维度初始化不同的图形，使用更小的自适应尺寸
-        if self.is_1d:
-            self.fig = plt.figure(figsize=(6, 4))  # 更小的尺寸，更紧凑
-            self.ax = self.fig.add_subplot(111)
-        else:
-            self.fig = plt.figure(figsize=(6, 6))
-            self.ax = self.fig.add_subplot(111, projection="3d")
+        # Unified figure initialization regardless of dimension
+        figure_config = {
+            1: {"figsize": (6, 4), "projection": None},
+            2: {"figsize": (6, 6), "projection": "3d"}
+        }
 
-        # 设置紧凑布局
+        config_2d = figure_config.get(self.n_dim, figure_config[1])
+        self.fig = plt.figure(figsize=config_2d["figsize"])
+
+        subplot_args = [111]
+        if config_2d["projection"]:
+            subplot_args.append({"projection": config_2d["projection"]})
+            self.ax = self.fig.add_subplot(*subplot_args)
+        else:
+            self.ax = self.fig.add_subplot(*subplot_args)
+
+        # Setup紧凑layout
         self.fig.tight_layout(pad=1.0)
 
-        self._frames = []  # 用于存储动画帧
+        self._frames = []  # 用于Storeanimation帧
         self._save_gif = False
         self._visualization_interval = 1
         self._iteration_counter = 0
         self.cbar = None
 
-        # 用于tracking scatter plot和line plot对象（实时动画）
+        # 用于tracking scatter plot和line plotobject（Real-timeanimation）
         self._scatter_numerical = None
         self._line_reference = None
         self._step_counter = 0
         
     def plot_solution(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """绘制解 - 根据维度自动选择1D或2D可视化"""
-        if self.is_1d:
-            self._plot_solution_1d(data, prediction, save_path)
-        else:
-            self._plot_solution_2d(data, prediction, save_path)
+        """Unified solution plotting - eliminate dimension-based branching"""
+        # Unified plotting dispatch
+        plot_handlers = {
+            1: self._plot_solution_1d,
+            2: self._plot_solution_2d
+        }
+
+        handler = plot_handlers.get(self.n_dim, plot_handlers[1])
+        handler(data, prediction, save_path)
     
     def _plot_solution_1d(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """1D解的可视化"""
+        """1DSolution的Visualization"""
         fig = self._create_figure(figsize=(14, 5))
         
-        # 获取全局解
+        # Get全局Solution
         x_global = np.vstack(data['x_segments'])
         u_global = np.vstack(data['u_segments'])
         pred_global = prediction
         
-        # 排序以便正确绘制线图
+        # Sort以便Correct绘制LineGraph
         x = x_global[:, 0]
         sort_idx = np.argsort(x)
         x_sorted = x[sort_idx]
         u_sorted = u_global.flatten()[sort_idx]
         pred_sorted = pred_global.flatten()[sort_idx]
         
-        # 创建三个子图：真实解、预测解、误差
+        # Create三个子Graph：True实Solution、PredictionSolution、误差
         ax1 = fig.add_subplot(131)
-        ax1.plot(x_sorted, u_sorted, 'b-', linewidth=2, label='真实解')
-        ax1.set_title('真实解')
+        ax1.plot(x_sorted, u_sorted, 'b-', linewidth=2, label='True实Solution')
+        ax1.set_title('True实Solution')
         ax1.set_xlabel('x')
         ax1.set_ylabel('u(x)')
         ax1.grid(True, alpha=0.3)
         ax1.legend()
         
         ax2 = fig.add_subplot(132)
-        ax2.plot(x_sorted, pred_sorted, 'r-', linewidth=2, label='预测解')
-        ax2.set_title('预测解')
+        ax2.plot(x_sorted, pred_sorted, 'r-', linewidth=2, label='PredictionSolution')
+        ax2.set_title('PredictionSolution')
         ax2.set_xlabel('x')
         ax2.set_ylabel('u(x)')
         ax2.grid(True, alpha=0.3)
         ax2.legend()
         
-        # 对比图
+        # 对比Graph
         ax3 = fig.add_subplot(133)
-        ax3.plot(x_sorted, u_sorted, 'b-', linewidth=2, label='真实解', alpha=0.7)
-        ax3.plot(x_sorted, pred_sorted, 'r--', linewidth=2, label='预测解', alpha=0.7)
+        ax3.plot(x_sorted, u_sorted, 'b-', linewidth=2, label='True实Solution', alpha=0.7)
+        ax3.plot(x_sorted, pred_sorted, 'r--', linewidth=2, label='PredictionSolution', alpha=0.7)
         ax3.set_title('对比')
         ax3.set_xlabel('x')
         ax3.set_ylabel('u(x)')
         ax3.grid(True, alpha=0.3)
         ax3.legend()
         
-        # 添加段边界标记
+        # 添加段BoundaryMark
         if hasattr(self.config, 'n_segments') and hasattr(self.config, 'x_domain'):
             x_min, x_max = self.config.x_domain[0]
             n_seg = self.config.n_segments[0] if isinstance(self.config.n_segments, (list, tuple)) else self.config.n_segments
             segment_boundaries = np.linspace(x_min, x_max, n_seg + 1)
             
             for ax in [ax1, ax2, ax3]:
-                for boundary in segment_boundaries[1:-1]:  # 跳过首尾边界
+                for boundary in segment_boundaries[1:-1]:  # 跳过首TailBoundary
                     ax.axvline(boundary, color='k', linestyle=':', alpha=0.5, linewidth=1)
         
         plt.tight_layout()
@@ -107,42 +117,42 @@ class TimePDEVisualizer(BaseVisualizer):
         self._close_figure(fig)
     
     def _plot_solution_2d(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """2D解的可视化"""
+        """2DSolution的Visualization"""
         fig = self._create_figure(figsize=(12, 5))
         
-        # 获取全局解
+        # Get全局Solution
         x_global = np.vstack(data['x_segments'])
         u_global = np.vstack(data['u_segments'])
         pred_global = prediction
         
-        # 创建网格
+        # CreateMesh
         x = np.unique(x_global[:, 0])
         y = np.unique(x_global[:, 1])
         X, Y = np.meshgrid(x, y)
         
-        # 重塑预测结果
+        # 重塑PredictionResult
         pred_grid = pred_global.reshape(len(y), len(x))
         u_grid = u_global.reshape(len(y), len(x))
         
-        # 真实解
+        # True实Solution
         ax1 = fig.add_subplot(121)
         im1 = ax1.pcolormesh(X, Y, u_grid, cmap='viridis')
         plt.colorbar(im1, ax=ax1)
-        ax1.set_title('真实解')
+        ax1.set_title('True实Solution')
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
         ax1.set_aspect('equal')
         
-        # 预测解
+        # PredictionSolution
         ax2 = fig.add_subplot(122)
         im2 = ax2.pcolormesh(X, Y, pred_grid, cmap='viridis')
         plt.colorbar(im2, ax=ax2)
-        ax2.set_title('预测解')
+        ax2.set_title('PredictionSolution')
         ax2.set_xlabel('x')
         ax2.set_ylabel('y')
         ax2.set_aspect('equal')
         
-        # 添加段边界
+        # 添加段Boundary
         self._add_segment_boundaries_2d([ax1, ax2])
         
         plt.tight_layout()
@@ -150,23 +160,23 @@ class TimePDEVisualizer(BaseVisualizer):
         self._close_figure(fig)
         
     def plot_error(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """绘制误差分布 - 根据维度自动选择1D或2D可视化"""
-        if self.is_1d:
+        """绘制误差分布 - According toDimensions自动选择1D或2DVisualization"""
+        if self.n_dim == 1:
             self._plot_error_1d(data, prediction, save_path)
         else:
             self._plot_error_2d(data, prediction, save_path)
     
     def _plot_error_1d(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """1D误差分布可视化"""
+        """1D误差分布Visualization"""
         fig = self._create_figure(figsize=(12, 8))
         
-        # 计算误差
+        # Compute误差
         x_global = np.vstack(data['x_segments'])
         u_global = np.vstack(data['u_segments'])
         error = np.abs(prediction - u_global)
         relative_error = error / (np.abs(u_global) + 1e-12)  # 避免除零
         
-        # 排序
+        # Sort
         x = x_global[:, 0]
         sort_idx = np.argsort(x)
         x_sorted = x[sort_idx]
@@ -175,7 +185,7 @@ class TimePDEVisualizer(BaseVisualizer):
         u_sorted = u_global.flatten()[sort_idx]
         pred_sorted = prediction.flatten()[sort_idx]
         
-        # 创建四个子图
+        # Create四个子Graph
         ax1 = fig.add_subplot(221)
         ax1.plot(x_sorted, error_sorted, 'r-', linewidth=2, label='Absolute Error')
         ax1.set_title('Absolute Error Distribution')
@@ -192,17 +202,17 @@ class TimePDEVisualizer(BaseVisualizer):
         ax2.grid(True, alpha=0.3)
         ax2.set_yscale('log')
         
-        # 误差统计
+        # 误差Statistics
         ax3 = fig.add_subplot(223)
-        ax3.semilogy(x_sorted, np.abs(u_sorted), 'b-', linewidth=2, label='|真实解|', alpha=0.7)
-        ax3.semilogy(x_sorted, np.abs(pred_sorted), 'r--', linewidth=2, label='|预测解|', alpha=0.7)
-        ax3.set_title('解的量级对比')
+        ax3.semilogy(x_sorted, np.abs(u_sorted), 'b-', linewidth=2, label='|True实Solution|', alpha=0.7)
+        ax3.semilogy(x_sorted, np.abs(pred_sorted), 'r--', linewidth=2, label='|PredictionSolution|', alpha=0.7)
+        ax3.set_title('Solution的量级对比')
         ax3.set_xlabel('x')
         ax3.set_ylabel('|u|')
         ax3.grid(True, alpha=0.3)
         ax3.legend()
         
-        # 误差直方图
+        # 误差直方Graph
         ax4 = fig.add_subplot(224)
         ax4.hist(np.log10(error_sorted + 1e-16), bins=30, alpha=0.7, edgecolor='black')
         ax4.set_title('Error Distribution Histogram')
@@ -210,14 +220,14 @@ class TimePDEVisualizer(BaseVisualizer):
         ax4.set_ylabel('Frequency')
         ax4.grid(True, alpha=0.3)
         
-        # 添加段边界标记
+        # 添加段BoundaryMark
         if hasattr(self.config, 'n_segments') and hasattr(self.config, 'x_domain'):
             x_min, x_max = self.config.x_domain[0]
             n_seg = self.config.n_segments[0] if isinstance(self.config.n_segments, (list, tuple)) else self.config.n_segments
             segment_boundaries = np.linspace(x_min, x_max, n_seg + 1)
             
             for ax in [ax1, ax2, ax3]:
-                for boundary in segment_boundaries[1:-1]:  # 跳过首尾边界
+                for boundary in segment_boundaries[1:-1]:  # 跳过首TailBoundary
                     ax.axvline(boundary, color='k', linestyle=':', alpha=0.5, linewidth=1)
         
         plt.tight_layout()
@@ -225,16 +235,16 @@ class TimePDEVisualizer(BaseVisualizer):
         self._close_figure(fig)
     
     def _plot_error_2d(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
-        """2D误差分布可视化"""
+        """2D误差分布Visualization"""
         fig = self._create_figure(figsize=(15, 5))
         
-        # 计算误差
+        # Compute误差
         x_global = np.vstack(data['x_segments'])
         u_global = np.vstack(data['u_segments'])
         error = np.abs(prediction - u_global)
         relative_error = error / (np.abs(u_global) + 1e-12)
         
-        # 创建网格
+        # CreateMesh
         x = np.unique(x_global[:, 0])
         y = np.unique(x_global[:, 1])
         X, Y = np.meshgrid(x, y)
@@ -252,7 +262,7 @@ class TimePDEVisualizer(BaseVisualizer):
         ax1.set_ylabel('y')
         ax1.set_aspect('equal')
         
-        # 相对误差
+        # Phase对误差
         ax2 = fig.add_subplot(132)
         im2 = ax2.pcolormesh(X, Y, rel_error_grid, cmap='plasma')
         plt.colorbar(im2, ax=ax2, label='Relative Error')
@@ -271,7 +281,7 @@ class TimePDEVisualizer(BaseVisualizer):
         ax3.set_ylabel('y')
         ax3.set_aspect('equal')
         
-        # 添加段边界
+        # 添加段Boundary
         self._add_segment_boundaries_2d([ax1, ax2, ax3])
         
         plt.tight_layout()
@@ -279,22 +289,22 @@ class TimePDEVisualizer(BaseVisualizer):
         self._close_figure(fig)
         
     def plot_evolution_step(self, T: float, u: np.ndarray, x: np.ndarray, save_path: Optional[str] = None) -> None:
-        """绘制时间演化过程中的单个时间步 - 根据维度自动选择可视化方式"""
-        if self.is_1d:
+        """绘制Time演化Process中的SingleTime step - According toDimensions自动选择Visualization方式"""
+        if self.n_dim == 1:
             self._plot_evolution_step_1d(T, u, x, save_path)
         else:
             self._plot_evolution_step_2d(T, u, x, save_path)
     
     def _plot_evolution_step_1d(self, T: float, u: np.ndarray, x: np.ndarray, save_path: Optional[str] = None) -> None:
-        """1D时间演化步骤可视化"""
+        """1DTime演化StepVisualization"""
         self.ax.clear()
         
-        # 排序以便正确绘制线图
+        # Sort以便Correct绘制LineGraph
         sort_idx = np.argsort(x[:, 0])
         x_sorted = x[sort_idx, 0]
         u_sorted = u[sort_idx, 0] if u.ndim > 1 else u[sort_idx]
         
-        # 绘制解曲线
+        # 绘制SolutionCurve
         self.ax.plot(x_sorted, u_sorted, 'b-', linewidth=3, label=f'u(x, t={T:.3f})')
         self.ax.set_xlabel("x", fontsize=12)
         self.ax.set_ylabel("u", fontsize=12)
@@ -302,22 +312,22 @@ class TimePDEVisualizer(BaseVisualizer):
         self.ax.grid(True, alpha=0.3)
         self.ax.legend()
         
-        # 设置坐标轴范围
+        # SetupcoordinateAxisRange
         if hasattr(self.config, 'x_domain'):
             self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
         
-        # 动态调整y轴范围
+        # 动态AdjustmentyAxisRange
         u_min, u_max = u_sorted.min(), u_sorted.max()
         margin = (u_max - u_min) * 0.1 if u_max != u_min else 0.1
         self.ax.set_ylim([u_min - margin, u_max + margin])
         
-        # 添加段边界标记
+        # 添加段BoundaryMark
         if hasattr(self.config, 'n_segments') and hasattr(self.config, 'x_domain'):
             x_min_domain, x_max_domain = self.config.x_domain[0]
             n_seg = self.config.n_segments[0] if isinstance(self.config.n_segments, (list, tuple)) else self.config.n_segments
             segment_boundaries = np.linspace(x_min_domain, x_max_domain, n_seg + 1)
             
-            for boundary in segment_boundaries[1:-1]:  # 跳过首尾边界
+            for boundary in segment_boundaries[1:-1]:  # 跳过首TailBoundary
                 self.ax.axvline(boundary, color='red', linestyle=':', alpha=0.6, linewidth=1)
         
         plt.tight_layout()
@@ -327,31 +337,31 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.pause(0.01)
     
     def _plot_evolution_step_2d(self, T: float, u: np.ndarray, x: np.ndarray, save_path: Optional[str] = None) -> None:
-        """2D时间演化步骤可视化"""
+        """2DTime演化StepVisualization"""
         self.ax.clear()
         
-        # 绘制3D散点图
+        # 绘制3D散pointGraph
         u_vals = u[:, 0] if u.ndim > 1 else u
         scatter = self.ax.scatter(x[:, 0], x[:, 1], u_vals, c=u_vals, cmap="RdBu", s=15, alpha=0.8)
         
-        # 设置视角和标签
+        # Setup视Corner和label
         self.ax.view_init(elev=30, azim=45)
         self.ax.set_xlabel("x", fontsize=12)
         self.ax.set_ylabel("y", fontsize=12)
         self.ax.set_zlabel("u", fontsize=12)
         self.ax.set_title(f"Solution at T = {T:.4f}", fontsize=14, fontweight='bold')
         
-        # 设置坐标轴范围
+        # SetupcoordinateAxisRange
         if hasattr(self.config, 'x_domain'):
             self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
             self.ax.set_ylim([self.config.x_domain[1][0], self.config.x_domain[1][1]])
             
-        # 动态调整z轴范围
+        # 动态AdjustmentzAxisRange
         zmin, zmax = u_vals.min(), u_vals.max()
         margin = (zmax - zmin) * 0.1 if zmax != zmin else 0.1
         self.ax.set_zlim([zmin - margin, zmax + margin])
         
-        # 添加颜色条
+        # 添加color条
         if not hasattr(self, '_colorbar_2d') or self._colorbar_2d is None:
             self._colorbar_2d = plt.colorbar(scatter, ax=self.ax, shrink=0.5, aspect=20)
             self._colorbar_2d.set_label('u', fontsize=12)
@@ -364,36 +374,38 @@ class TimePDEVisualizer(BaseVisualizer):
     
     def plot_evolution_step_with_reference(self, T: float, u: np.ndarray, x: np.ndarray,
                                          u_ref: Optional[np.ndarray] = None, solver=None, save_path: Optional[str] = None) -> None:
-        """绘制时间演化步骤与参考解对比"""
-        if self.is_1d:
-            self._plot_evolution_step_with_reference_1d(T, u, x, u_ref, solver, save_path)
-        else:
-            # 2D情况暂时使用原有方法
-            self._plot_evolution_step_2d(T, u, x, save_path)
+        """Unified evolution step plotting - eliminate dimension branching"""
+        evolution_handlers = {
+            1: lambda: self._plot_evolution_step_with_reference_1d(T, u, x, u_ref, solver, save_path),
+            2: lambda: self._plot_evolution_step_2d(T, u, x, save_path)
+        }
+
+        handler = evolution_handlers.get(self.n_dim, evolution_handlers[1])
+        handler()
     
     def _plot_evolution_step_with_reference_1d(self, T: float, u: np.ndarray, x: np.ndarray,
                                              u_ref: Optional[np.ndarray] = None, solver=None, save_path: Optional[str] = None) -> None:
-        """1D时间演化步骤与参考解对比可视化 - 使用scatter plot方式（与standalone solver一致）"""
+        """1DTime演化Step与Reference solution对比Visualization - Usingscatter plot方式（与standalone solver一致）"""
 
-        # 如果还没有初始化scatter对象，先初始化
+        # IfNot yetInitializescatterobject，先Initialize
         if self._scatter_numerical is None:
             self.ax.clear()
 
-            # 调整子图位置以留出更多空间给标题
+            # Adjustment子Graphposition以留Exit更多Space给title
             self.fig.subplots_adjust(top=0.88)
 
-            # 获取x坐标
+            # Getxcoordinate
             x_flat = x[:, 0] if x.ndim > 1 else x
             u_flat = u[:, 0] if u.ndim > 1 else u
 
-            # 创建scatter plot用于数值解（红色）
+            # Createscatter plot用于Numerical solution（红色）
             self._scatter_numerical = self.ax.scatter(x_flat, u_flat, c='r', label='Numerical', s=20)
 
-            # 创建line plot用于参考解（蓝色）
+            # Createline plot用于Reference solution（蓝色）
             if u_ref is not None and solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
-                # 获取参考解的真实x坐标
+                # GetReference solution的True实xcoordinate
                 x_ref_true = solver.reference_solution['x_ref']
-                # 使用真实的参考解x坐标进行绘制
+                # UsingTrue实的Reference solutionxcoordinateEnter行绘制
                 sort_idx = np.argsort(x_ref_true)
                 x_ref_sorted = x_ref_true[sort_idx]
                 u_ref_sorted = u_ref[sort_idx]
@@ -405,12 +417,12 @@ class TimePDEVisualizer(BaseVisualizer):
                 self._line_reference = None
                 print("    No reference solution available for initialization")
 
-            # 设置图形属性（动态调整域边界）
-            # 从数据中获取x和u的范围
+            # SetupGraph形attribute（动态Adjustment域Boundary）
+            # FromData中Getx和u的Range
             x_min, x_max = x_flat.min(), x_flat.max()
             u_min, u_max = u_flat.min(), u_flat.max()
 
-            # 如果有参考解，考虑参考解的范围
+            # If有Reference solution，考虑Reference solution的Range
             if u_ref is not None and solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                 x_ref_true = solver.reference_solution['x_ref']
                 u_min = min(u_min, u_ref.min())
@@ -418,7 +430,7 @@ class TimePDEVisualizer(BaseVisualizer):
                 x_min = min(x_min, x_ref_true.min())
                 x_max = max(x_max, x_ref_true.max())
 
-            # 添加边距
+            # 添加margin
             x_margin = (x_max - x_min) * 0.05
             u_margin = (u_max - u_min) * 0.1
 
@@ -426,25 +438,25 @@ class TimePDEVisualizer(BaseVisualizer):
             self.ax.set_ylim(u_min - u_margin, u_max + u_margin)
             self.ax.set_xlabel('x')
             self.ax.set_ylabel('u')
-            # 初始标题，稍后会更新
+            # 初Beginningtitle，Later会Update
             self.ax.set_title('Time PDE Real-time Solution', pad=20)
             self.ax.legend()
             self.ax.grid(True, alpha=0.3)
 
-        # 更新scatter plot数据（类似standalone solver的line_pred.set_offsets）
+        # Updatescatter plotData（Similarstandalone solver的line_pred.set_offsets）
         x_flat = x[:, 0] if x.ndim > 1 else x
         u_flat = u[:, 0] if u.ndim > 1 else u
 
-        # 更新数值解scatter plot的位置
+        # UpdateNumerical solutionscatter plot的position
         self._scatter_numerical.set_offsets(np.column_stack((x_flat, u_flat)))
 
-        # 动态调整y轴范围（考虑当前数值解的范围）
+        # 动态AdjustmentyAxisRange（考虑CurrentNumerical solution的Range）
         u_min_current, u_max_current = u_flat.min(), u_flat.max()
 
-        # 更新参考解（如果有新的参考解数据）
+        # UpdateReference solution（If有NewReference solutionData）
         if u_ref is not None and hasattr(self, '_line_reference') and self._line_reference is not None:
             if solver is not None and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
-                # 使用真实的参考解x坐标
+                # UsingTrue实的Reference solutionxcoordinate
                 x_ref_true = solver.reference_solution['x_ref']
                 sort_idx = np.argsort(x_ref_true)
                 x_ref_sorted = x_ref_true[sort_idx]
@@ -452,11 +464,11 @@ class TimePDEVisualizer(BaseVisualizer):
 
                 self._line_reference.set_data(x_ref_sorted, u_ref_sorted)
 
-                # 同时考虑参考解的范围来动态调整y轴
+                # Meanwhile考虑Reference solution的RangeCome动态AdjustmentyAxis
                 u_min_current = min(u_min_current, u_ref_sorted.min())
                 u_max_current = max(u_max_current, u_ref_sorted.max())
 
-                # 计算误差：需要将参考解插值到数值解网格上
+                # Compute误差：Need将Reference solutionInterpolationToNumerical solutionMeshUp
                 from scipy.interpolate import interp1d
                 interp_func = interp1d(x_ref_true, u_ref, kind='cubic', bounds_error=False, fill_value='extrapolate')
                 u_ref_interp = interp_func(x_flat)
@@ -464,7 +476,7 @@ class TimePDEVisualizer(BaseVisualizer):
                 max_error = np.max(error)
                 l2_error = np.sqrt(np.mean(error**2))
 
-                # 增加步数计数器（在显示之前递增以显示正确的步数）
+                # Increase步数计数器（AtdisplayBeforeIncrement以displayCorrect的步数）
                 if not hasattr(self, "_step_counter"):
                     self._step_counter = 0
                 if not hasattr(self, "_initial_time"):
@@ -472,28 +484,28 @@ class TimePDEVisualizer(BaseVisualizer):
                 if not hasattr(self, "_last_time"):
                     self._last_time = T
 
-                # 计算时间步长 dt
+                # ComputeTime step size dt
                 dt = T - self._last_time if self._step_counter > 0 else 0
                 self._last_time = T
                 self._step_counter += 1
 
-                # 更新标题包含时间、时间步和误差信息
+                # UpdatetitleIncludeTime、Time step和误差information
                 title_lines = [
                     f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s',
                     f'Max Error: {max_error:.2e}, L2 Error: {l2_error:.2e}'
                 ]
                 self.ax.set_title('\n'.join(title_lines), pad=15, fontsize=11)
 
-                # 添加详细的误差诊断信息（仅在前几步）
+                # 添加详细的误差诊断information（仅AtForward几步）
                 if self._step_counter <= 5:
                     print(f"  详细误差诊断 - Step {self._step_counter}, T={T:.3f}:")
-                    print(f"    数值解范围: [{np.min(u_flat):.6f}, {np.max(u_flat):.6f}]")
-                    print(f"    参考解范围: [{np.min(u_ref_interp):.6f}, {np.max(u_ref_interp):.6f}]")
-                    print(f"    时间同步检查: 数值解T={T:.6f}, 参考解T={T:.6f} (应该相同)")
+                    print(f"    Numerical solutionRange: [{np.min(u_flat):.6f}, {np.max(u_flat):.6f}]")
+                    print(f"    Reference solutionRange: [{np.min(u_ref_interp):.6f}, {np.max(u_ref_interp):.6f}]")
+                    print(f"    Time同步Check: Numerical solutionT={T:.6f}, Reference solutionT={T:.6f} (应该Same)")
                     print(f"    最大误差: {max_error:.2e}, L2误差: {l2_error:.2e}")
-                    print(f"    误差分布: 平均={np.mean(error):.2e}, 标准差={np.std(error):.2e}")
+                    print(f"    误差分布: Average={np.mean(error):.2e}, Standard deviation={np.std(error):.2e}")
             else:
-                # 没有solver或参考解时
+                # 没有solver或Reference solution时
                 if not hasattr(self, "_step_counter"):
                     self._step_counter = 0
                 if not hasattr(self, "_initial_time"):
@@ -506,7 +518,7 @@ class TimePDEVisualizer(BaseVisualizer):
                 self._step_counter += 1
                 self.ax.set_title(f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s', pad=15, fontsize=11)
         else:
-            # 没有参考解时的标题
+            # 没有Reference solution时的title
             if not hasattr(self, "_step_counter"):
                 self._step_counter = 0
             if not hasattr(self, "_initial_time"):
@@ -519,34 +531,34 @@ class TimePDEVisualizer(BaseVisualizer):
             self._step_counter += 1
             self.ax.set_title(f'Time: T = {T:.4f}s, Step: {self._step_counter}, dt = {dt:.4f}s', pad=15, fontsize=11)
 
-        # 动态调整y轴范围（在所有数据更新完成后）
-        if u_max_current > u_min_current:  # 避免除零错误
+        # 动态AdjustmentyAxisRange（AtAllDataUpdateCompleteBackward）
+        if u_max_current > u_min_current:  # 避免除零Error
             u_margin = (u_max_current - u_min_current) * 0.1
             self.ax.set_ylim(u_min_current - u_margin, u_max_current + u_margin)
         else:
-            # 如果范围为零，使用默认的小范围
+            # IfRange为零，UsingDefault的小Range
             self.ax.set_ylim(u_min_current - 0.1, u_max_current + 0.1)
 
-        # 刷新显示（类似standalone solver的方式）
+        # 刷新display（Similarstandalone solver的方式）
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-        # 小的延时以便平滑动画（与standalone solver一致）
+        # 小的延时以便平滑animation（与standalone solver一致）
         import time
         time.sleep(0.05)
 
-        # 保存图像（如果需要）
+        # SaveGraph像（IfNeed）
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
         
     def close_evolution_plot(self) -> None:
-        """关闭时间演化绘图"""
+        """Shutdown time演化绘Graph"""
         plt.ioff()
         if hasattr(self, 'fig'):
             plt.close(self.fig)
 
     def finalize_realtime_animation(self) -> None:
-        """完成实时动画显示"""
+        """CompleteReal-timeanimationdisplay"""
         plt.ioff()
         print("Time evolution completed. Close the plot window to continue...")
         
@@ -563,30 +575,30 @@ class TimePDEVisualizer(BaseVisualizer):
         fast_mode: bool = False,
         contour_levels: int = 50,
     ) -> None:
-        """可视化u分量的流场分布"""
+        """Visualizationu分量的流场分布"""
         self._save_gif = save_gif
         
-        # 提取配置参数
+        # 提取ConfigurationParameter
         ns1, ns2 = self.config.n_segments
         np1, np2 = self.config.points_domain_test
         
-        # 创建网格
+        # CreateMesh
         x1 = np.linspace(self.config.x_domain[0, 0], self.config.x_domain[0, 1], np1 * ns1)
         x2 = np.linspace(self.config.x_domain[1, 0], self.config.x_domain[1, 1], np2 * ns2)
         x1_grid, x2_grid = np.meshgrid(x1, x2)
         
-        # 重组预测值到网格形状
+        # 重GroupPredictionvalueToMeshShape
         u_pred = preds[:, 0].reshape(np2 * ns2, np1 * ns1)
         
-        # 创建或更新图表
+        # Create或UpdateGraph表
         if not hasattr(self, '_mesh_fig'):
             self._mesh_fig = plt.figure(figsize=(10, 8))
             self._mesh_axes = self._mesh_fig.add_subplot(111)
         
-        # 清除当前图表
+        # ClearCurrentGraph表
         self._mesh_axes.clear()
         
-        # 绘制等值线图
+        # 绘制等valueLineGraph
         contf = self._mesh_axes.contourf(
             x1_grid, 
             x2_grid, 
@@ -595,30 +607,30 @@ class TimePDEVisualizer(BaseVisualizer):
             cmap='RdBu',
         )
         
-        # 设置标题和标签
+        # Setuptitle和label
         if title:
             self._mesh_axes.set_title(title)
         self._mesh_axes.set_xlabel('x')
         self._mesh_axes.set_ylabel('y')
         self._mesh_axes.set_aspect('equal')
         
-        # 更新或添加颜色条
+        # Update或添加color条
         if hasattr(self._mesh_axes, 'colorbar'):
             self._mesh_axes.colorbar.remove()
         self._mesh_axes.colorbar = plt.colorbar(contf, ax=self._mesh_axes)
         self._mesh_axes.colorbar.set_label('u')
         
-        # 调整布局
+        # Adjustmentlayout
         plt.tight_layout()
         
-        # 更新图表
+        # UpdateGraph表
         self._mesh_fig.canvas.draw()
         
-        # 保存当前帧为PNG（如果需要）
+        # SaveCurrent帧为PNG（IfNeed）
         if save_png and png_filename:
             plt.savefig(png_filename, dpi=300, bbox_inches='tight')
         
-        # 捕获当前帧用于GIF
+        # 捕获Current帧用于GIF
         if self._save_gif:
             buf = io.BytesIO()
             self._mesh_fig.savefig(buf, format='png', dpi=100)
@@ -634,21 +646,21 @@ class TimePDEVisualizer(BaseVisualizer):
         model: torch.nn.Module,
         preds: np.ndarray,
     ) -> None:
-        """绘制最终结果：u、v、p分量图和黑白流线图"""
-        # 提取配置参数
+        """绘制FinalResult：u、v、p分量Graph和黑白流LineGraph"""
+        # 提取ConfigurationParameter
         ne = self.config.n_eqs
         ns1, ns2 = self.config.n_segments
         np1, np2 = self.config.points_per_segment_test
         
-        # 计算总点数和区段
+        # Compute总point数和区段
         points_per_section = np1 * np2
         total_sections = ns1 * ns2
         
-        # 初始化网格数组
+        # InitializeMeshArray
         x1_grid = np.zeros((np1 * ns1, np2 * ns2))
         x2_grid = np.zeros((np1 * ns1, np2 * ns2))
         
-        # 填充网格数组
+        # paddingMeshArray
         for section in range(total_sections):
             section_x = section // ns2
             section_y = section % ns2
@@ -657,19 +669,19 @@ class TimePDEVisualizer(BaseVisualizer):
                 point_x = point // np2
                 point_y = point % np2
                 
-                # 获取网格点
+                # GetMeshpoint
                 grid_points = data["x_segments"][section][point]
                 x1_grid[point_y + section_y * np1, point_x + section_x * np2] = grid_points[0]
                 x2_grid[point_y + section_y * np1, point_x + section_x * np2] = grid_points[1]
         
-        # 获取唯一坐标以确保网格规则性
+        # Get唯一coordinate以确保MeshRule性
         x1_unique = np.unique(x1_grid)
         x2_unique = np.unique(x2_grid)
         
-        # 初始化预测数组
+        # InitializePredictionArray
         u_pred = np.zeros((np1 * ns1, np2 * ns2, ne))
         
-        # 填充预测数组
+        # paddingPredictionArray
         for section in range(total_sections):
             for point in range(points_per_section):
                 for eq in range(ne):
@@ -681,10 +693,10 @@ class TimePDEVisualizer(BaseVisualizer):
                         preds[points_per_section * section + point, eq]
                     )
         
-        # 创建结果目录
+        # CreateResultDirectory
         os.makedirs('results', exist_ok=True)
         
-        # 1. U分量图
+        # 1. U分量Graph
         fig = self._create_figure(figsize=(8, 6))
         contf_u = plt.contourf(x1_grid, x2_grid, u_pred[:, :, 0], levels=20, cmap='viridis')
         plt.colorbar(contf_u, label='U Velocity')
@@ -696,7 +708,7 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.savefig('results/u_component.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # 2. V分量图
+        # 2. V分量Graph
         fig = self._create_figure(figsize=(8, 6))
         contf_v = plt.contourf(x1_grid, x2_grid, u_pred[:, :, 1], levels=20, cmap='viridis')
         plt.colorbar(contf_v, label='V Velocity')
@@ -708,7 +720,7 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.savefig('results/v_component.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # 3. P分量图
+        # 3. P分量Graph
         fig = self._create_figure(figsize=(8, 6))
         if ne >= 3:
             contf_p = plt.contourf(x1_grid, x2_grid, u_pred[:, :, 2], levels=20, cmap='viridis')
@@ -723,7 +735,7 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.savefig('results/p_component.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # 4. 黑白流线图
+        # 4. 黑白流LineGraph
         fig = self._create_figure(figsize=(8, 6))
         u_component = u_pred[:, :, 0].T
         v_component = u_pred[:, :, 1].T
@@ -746,7 +758,7 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.savefig('results/streamlines.png', dpi=300, bbox_inches='tight')
         plt.close()
         
-        # 输出Tecplot格式文件
+        # OutputTecplotformatFile
         with open('results/flow_field.dat', 'w') as f:
             f.write('TITLE = "Flow Field Data"\n')
             f.write('VARIABLES = "X", "Y", "U", "V"')
@@ -767,19 +779,19 @@ class TimePDEVisualizer(BaseVisualizer):
         
     def update_animation_data(self, it: int, T: float, data_train: Dict, model: torch.nn.Module,
                             coeffs: np.ndarray, fitter, solver=None, U_direct: np.ndarray = None, U_seg_direct: list = None) -> None:
-        """更新动画数据 - 从求解器移动到可视化器，支持参考解对比，使用训练数据绘制scatter plot"""
+        """UpdateanimationData - FromSolve器MoveToVisualization器，SupportReference solution对比，UsingTrainingData绘制scatter plot"""
         animation_skip = getattr(self.config, "animation_skip", 10)
         
-        # 检查是否需要更新动画数据
+        # CheckYesNoNeedUpdateanimationData
         if it % animation_skip == 0 or T >= getattr(self.config, 'T', float('inf')):
-            # 更新时间历史
+            # Update timeHistory
             if not hasattr(self, 'time_history_viz'):
                 self.time_history_viz = []
                 self.solution_history_viz = []
                 
             self.time_history_viz.append(T)
             
-            # 获取当前时间步的解 - 直接使用时间步输出的解
+            # GetCurrent time步的Solution - 直接UsingTime stepOutput的Solution
             try:
                 # Check if data_train and required fields are available
                 if data_train is None:
@@ -790,17 +802,16 @@ class TimePDEVisualizer(BaseVisualizer):
                     print(f"  Warning: No coordinate data in data_train, skipping animation update")
                     return
 
-                # 使用时间步直接输出的解，而不是通过 construct 重新构造
+                # UsingTime step直接Output的Solution，而不YesPass construct Re-Construct
                 if U_direct is not None:
                     U_train = U_direct.copy()
-                    print(f"  使用时间步直接输出的解: U_direct.shape={U_direct.shape}")
                 else:
-                    # 备用方案：如果没有直接传递解，则使用 construct
+                    # 备用Plan：If没有直接TransferSolution，则Using construct
                     if coeffs is None:
                         print(f"  Warning: coeffs is None at T={T:.4f}, skipping animation update")
                         return
                     U_train, _ = fitter.construct(data_train, model, coeffs)
-                    print(f"  备用方案：使用 construct 构造解")
+                    print(f"  备用Plan：Using construct ConstructSolution")
 
                 if U_train is None:
                     print(f"  Warning: U_train is None, skipping animation update")
@@ -808,7 +819,7 @@ class TimePDEVisualizer(BaseVisualizer):
 
                 self.solution_history_viz.append(U_train.copy())
                 
-                # 可选择实时绘制时间演化步骤
+                # Optional择Real-time绘制Time演化Step
                 if getattr(self.config, 'realtime_visualization', False):
                     print(f"  Real-time visualization enabled, plotting at T = {T:.4f}")
                     x_coords = data_train.get('x', data_train.get('x_segments', []))
@@ -818,7 +829,7 @@ class TimePDEVisualizer(BaseVisualizer):
                         else:
                             x_plot = x_coords
                         
-                        # 获取参考解（如果有）
+                        # GetReference solution（If有）
                         u_ref = None
                         if solver and hasattr(solver, 'get_reference_solution_at_time'):
                             u_ref = solver.get_reference_solution_at_time(T)
@@ -831,20 +842,20 @@ class TimePDEVisualizer(BaseVisualizer):
                 else:
                     print(f"  Real-time visualization disabled (setting: {getattr(self.config, 'realtime_visualization', 'Not found')})")
                         
-                print(f"  动画数据已更新: T = {T:.6f}, 总帧数 = {len(self.solution_history_viz)}")
+                print(f"  animationData已Update: T = {T:.6f}, 总帧数 = {len(self.solution_history_viz)}")
                 
             except Exception as e:
-                print(f"  警告: 动画数据更新失败: {e}")
+                print(f"  Warning: animationDataUpdateFail: {e}")
     
     def get_animation_data(self):
-        """获取动画数据"""
+        """GetanimationData"""
         if hasattr(self, 'time_history_viz') and hasattr(self, 'solution_history_viz'):
             return self.time_history_viz, self.solution_history_viz
         else:
             return [], []
     
     def save_animation(self, filename: str = "animation.gif", duration: int = 200) -> None:
-        """将捕获的帧保存为GIF动画"""
+        """将捕获的帧Save为GIFanimation"""
         if len(self._frames) > 0:
             os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else ".", exist_ok=True)
             
@@ -856,66 +867,68 @@ class TimePDEVisualizer(BaseVisualizer):
                 duration=duration,
                 loop=0,
             )
-            print(f"GIF动画已保存至 {filename}")
+            print(f"GIFanimation已Save至 {filename}")
             
             self._frames = []
         else:
-            print("没有帧可保存")
+            print("没有帧可Save")
     
     def create_time_evolution_gif(self, time_history: List[float], solution_history: List[np.ndarray],
                                 data_train: Dict, filename: str = "time_evolution.gif", solver=None) -> None:
-        """创建时间演化GIF动画，支持参考解对比，使用训练数据坐标"""
+        """CreateTime演化GIFanimation，SupportReference solution对比，UsingTrainingDatacoordinate"""
         if not time_history or not solution_history:
-            print("警告: 没有时间演化数据可创建动画")
+            print("Warning: 没有Time演化Data可Createanimation")
             return
             
         try:
-            print(f"正在创建时间演化动画: {filename}")
+            print(f"正AtCreateTime演化animation: {filename}")
             
-            # 获取x坐标
+            # Getxcoordinate
             if 'x_segments' in data_train:
                 x_coords = np.vstack(data_train['x_segments'])
             elif 'x' in data_train:
                 x_coords = data_train['x']
             else:
-                print("警告: 无法获取x坐标数据")
+                print("Warning: 无法GetxcoordinateData")
                 return
             
-            # 清空之前的帧
+            # 清空Before的帧
             self._frames = []
             
-            # 为每个时间步生成帧
+            # 为EachTime stepGenerate帧
             for i, (T, solution) in enumerate(zip(time_history, solution_history)):
-                # 创建临时图形
-                temp_fig = plt.figure(figsize=(10, 6) if self.is_1d else (10, 8))
-                temp_fig.subplots_adjust(top=0.88)  # 留出空间给标题
+                # Unified figure creation - eliminate dimension branching
+                figure_sizes = {1: (10, 6), 2: (10, 8)}
+                figsize = figure_sizes.get(self.n_dim, figure_sizes[1])
+                temp_fig = plt.figure(figsize=figsize)
+                temp_fig.subplots_adjust(top=0.88)  # 留ExitSpace给title
                 
-                if self.is_1d:
-                    # 1D情况 - 使用scatter保持与实时动画一致
+                if self.n_dim == 1:
+                    # 1DStatus - UsingscatterMaintain与Real-timeanimation一致
                     x_flat = x_coords[:, 0] if x_coords.ndim > 1 else x_coords
                     u_flat = solution.flatten()
 
                     ax = temp_fig.add_subplot(111)
-                    # 使用scatter显示数值解（红色点，与实时动画一致）
+                    # UsingscatterdisplayNumerical solution（红色point，与Real-timeanimation一致）
                     ax.scatter(x_flat, u_flat, c='r', label='Numerical', s=20)
                     
-                    # 添加参考解对比（如果有solver且有参考解）
+                    # 添加Reference solution对比（If有solver且有Reference solution）
                     if solver and hasattr(solver, 'get_reference_solution_at_time'):
                         u_ref = solver.get_reference_solution_at_time(T)
                         if u_ref is not None:
-                            # 使用参考解的原始x坐标
+                            # UsingReference solution的原Beginningxcoordinate
                             if hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                                 try:
                                     x_ref = solver.reference_solution['x_ref']
-                                    # 对参考解排序以画出平滑的线
+                                    # 对Reference solutionSort以画Exit平滑的Line
                                     sort_idx = np.argsort(x_ref)
                                     x_ref_sorted = x_ref[sort_idx]
                                     u_ref_sorted = u_ref[sort_idx]
 
-                                    # 使用线条显示参考解（蓝色虚线，与实时动画一致）
+                                    # UsingLine条displayReference solution（蓝色虚Line，与Real-timeanimation一致）
                                     ax.plot(x_ref_sorted, u_ref_sorted, 'b--', linewidth=2, alpha=0.7, label='Reference Solution')
 
-                                    # 计算误差（需要插值参考解到数值解网格）
+                                    # Compute误差（NeedInterpolationReference solutionToNumerical solutionMesh）
                                     from scipy.interpolate import interp1d
                                     interp_func = interp1d(x_ref, u_ref, kind='cubic',
                                                           bounds_error=False, fill_value='extrapolate')
@@ -925,35 +938,35 @@ class TimePDEVisualizer(BaseVisualizer):
                                     max_error = np.max(error)
                                     l2_error = np.sqrt(np.mean(error**2))
                                 except Exception as e:
-                                    print(f"参考解插值失败: {e}")
+                                    print(f"Reference solutionInterpolationFail: {e}")
                     
                     ax.set_xlabel('x', fontsize=12)
                     ax.set_ylabel('u', fontsize=12)
 
-                    # 计算时间步长
+                    # ComputeTime step size
                     if i > 0:
                         dt = time_history[i] - time_history[i-1]
                     else:
                         dt = time_history[1] - time_history[0] if len(time_history) > 1 else 0
 
-                    # 更新标题包含时间、时间步和步数信息
+                    # UpdatetitleIncludeTime、Time step和步数information
                     title_text = f'Time: T = {T:.4f}s, Step: {i+1}, dt = {dt:.4f}s'
 
-                    # 如果有误差信息，将其移动到标题
+                    # If有误差information，将其MoveTotitle
                     if 'error' in locals() and 'max_error' in locals() and 'l2_error' in locals():
                         title_text += f'\nMax Error: {max_error:.2e}, L2 Error: {l2_error:.2e}'
-                        # 移除单独的误差文本框（已经在标题中显示）
-                        # ax.text已被移除
+                        # Remove单独的误差文本框（AlreadyAttitle中display）
+                        # ax.text已被Remove
 
                     ax.set_title(title_text, fontsize=11, fontweight='bold', pad=15)
                     ax.grid(True, alpha=0.3)
                     ax.legend(loc='upper right')
                     
-                    # 设置固定的y轴范围以便动画稳定
+                    # Setup固定的yAxisRange以便animationStable
                     all_solutions = np.concatenate([s.flatten() for s in solution_history])
                     y_min, y_max = all_solutions.min(), all_solutions.max()
 
-                    # 如果有参考解，也考虑其范围
+                    # If有Reference solution，也考虑其Range
                     if solver and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                         try:
                             u_ref_all = solver.reference_solution['u_ref']
@@ -962,11 +975,11 @@ class TimePDEVisualizer(BaseVisualizer):
                         except:
                             pass
 
-                    # 添加边距
+                    # 添加margin
                     margin = (y_max - y_min) * 0.1
                     ax.set_ylim([y_min - margin, y_max + margin])
 
-                    # 设置x轴范围
+                    # SetupxAxisRange
                     x_min, x_max = x_flat.min(), x_flat.max()
                     if solver and hasattr(solver, 'reference_solution') and solver.reference_solution is not None:
                         try:
@@ -979,7 +992,7 @@ class TimePDEVisualizer(BaseVisualizer):
                     ax.set_xlim([x_min - x_margin, x_max + x_margin])
                     
                 else:
-                    # 2D情况
+                    # 2DStatus
                     ax = temp_fig.add_subplot(111, projection='3d')
                     u_vals = solution.flatten()
                     ax.scatter(x_coords[:, 0], x_coords[:, 1], u_vals, c=u_vals, cmap='RdBu', s=10)
@@ -990,32 +1003,32 @@ class TimePDEVisualizer(BaseVisualizer):
                 
                 plt.tight_layout()
                 
-                # 将当前帧添加到动画
+                # 将Current帧添加Toanimation
                 buf = io.BytesIO()
                 temp_fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
                 buf.seek(0)
                 self._frames.append(Image.open(buf))
                 plt.close(temp_fig)
                 
-                if (i + 1) % 10 == 0:  # 每10帧打印进度
-                    print(f"  已生成 {i + 1}/{len(time_history)} 帧")
+                if (i + 1) % 10 == 0:  # 每10帧打印Progress
+                    print(f"  已Generate {i + 1}/{len(time_history)} 帧")
             
-            # 保存GIF动画
+            # SaveGIFanimation
             self.save_animation(filename, duration=200)
-            print(f"时间演化动画创建完成: {filename}")
+            print(f"Time演化animationCreateComplete: {filename}")
             
         except Exception as e:
-            print(f"动画创建失败: {e}")
+            print(f"animationCreateFail: {e}")
             
     def _add_segment_boundaries_2d(self, axes_list: List) -> None:
-        """为2D图添加段边界 - 辅助方法"""
+        """为2DGraph添加段Boundary - Auxiliarymethod"""
         if hasattr(self.config, 'x_min') and hasattr(self.config, 'x_max'):
             for n in range(getattr(self, 'Ns', 0)):
                 try:
                     x_min = self.config.x_min[n]
                     x_max = self.config.x_max[n]
                     
-                    # 绘制段边界
+                    # 绘制段Boundary
                     for ax in axes_list:
                         ax.plot([x_min[0], x_max[0]], [x_min[1], x_min[1]], 'k--', alpha=0.4, linewidth=1)
                         ax.plot([x_min[0], x_max[0]], [x_max[1], x_max[1]], 'k--', alpha=0.4, linewidth=1)
@@ -1026,22 +1039,22 @@ class TimePDEVisualizer(BaseVisualizer):
                     pass
     
     def plot_loss_history(self, loss_history: List[float], save_path: Optional[str] = None) -> None:
-        """绘制训练损失历史"""
+        """绘制TrainingLossHistory"""
         fig = self._create_figure(figsize=(10, 6))
         
         iterations = range(1, len(loss_history) + 1)
         ax = fig.add_subplot(111)
         ax.semilogy(iterations, loss_history, 'b-', linewidth=2, marker='o', markersize=3)
-        ax.set_xlabel('迭代步数', fontsize=12)
-        ax.set_ylabel('损失值 (对数尺度)', fontsize=12)
-        ax.set_title('训练损失历史', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Iterate步数', fontsize=12)
+        ax.set_ylabel('Lossvalue (对数尺Degree)', fontsize=12)
+        ax.set_title('TrainingLossHistory', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         
-        # 添加统计信息
+        # 添加Statisticsinformation
         if loss_history:
             final_loss = loss_history[-1]
             min_loss = min(loss_history)
-            ax.text(0.02, 0.98, f'最终损失: {final_loss:.2e}\n最小损失: {min_loss:.2e}', 
+            ax.text(0.02, 0.98, f'FinalLoss: {final_loss:.2e}\n最小Loss: {min_loss:.2e}', 
                    transform=ax.transAxes, verticalalignment='top', 
                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
@@ -1051,46 +1064,46 @@ class TimePDEVisualizer(BaseVisualizer):
     
     def plot_time_evolution_summary(self, time_history: List[float], solution_history: List[np.ndarray], 
                                   save_path: Optional[str] = None) -> None:
-        """绘制时间演化总结图"""
+        """绘制Time演化SummaryGraph"""
         if not time_history or not solution_history:
-            print("警告: 没有时间演化数据可绘制")
+            print("Warning: 没有Time演化Data可绘制")
             return
             
-        if self.is_1d:
+        if self.n_dim == 1:
             self._plot_time_evolution_summary_1d(time_history, solution_history, save_path)
         else:
             self._plot_time_evolution_summary_2d(time_history, solution_history, save_path)
     
     def _plot_time_evolution_summary_1d(self, time_history: List[float], solution_history: List[np.ndarray], 
                                        save_path: Optional[str] = None) -> None:
-        """1D时间演化总结图"""
+        """1DTime演化SummaryGraph"""
         fig = self._create_figure(figsize=(15, 10))
         
-        # 确保数据有效性
+        # 确保DataValidity
         if len(time_history) != len(solution_history):
-            print(f"警告: 时间历史长度({len(time_history)})与解历史长度({len(solution_history)})不匹配")
+            print(f"Warning: TimeHistoryLength({len(time_history)})与SolutionHistoryLength({len(solution_history)})不匹配")
             min_len = min(len(time_history), len(solution_history))
             time_history = time_history[:min_len]
             solution_history = solution_history[:min_len]
         
         if len(time_history) == 0:
-            print("警告: 没有时间演化数据")
+            print("Warning: 没有Time演化Data")
             return
             
-        # 选择几个代表性时间点
+        # 选择Several代表性Timepoint
         n_snapshots = min(6, len(time_history))
         if len(time_history) == 1:
             snapshot_indices = [0]
         else:
             snapshot_indices = np.linspace(0, len(time_history)-1, n_snapshots, dtype=int)
         
-        # 创建子图网格
+        # Create子GraphMesh
         for i, idx in enumerate(snapshot_indices):
             ax = fig.add_subplot(2, 3, i+1)
             u = solution_history[idx]
             t = time_history[idx]
             
-            # 这里需要x坐标信息，假设从config获取
+            # 这InsideNeedxcoordinateinformation，AssumptionFromconfigGet
             if hasattr(self.config, 'x_domain') and hasattr(self.config, 'points_domain_test'):
                 n_points = self.config.points_domain_test[0] if isinstance(self.config.points_domain_test, (list, tuple)) else self.config.points_domain_test
                 x = np.linspace(self.config.x_domain[0][0], self.config.x_domain[0][1], len(u))
@@ -1100,33 +1113,33 @@ class TimePDEVisualizer(BaseVisualizer):
             
             ax.set_title(f'T = {t:.4f}', fontsize=12)
             ax.grid(True, alpha=0.3)
-            if i >= 3:  # 下排子图
+            if i >= 3:  # Down排子Graph
                 ax.set_xlabel('x', fontsize=10)
-            if i % 3 == 0:  # 左列子图
+            if i % 3 == 0:  # Left列子Graph
                 ax.set_ylabel('u', fontsize=10)
         
-        plt.suptitle('时间演化快照', fontsize=16, fontweight='bold')
+        plt.suptitle('Time演化快照', fontsize=16, fontweight='bold')
         plt.tight_layout()
         self._save_figure(fig, save_path)
         self._close_figure(fig)
     
     def _plot_time_evolution_summary_2d(self, time_history: List[float], solution_history: List[np.ndarray], 
                                        save_path: Optional[str] = None) -> None:
-        """2D时间演化总结图"""
+        """2DTime演化SummaryGraph"""
         fig = self._create_figure(figsize=(15, 10))
         
-        # 确保数据有效性
+        # 确保DataValidity
         if len(time_history) != len(solution_history):
-            print(f"警告: 时间历史长度({len(time_history)})与解历史长度({len(solution_history)})不匹配")
+            print(f"Warning: TimeHistoryLength({len(time_history)})与SolutionHistoryLength({len(solution_history)})不匹配")
             min_len = min(len(time_history), len(solution_history))
             time_history = time_history[:min_len]
             solution_history = solution_history[:min_len]
         
         if len(time_history) == 0:
-            print("警告: 没有时间演化数据")
+            print("Warning: 没有Time演化Data")
             return
         
-        # 选择几个代表性时间点
+        # 选择Several代表性Timepoint
         n_snapshots = min(6, len(time_history))
         if len(time_history) == 1:
             snapshot_indices = [0]
@@ -1138,9 +1151,9 @@ class TimePDEVisualizer(BaseVisualizer):
             u = solution_history[idx]
             t = time_history[idx]
             
-            # 简单的2D热力图显示
+            # 简单的2D热ForceGraphdisplay
             if u.ndim == 1:
-                # 假设是规则网格，需要重塑
+                # AssumptionYesRuleMesh，Need重塑
                 side_length = int(np.sqrt(len(u)))
                 if side_length * side_length == len(u):
                     u_grid = u.reshape(side_length, side_length)
@@ -1150,71 +1163,71 @@ class TimePDEVisualizer(BaseVisualizer):
             ax.set_title(f'T = {t:.4f}', fontsize=12)
             ax.set_aspect('equal')
         
-        plt.suptitle('时间演化快照', fontsize=16, fontweight='bold')
+        plt.suptitle('Time演化快照', fontsize=16, fontweight='bold')
         plt.tight_layout()
         self._save_figure(fig, save_path)
         self._close_figure(fig)
     
     def set_visualization_interval(self, interval: int = 1) -> None:
-        """设置可视化间隔"""
+        """SetupVisualizationBetween隔"""
         self._visualization_interval = max(1, interval)
-        print(f"可视化间隔设置为: 每 {self._visualization_interval} 次迭代更新一次")
+        print(f"VisualizationBetween隔Setup为: 每 {self._visualization_interval} 次IterateUpdateOnce")
     
     def reset_animation_data(self):
-        """重置动画数据"""
+        """ResetanimationData"""
         self.time_history_viz = []
         self.solution_history_viz = []
         self._frames = []
-        print("动画数据已重置")
+        print("animationData已Reset")
         
     def examin_data(self, data_train: Dict) -> None:
-        """检查数据分布"""
+        """CheckData分布"""
         fig = self._create_figure()
         plt.scatter(
             data_train["x_boundary"][:, 0],
             data_train["x_boundary"][:, 1],
-            label="边界解",
+            label="BoundarySolution",
         )
-        plt.scatter(data_train["x"][:, 0], data_train["x"][:, 1], label="精确解")
+        plt.scatter(data_train["x"][:, 0], data_train["x"][:, 1], label="ExactSolution")
         plt.legend()
         plt.show()
         
     def examin_net(self, model: torch.nn.Module, data_GPU: torch.Tensor) -> None:
-        """检查网络输出并绘制流场"""
+        """CheckNetworkOutput并绘制流场"""
         model.eval()
         with torch.no_grad():
-            # 创建规则网格
+            # CreateRuleMesh
             N = 100
             x1_grid = np.linspace(self.config.x_domain[0][0], self.config.x_domain[0][1], N)
             x2_grid = np.linspace(self.config.x_domain[1][0], self.config.x_domain[1][1], N)
             X1, X2 = np.meshgrid(x1_grid, x2_grid)
             grid_points = np.column_stack((X1.ravel(), X2.ravel()))
             
-            # 转换为张量
+            # Convert为Tensor
             grid_points = torch.tensor(
                 grid_points, dtype=torch.float64, device=self.config.device, requires_grad=True
             )
             
-            # 获取网络预测
+            # GetNetworkPrediction
             _, u_pred = model(grid_points)
             
-            # 分离速度和压力分量
+            # SeparateSpeed和Pressure分量
             u = u_pred[..., 0]
             
-            # 转换为numpy数组
+            # Convert为numpyArray
             u = u.detach().cpu().numpy()
             
-            # 重新调整为网格形状
+            # Re-Adjustment为MeshShape
             U = u.reshape(N, N)
             
-            # 创建图表
+            # CreateGraph表
             fig = self._create_figure(figsize=(15, 5))
             
             # 绘制U分量
             ax1 = fig.add_subplot(111)
             cs1 = ax1.contourf(X1, X2, U, levels=50, cmap="RdBu")
-            plt.colorbar(cs1, ax=ax1, label="U速度")
-            ax1.set_title("U速度")
+            plt.colorbar(cs1, ax=ax1, label="USpeed")
+            ax1.set_title("USpeed")
             ax1.set_xlabel("x")
             ax1.set_ylabel("y")
             

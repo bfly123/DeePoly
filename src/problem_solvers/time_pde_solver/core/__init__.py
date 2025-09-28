@@ -1,11 +1,11 @@
 """
-时间相关PDE求解器核心组件
+TimeRelatedPDESolve器CoreComponent
 """
 
-# 导出网络模型
+# ExportNetworkModel
 from .net import TimePDENet
 
-# 导出拟合器
+# ExportFitting器
 from .fitter import TimePDEFitter
 
 __all__ = [

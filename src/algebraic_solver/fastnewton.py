@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple, Optional
 
 
 class FastNewtonSolver:
-    """高效且具有基本稳定性保证的非线性求解器"""
+    """高效且具有基本Stability保证的非Linear solver"""
 
     def __init__(self, use_gpu: bool = True):
         self.use_gpu = use_gpu and cp.is_available()
@@ -24,7 +24,7 @@ class FastNewtonSolver:
         tol: float = 1e-8,
         initial_guess: Optional[np.ndarray] = None,
     ) -> np.ndarray:
-        """快速但仍具有基本收敛保证的求解方法"""
+        """快速但仍具有基本Convergent保证的Solvemethod"""
         if self.use_gpu:
             return self._solve_gpu(
                 A,
@@ -62,11 +62,11 @@ class FastNewtonSolver:
         tol,
         initial_guess,
     ):
-        """CPU版本的求解实现"""
+        """CPUVersion的SolveImplementation"""
         ns, n_eqs, dgN = shape
         total_variables = dgN * ns * n_eqs
 
-        # 智能初始化
+        # 智能Initialize
         if initial_guess is not None:
             x = initial_guess.reshape(-1, 1)
         elif self._last_solution is not None:
@@ -74,7 +74,7 @@ class FastNewtonSolver:
         else:
             x = np.zeros((total_variables, 1))
 
-        # 记录最佳解和初始化参数
+        # record最佳Solution和InitializeParameter
         best_x = x.copy()
         best_residual = float("inf")
         damping = 1e-6
@@ -110,7 +110,7 @@ class FastNewtonSolver:
                 delta = np.linalg.solve(L.T, y)
                 x_new = x + delta
 
-                # 快速线搜索
+                # 快速LineSearch
                 alpha = 1.0
                 for _ in range(3):
                     f_new, _ = build_jacobian_fn(x_new, A, b, equations, variables)
@@ -156,11 +156,11 @@ class FastNewtonSolver:
         tol,
         initial_guess,
     ):
-        """GPU版本的求解实现"""
+        """GPUVersion的SolveImplementation"""
         ns, n_eqs, dgN = shape
         total_variables = dgN * ns * n_eqs
 
-        # 智能初始化
+        # 智能Initialize
         if initial_guess is not None:
             x = initial_guess.reshape(-1, 1)
         elif self._last_solution is not None:
@@ -168,11 +168,11 @@ class FastNewtonSolver:
         else:
             x = np.zeros((total_variables, 1))
 
-        # GPU内存初始化
+        # GPUInner存Initialize
         x_gpu = cp.asarray(x)
         buffer = cp.empty_like(x_gpu)
 
-        # 记录最佳解和初始化参数
+        # record最佳Solution和InitializeParameter
         best_x = x.copy()
         best_residual = float("inf")
         damping = 1e-6
@@ -213,7 +213,7 @@ class FastNewtonSolver:
                 buffer = x_gpu + delta
                 x_new = cp.asnumpy(buffer)
 
-                # 快速线搜索
+                # 快速LineSearch
                 alpha = 1.0
                 for _ in range(3):
                     f_new, _ = build_jacobian_fn(x_new, A, b, equations, variables)

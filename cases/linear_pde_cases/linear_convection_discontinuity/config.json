@@ -1,13 +1,15 @@
 {
     "problem_type": "linear_pde",
     "method": "hybrid",
+    "auto_code": false,
     "eq": {
         "L1": [
             "diff(u,t) + 0.3*diff(u,x)"
-        ]
+        ],
+        "L2": [],
+        "F": [],
+        "N": []
     },
-    "source_term": "0",
-    "eq_nonlinear": [],
     "vars_list": [
         "u"
     ],
@@ -17,29 +19,20 @@
     ],
     "boundary_conditions": [
         {
-            "region": "left",
-            "var": [
-                "u"
-            ],
             "type": "dirichlet",
+            "region": "left",
             "value": "tanh(100*(x-0.3))",
             "points": 300
         },
         {
-            "region": "bottom",
-            "var": [
-                "u"
-            ],
             "type": "dirichlet",
+            "region": "bottom",
             "value": "tanh(100*(-0.3*t-0.3))",
             "points": 200
         },
         {
-            "region": "top",
-            "var": [
-                "u"
-            ],
             "type": "dirichlet",
+            "region": "top",
             "value": "tanh(100*(-0.3*t+1-0.3))",
             "points": 200
         }
@@ -79,9 +72,7 @@
             1
         ]
     ],
-    "auto_code": false,
     "device": "cuda",
     "linear_device": "cpu",
-    "seed": 42,
-    "output_module_path": "output.py"
+    "seed": 42
 }

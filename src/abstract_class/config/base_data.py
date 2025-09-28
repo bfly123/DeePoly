@@ -155,13 +155,25 @@ class BaseDataGenerator(ABC):
 
     def _load_source_term(self, x_global: np.ndarray) -> np.ndarray:
         """Load and evaluate source term function
-        
+
         Args:
             x_global: Global point coordinates
-            
+
         Returns:
-            np.ndarray: Source term values
+            np.ndarray: Source term values (always same shape as x_global points)
         """
+        # Priority 1: Check for new 'S' field in eq dictionary
+        if hasattr(self.config, "eq") and isinstance(self.config.eq, dict) and "S" in self.config.eq:
+            if self.config.eq["S"] and len(self.config.eq["S"]) > 0:
+                source_expr = self.config.eq["S"][0]  # Take first source term
+                if source_expr == "0":
+                    # Explicitly return zeros with correct shape
+                    return np.zeros((x_global.shape[0], 1))
+                else:
+                    # Parse and evaluate the expression
+                    return self._parse_math_expression(source_expr, x_global)
+
+        # Priority 2: Check legacy 'source_term' field
         if hasattr(self.config, "source_term"):
             if isinstance(self.config.source_term, str):
                 return self._parse_math_expression(self.config.source_term, x_global)
@@ -170,60 +182,62 @@ class BaseDataGenerator(ABC):
                     return self.custom_data_generator.generate_source_term(x_global)
                 else:
                     raise ValueError("Custom source term generator not found")
+
+        # Default: return zeros with correct shape
         return np.zeros((x_global.shape[0], 1))
 
     def read_boundary_conditions(self) -> Dict:
-        """纯抽象U边界条件读取 - 不包含任何物理变量引用"""
+        """纯AbstractUBoundary conditionsRead - ExcludeAnyPhysicalvariable引用"""
         if not hasattr(self.config, 'boundary_conditions') or not self.config.boundary_conditions:
             return {}
             
-        # 为每个U分量索引初始化边界条件存储 - 纯抽象结构
+        # 为EachU分量IndexInitializeBoundary conditionsStore - 纯Abstractstructure
         boundary_data = {}
         for var_idx in range(len(self.config.vars_list)):
             boundary_data[var_idx] = {
                 'dirichlet': {'x': [], 'values': []},
                 'neumann': {'x': [], 'values': [], 'normals': []},
                 'robin': {'x': [], 'values': [], 'params': [], 'normals': []},
-                'periodic': {'pairs': []}  # 通用周期边界条件对
+                'periodic': {'pairs': []}  # UniversalCycleBoundary conditions对
             }
         
-        # 简化的边界条件处理逻辑 - 基于U向量索引
+        # 简化的Boundary conditionsProcess逻辑 - Based onUVectorIndex
         for bc in self.config.boundary_conditions:
             region = bc['region']
             bc_type = bc['type'].lower()
             points = bc['points']
             
-            # 处理周期边界条件
+            # ProcessCycleBoundary conditions
             if bc_type == 'periodic':
-                # 周期边界条件需要配对信息
+                # CycleBoundary conditionsNeed配对information
                 if 'pair_with' not in bc:
                     continue
                 pair_region = bc['pair_with']
-                constraint_type = bc.get('constraint', 'dirichlet')  # 默认为dirichlet周期
+                constraint_type = bc.get('constraint', 'dirichlet')  # Default为dirichletCycle
                 
-                # 生成两个边界的点
+                # Generate两个Boundary的point
                 x_boundary_1 = self._generate_boundary_points(region, points)
                 x_boundary_2 = self._generate_boundary_points(pair_region, points)
                 
                 if x_boundary_1.size == 0 or x_boundary_2.size == 0:
                     continue
                 
-                # 转换region为segment索引
+                # Convertregion为segmentIndex
                 segment_1 = self._region_to_segment(region)
                 segment_2 = self._region_to_segment(pair_region)
                 
-                # 添加周期边界条件对
+                # 添加CycleBoundary conditions对
                 for var_idx in range(len(self.config.vars_list)):
                     periodic_pair = {
-                        'segment_1': segment_1,  # 直接存储segment索引
-                        'segment_2': segment_2,  # 直接存储segment索引
+                        'segment_1': segment_1,  # 直接StoresegmentIndex
+                        'segment_2': segment_2,  # 直接StoresegmentIndex
                         'x_1': x_boundary_1,
                         'x_2': x_boundary_2,
                         'constraint_type': constraint_type  # 'dirichlet' 或 'neumann'
                     }
                     
                     if constraint_type == 'neumann':
-                        # 对于Neumann周期条件，还需要法向量
+                        # ForNeumannCycleCondition，还Need法Vector
                         normals_1 = self._get_boundary_normals(region, x_boundary_1.shape[0])
                         normals_2 = self._get_boundary_normals(pair_region, x_boundary_2.shape[0])
                         periodic_pair['normals_1'] = normals_1
@@ -232,34 +246,34 @@ class BaseDataGenerator(ABC):
                     boundary_data[var_idx]['periodic']['pairs'].append(periodic_pair)
                 continue
             
-            # 处理常规边界条件
+            # Process常规Boundary conditions
             value = bc['value']
             
-            # 生成边界点和法向量
+            # GenerateBoundarypoint和法Vector
             x_boundary = self._generate_boundary_points(region, points)
             if x_boundary.size == 0:
                 continue
                 
             normals = self._get_boundary_normals(region, x_boundary.shape[0]) if bc_type != 'dirichlet' else None
             
-            # 计算边界值
+            # ComputeBoundaryvalue
             if isinstance(value, str):
                 boundary_values = self._parse_math_expression(value, x_boundary)
             else:
                 boundary_values = np.full((x_boundary.shape[0], 1), float(value))
             
-            # 添加到所有U分量的边界条件（默认所有分量使用相同边界条件）
+            # 添加ToAllU分量的Boundary conditions（DefaultAll分量UsingSameBoundary conditions）
             for var_idx in range(len(self.config.vars_list)):
                 boundary_data[var_idx][bc_type]['x'].append(x_boundary)
                 boundary_data[var_idx][bc_type]['values'].append(boundary_values)
                 if normals is not None:
                     boundary_data[var_idx][bc_type]['normals'].append(normals)
         
-        # 合并边界数据 - 纯抽象处理
+        # MergeBoundaryData - 纯AbstractProcess
         for var_idx in boundary_data:
             for bc_type in boundary_data[var_idx]:
                 if bc_type == 'periodic':
-                    # 周期边界条件不需要合并，保持pairs列表结构
+                    # CycleBoundary conditionsDo not needMerge，MaintainpairsListstructure
                     continue
                 elif boundary_data[var_idx][bc_type]['x']:
                     boundary_data[var_idx][bc_type]['x'] = np.vstack(boundary_data[var_idx][bc_type]['x'])
@@ -368,7 +382,7 @@ class BaseDataGenerator(ABC):
                 dim_idx = int(parts[0][3:])
                 is_max = parts[1] == 'max'
                 
-                # 计算segment索引：对于边界，是该维度的最小或最大segment
+                # ComputesegmentIndex：ForBoundary，Yes该Dimensions的最小或最大segment
                 segment_coords = [0] * self.n_dim
                 if is_max:
                     segment_coords[dim_idx] = self.n_segments[dim_idx] - 1
@@ -385,7 +399,7 @@ class BaseDataGenerator(ABC):
             if region == 'left':
                 return 0  # 第一个segment
             elif region == 'right':
-                return self.n_segments[0] - 1  # 最后一个segment
+                return self.n_segments[0] - 1  # Finally一个segment
         
         elif self.n_dim == 2:
             if region == 'left':
@@ -397,7 +411,7 @@ class BaseDataGenerator(ABC):
             elif region == 'top':
                 return (self.n_segments[1] - 1) * self.n_segments[0]  # segment (*, ny-1)
         
-        return 0  # 默认返回第一个segment
+        return 0  # DefaultReturn第一个segment
     
     def _coords_to_segment_index(self, coords: list) -> int:
         """Convert segment coordinates to linear index"""
@@ -680,7 +694,7 @@ class BaseDataGenerator(ABC):
         return x_swap_norm
 
     def _process_segment_boundary(self, global_boundary_data: Dict, segment_idx: int) -> Dict:
-        """Process boundary conditions for a segment - 纯抽象U处理
+        """Process boundary conditions for a segment - 纯AbstractUProcess
         
         Args:
             global_boundary_data: Global boundary conditions (indexed by var_idx)
@@ -702,18 +716,18 @@ class BaseDataGenerator(ABC):
             
             for bc_type in global_boundary_data[var_idx]:
                 if bc_type == 'periodic':
-                    # 周期边界条件特殊处理
+                    # CycleBoundary conditionsSpecialProcess
                     segment_boundary_data[var_idx][bc_type]['pairs'] = []
                     for pair in global_boundary_data[var_idx][bc_type]['pairs']:
-                        # 处理第一组边界点
+                        # Process第一GroupBoundarypoint
                         x_boundary_1 = pair['x_1']
                         mask_1 = self._create_segment_mask(x_boundary_1, segment_idx)
                         
-                        # 处理第二组边界点
+                        # Process第二GroupBoundarypoint
                         x_boundary_2 = pair['x_2']
                         mask_2 = self._create_segment_mask(x_boundary_2, segment_idx)
                         
-                        # 如果该段有周期边界点，则处理
+                        # If该段有CycleBoundarypoint，则Process
                         if np.any(mask_1) or np.any(mask_2):
                             segment_pair = pair.copy()
                             if np.any(mask_1):

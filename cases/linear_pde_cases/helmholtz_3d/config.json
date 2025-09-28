@@ -1,13 +1,17 @@
 {
     "problem_type": "linear_pde",
     "method": "hybrid",
+    "auto_code": false,
     "eq": {
         "L1": [
             "diff(u,x,2) + diff(u,y,2) + diff(u,z,2) + 2*pi**2*u"
-        ]
+        ],
+        "L2": [],
+        "F": [
+            "-pi**2*sin(pi*x)*sin(pi*y)*sin(pi*z)"
+        ],
+        "N": []
     },
-    "source_term": "-pi**2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
-    "eq_nonlinear": [],
     "vars_list": [
         "u"
     ],
@@ -18,57 +22,39 @@
     ],
     "boundary_conditions": [
         {
+            "type": "dirichlet",
             "region": "dim0_min",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
-            "value": 0,
+            "value": "0",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "dim0_max",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
-            "value": 0,
+            "value": "0",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "dim1_min",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
-            "value": 0,
+            "value": "0",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "dim1_max",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
-            "value": 0,
+            "value": "0",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "dim2_min",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
-            "value": 0,
+            "value": "0",
             "points": 100
         },
         {
-            "region": "dim2_max",
-            "var": [
-                "u"
-            ],
             "type": "dirichlet",
-            "value": 0,
+            "region": "dim2_max",
+            "value": "0",
             "points": 100
         }
     ],
@@ -114,9 +100,7 @@
             1
         ]
     ],
-    "auto_code": false,
     "device": "cuda",
     "linear_device": "cpu",
-    "seed": 42,
-    "output_module_path": "output.py"
+    "seed": 42
 }

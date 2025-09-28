@@ -1,11 +1,11 @@
 """
-函数拟合求解器核心组件
+functionFittingSolve器CoreComponent
 """
 
-# 导出网络模型
+# ExportNetworkModel
 from .net import FuncFittingNet
 
-# 导出拟合器
+# ExportFitting器
 from .fitter import FuncFittingFitter
 
 __all__ = [

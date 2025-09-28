@@ -31,6 +31,29 @@ class BaseConfig(ABC):
         """Initialize configuration parameters, to be implemented by subclasses"""
         pass
 
+    def get_unified_attribute(self, attr_name: str, fallback_source: str = None, default=None):
+        """Unified attribute access - eliminates conditional branching in attribute access
+
+        Args:
+            attr_name: Primary attribute name to look for
+            fallback_source: Fallback dictionary attribute name (e.g., 'operator_parse')
+            default: Default value if attribute not found
+
+        Returns:
+            Attribute value using unified access pattern
+        """
+        # Direct attribute access
+        if hasattr(self, attr_name):
+            return getattr(self, attr_name)
+
+        # Fallback to nested dictionary access
+        if fallback_source and hasattr(self, fallback_source):
+            fallback_dict = getattr(self, fallback_source)
+            if isinstance(fallback_dict, dict) and attr_name in fallback_dict:
+                return fallback_dict[attr_name]
+
+        return default
+
 #    @abstractmethod
 #    def _auto_code(self):
 #        """Auto-generate code, to be implemented by subclasses"""

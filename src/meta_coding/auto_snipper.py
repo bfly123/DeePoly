@@ -148,7 +148,7 @@ class OperatorParser:
             matches = re.findall(r"diff\((\w+),(\w+)(?:,(\d+))?\)", expr)
             for var_name, spatial_var, order_str in matches:
                 if var_name in self.variables and spatial_var in self.spatial_vars:
-                    var_idx = self.variables.index(var_name)  # 获取变量索引
+                    var_idx = self.variables.index(var_name)  # GetvariableIndex
                     spatial_idx = self.spatial_vars.index(spatial_var)
                     order = int(order_str) if order_str else 1
                     max_orders[var_idx][spatial_idx] = max(

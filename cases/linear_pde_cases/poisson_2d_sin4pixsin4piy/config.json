@@ -1,13 +1,17 @@
 {
     "problem_type": "linear_pde",
     "method": "hybrid",
+    "auto_code": false,
     "eq": {
         "L1": [
             "diff(u,x,2) + diff(u,y,2)"
-        ]
+        ],
+        "L2": [],
+        "F": [
+            "-sin(4*pi*x)*sin(4*pi*y)"
+        ],
+        "N": []
     },
-    "source_term": "-sin(4*pi*x)*sin(4*pi*y)",
-    "eq_nonlinear": [],
     "vars_list": [
         "u"
     ],
@@ -17,38 +21,26 @@
     ],
     "boundary_conditions": [
         {
+            "type": "dirichlet",
             "region": "left",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
             "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "right",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
             "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
             "points": 100
         },
         {
+            "type": "dirichlet",
             "region": "bottom",
-            "var": [
-                "u"
-            ],
-            "type": "dirichlet",
             "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
             "points": 100
         },
         {
-            "region": "top",
-            "var": [
-                "u"
-            ],
             "type": "dirichlet",
+            "region": "top",
             "value": "1/2/(4*pi)**2*sin(4*pi*x)*sin(4*pi*y)",
             "points": 100
         }
@@ -88,9 +80,7 @@
             1
         ]
     ],
-    "auto_code": false,
     "device": "cuda",
     "linear_device": "cpu",
-    "seed": 42,
-    "output_module_path": "output.py"
+    "seed": 42
 }

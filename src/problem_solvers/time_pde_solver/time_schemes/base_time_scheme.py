@@ -10,7 +10,7 @@ class BaseTimeScheme(ABC):
     
     def __init__(self, config):
         self.config = config
-        self.fitter = None  # 将由TimePDEFitter设置
+        self.fitter = None  # 将由TimePDEFitterSetup
     
     def set_fitter(self, fitter):
         """Set fitter reference for accessing operators and data"""

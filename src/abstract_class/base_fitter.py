@@ -18,15 +18,13 @@ class BaseDeepPolyFitter(ABC):
         self.data = data
         self.dt = dt
 
-        # Base dimensions
+        # Base dimensions - standardize to consistent format
         self.n_dim = config.n_dim
-        if hasattr(config, "n_segments"):
-            if isinstance(config.n_segments, (list, tuple)):
-                self.n_segments = config.n_segments
-            else:
-                self.n_segments = [config.n_segments] * self.n_dim
-        else:
-            self.n_segments = [10] * self.n_dim
+        raw_segments = getattr(config, "n_segments", 10)
+        self.n_segments = (
+            raw_segments if isinstance(raw_segments, (list, tuple))
+            else [raw_segments] * self.n_dim
+        )
 
         self.ns = np.prod(self.n_segments)
 
@@ -38,41 +36,36 @@ class BaseDeepPolyFitter(ABC):
 
         self.feature_generator = FeatureGenerator(self.config.linear_device)
         
-        # 优先使用config直接属性，回退到operator_parse字典访问
-        if hasattr(config, 'max_derivative_orders'):
-            self.max_derivatives = config.max_derivative_orders
-        else:
-            self.max_derivatives = config.operator_parse["max_derivative_orders"]
-            
-        if hasattr(config, 'all_derivatives'):
-            self.all_derivatives = config.all_derivatives
-        else:
-            self.all_derivatives = config.operator_parse["all_derivatives"]
-            
-        if hasattr(config, 'derivatives'):
-            self.derivatives = config.derivatives
-        else:
-            self.derivatives = config.operator_parse["derivatives"]
-            
-        if hasattr(config, 'operator_terms'):
-            self.operator_terms = config.operator_terms
-        else:
-            self.operator_terms = config.operator_parse["operator_terms"]
+        # Standardized operator attribute access - eliminate branching
+        # Handle both dict and object operator_parse
+        operator_source = getattr(config, 'operator_parse', {})
+
+        def safe_get(source, key, default=None):
+            if hasattr(source, 'get'):
+                return source.get(key, default)
+            elif hasattr(source, key):
+                return getattr(source, key)
+            return default
+
+        self.max_derivatives = getattr(config, 'max_derivative_orders',
+                                     safe_get(operator_source, "max_derivative_orders"))
+        self.all_derivatives = getattr(config, 'all_derivatives',
+                                     safe_get(operator_source, "all_derivatives"))
+        self.derivatives = getattr(config, 'derivatives',
+                                 safe_get(operator_source, "derivatives"))
+        self.operator_terms = getattr(config, 'operator_terms',
+                                    safe_get(operator_source, "operator_terms"))
             
         self.L1 = self.operator_terms.get("L1", None)
         self.L2 = self.operator_terms.get("L2", None)
         self.N = self.operator_terms.get("N", None)
         self.F = self.operator_terms.get("F", None)
         
-        self.dg = np.int32(
-            np.prod(
-                self.config.poly_degree + np.ones(np.shape(self.config.poly_degree))
-            )
-        )
-        if self.config.method == "hybrid":
-            self.dgN = self.config.DNN_degree + self.dg
-        else:
-            self.dgN = self.dg
+        # Standardize degree calculations - eliminate method branching
+        poly_degree = np.asarray(self.config.poly_degree)
+        self.dg = np.int32(np.prod(poly_degree + 1))
+        dnn_contribution = getattr(self.config, 'DNN_degree', 0) if self.config.method == "hybrid" else 0
+        self.dgN = dnn_contribution + self.dg
         self.device = self.config.linear_device
         self.n_eqs = self.config.n_eqs
 
@@ -112,7 +105,7 @@ class BaseDeepPolyFitter(ABC):
 
     def fitter_init(self, model: nn.Module):
         """Initialize and pre-compile operator matrices"""
-        # 保持模型在原设备上，不要移动到linear_device
+        # MaintainModelAt原EquipmentUp，不要MoveTolinear_device
         self._current_model = model
         self._precompile_all_operators(model)
         return model
@@ -279,7 +272,7 @@ class BaseDeepPolyFitter(ABC):
         self.A, self.b = [], []
         if self.config.problem_type != "func_fitting":
             self._add_boundary_conditions(model)
-            self._add_periodic_constraints(model)  # 添加周期边界条件约束
+            self._add_periodic_constraints(model)  # 添加CycleBoundary conditionsConstraint
             self._add_swap_conditions(model)
 
     def _add_boundary_conditions(self, model: nn.Module):
@@ -414,7 +407,7 @@ class BaseDeepPolyFitter(ABC):
                         self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
 
     def _add_periodic_constraints(self, model: nn.Module):
-        """Add periodic boundary conditions - 处理跨segment的全局约束"""
+        """Add periodic boundary conditions - Process跨segment的全局Constraint"""
         if "global_boundary_dict" not in self.data:
             return
             
@@ -433,28 +426,28 @@ class BaseDeepPolyFitter(ABC):
             for pair in pairs:
                 constraint_type = pair.get('constraint_type', 'dirichlet')
                 
-                # 获取两组边界点和对应的segment索引
+                # Get两GroupBoundarypoint和对应的segmentIndex
                 segment_1 = pair['segment_1']
                 segment_2 = pair['segment_2']
-                x_boundary_1_global = pair['x_1']  # 全局坐标
-                x_boundary_2_global = pair['x_2']  # 全局坐标
+                x_boundary_1_global = pair['x_1']  # 全局coordinate
+                x_boundary_2_global = pair['x_2']  # 全局coordinate
 
-                # 转换为局部归一化坐标（复用数据预处理的归一化方法）
+                # Convert为局部Normalizedcoordinate（复用Data预Process的Normalizedmethod）
                 x_boundary_1_local = self._normalize_coords(x_boundary_1_global, segment_1)
                 x_boundary_2_local = self._normalize_coords(x_boundary_2_global, segment_2)
 
-                # 复用swap的导数阶管理和约束生成逻辑
+                # 复用swap的Derivatives阶管理和ConstraintGenerate逻辑
                 self._add_periodic_constraints_for_pair(
                     model, segment_1, segment_2,
                     x_boundary_1_local, x_boundary_2_local
                 )
 
     def _normalize_coords(self, x_global: np.ndarray, segment_idx: int) -> np.ndarray:
-        """将全局坐标转换为segment的局部归一化坐标，复用数据预处理的归一化方法"""
+        """将全局coordinateConvert为segment的局部Normalizedcoordinate，复用Data预Process的Normalizedmethod"""
         x_min = self.config.x_min[segment_idx]
         x_max = self.config.x_max[segment_idx]
 
-        # 使用与base_data._normalize_data相同的归一化方法
+        # Using与base_data._normalize_dataSame的Normalizedmethod
         x = np.asarray(x_global, dtype=np.float64)
         x_min = np.asarray(x_min, dtype=np.float64)
         x_max = np.asarray(x_max, dtype=np.float64)
@@ -477,21 +470,21 @@ class BaseDeepPolyFitter(ABC):
         x_boundary_1_local: np.ndarray,
         x_boundary_2_local: np.ndarray
     ):
-        """为周期边界条件对添加约束，完全复用swap的导数阶管理逻辑"""
-        # 完全复用swap的处理方式 - 对所有方程都处理
+        """为CycleBoundary conditions对添加Constraint，Completely复用swap的Derivatives阶管理逻辑"""
+        # Completely复用swap的Process方式 - 对AllEquation都Process
         ne = self.config.n_eqs
         dgN = self.dgN
         NS = self.ns
-        nw = min(x_boundary_1_local.shape[0], x_boundary_2_local.shape[0])  # 边界点数量
+        nw = min(x_boundary_1_local.shape[0], x_boundary_2_local.shape[0])  # Boundarypoint数量
 
-        for i in range(ne):  # 像swap一样遍历所有方程
-            max_orders = self.max_derivatives[i]  # 使用方程索引i
+        for i in range(ne):  # 像swap一样遍历AllEquation
+            max_orders = self.max_derivatives[i]  # UsingEquationIndexi
             reduced_orders = [max(0, order - 1) for order in max_orders]
             ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
 
             for derivative_tuple in product(*ranges):
                 derivative = list(derivative_tuple)
-                # 完全复用_add_swap_derivative的逻辑
+                # Completely复用_add_swap_derivative的逻辑
                 self._add_periodic_derivative_pair(
                     model, segment_1, segment_2, NS, nw, dgN, i, derivative,
                     x_boundary_1_local, x_boundary_2_local
@@ -510,8 +503,8 @@ class BaseDeepPolyFitter(ABC):
         x_boundary_1_local: np.ndarray,
         x_boundary_2_local: np.ndarray
     ):
-        """添加周期边界条件的导数约束，完全复制_add_swap_derivative的结构和参数"""
-        # 获取特征（完全模仿_add_swap_derivative中的P1和P2）
+        """添加CycleBoundary conditions的DerivativesConstraint，Completely复制_add_swap_derivative的structure和Parameter"""
+        # GetFeature（Completely模仿_add_swap_derivative中的P1和P2）
         P1 = self._get_segment_features(
             x_boundary_1_local,
             self.config.x_min[seg1],
@@ -528,17 +521,17 @@ class BaseDeepPolyFitter(ABC):
             derivative,
         )
 
-        # 完全复制_add_swap_derivative的约束矩阵构建
+        # Completely复制_add_swap_derivative的ConstraintMatrixBuild
         cont = np.zeros((nw, dgN * NS * self.config.n_eqs), dtype=np.float64)
 
-        # 完全复制_add_swap_derivative的ndisp计算和系数设置
+        # Completely复制_add_swap_derivative的ndispCompute和CoefficientsSetup
         ndisp = seg1 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]  # 取前nw行以匹配维度
+        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]  # 取Forwardnw行以匹配Dimensions
 
         ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]  # 取前nw行以匹配维度
+        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]  # 取Forwardnw行以匹配Dimensions
 
-        # 完全复制_add_swap_derivative的约束添加方式
+        # Completely复制_add_swap_derivative的Constraint添加方式
         self.A.extend(10 * cont)
         self.b.extend(10 * np.zeros((nw, 1)).flatten())
 
@@ -664,13 +657,13 @@ class BaseDeepPolyFitter(ABC):
         return U_pred, U_segments
 
     def global_to_segments(self, U_global: np.ndarray) -> List[np.ndarray]:
-        """将全局U数组转换为段级列表
+        """将全局UArrayConvert为段级List
         
         Args:
-            U_global: 全局解数组，形状为 (total_points,) 或 (total_points, n_eqs)
+            U_global: 全局SolutionArray，Shape为 (total_points,) 或 (total_points, n_eqs)
             
         Returns:
-            List[np.ndarray]: 段级解值列表，每个元素对应一个段的解值
+            List[np.ndarray]: 段级SolutionvalueList，Eachelement对应一个段的Solutionvalue
         """
         if U_global is None:
             return [None] * self.ns
@@ -691,13 +684,13 @@ class BaseDeepPolyFitter(ABC):
         return U_segments
 
     def segments_to_global(self, U_segments: List[np.ndarray]) -> np.ndarray:
-        """将段级列表转换为全局U数组
+        """将段级ListConvert为全局UArray
         
         Args:
-            U_segments: 段级解值列表
+            U_segments: 段级SolutionvalueList
             
         Returns:
-            np.ndarray: 全局解数组
+            np.ndarray: 全局SolutionArray
         """
         if not U_segments or U_segments[0] is None:
             total_points = sum(len(self.data["x_segments_norm"][i]) for i in range(self.ns))

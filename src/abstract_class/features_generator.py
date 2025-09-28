@@ -38,12 +38,20 @@ class FeatureGenerator:
         if isinstance(derivative, int):
             derivative = [derivative] * n_dims
 
-        # Validate inputs
-        if len(degree) != n_dims or len(derivative) != n_dims:
-            raise ValueError(f"degree and derivative must be lists of length {n_dims}")
-        if any(d < 0 for d in derivative) or any(d < 0 for d in degree):
+        # Unified input validation - eliminate multiple length/range checks
+        degree = np.asarray(degree, dtype=int)
+        derivative = np.asarray(derivative, dtype=int)
+
+        # Reshape to standard dimensions if needed
+        if degree.size != n_dims:
+            degree = np.resize(degree, n_dims)
+        if derivative.size != n_dims:
+            derivative = np.resize(derivative, n_dims)
+
+        # Vectorized validation
+        if np.any(derivative < 0) or np.any(degree < 0):
             raise ValueError("degrees and derivative orders cannot be negative")
-        if any(derivative[i] > degree[i] for i in range(n_dims)):
+        if np.any(derivative > degree):
             raise ValueError("derivative order cannot exceed polynomial degree")
 
         x = np.asarray(x, dtype=np.float64)
@@ -114,10 +122,11 @@ class FeatureGenerator:
         if isinstance(derivative, int):
             derivative = [derivative] * n_dims
 
-        # Validate inputs
-        if len(derivative) != n_dims:
-            raise ValueError(f"derivative must be a list of length {n_dims}")
-        if any(d < 0 for d in derivative):
+        # Unified input validation - eliminate branching
+        derivative = np.asarray(derivative, dtype=int)
+        if derivative.size != n_dims:
+            derivative = np.resize(derivative, n_dims)
+        if np.any(derivative < 0):
             raise ValueError("derivative orders cannot be negative")
 
         # Normalize input data
@@ -169,27 +178,27 @@ class FeatureGenerator:
     def init_coefficients(model: torch.nn.Module, device: torch.device = "cuda"):
         """
         Args:
-            model: 神经网络模型
-            device: 计算设备
+            model: Neural networkModel
+            device: ComputeEquipment
 
         Returns:
-            线性参数矩阵，维度为[ne, nn]，其中:
-            - ne: 输出维度（方程数量）
-            - nn: 导数第一个隐层维度
+            LinearParameterMatrix，Dimensions为[ne, nn]，其中:
+            - ne: OutputDimensions（Number of equations量）
+            - nn: Derivatives第一个隐层Dimensions
         """
         model = model.to(device)
 
-        # 找到最后一个线性层
+        # FindFinally一个Linear层
         last_layer = None
         for module in model.modules():
             if isinstance(module, nn.Linear):
                 last_layer = module
 
         if last_layer is None:
-            raise ValueError("模型中未找到线性层")
+            raise ValueError("Model中未FindLinear层")
 
-        # 提取权重矩阵 - PyTorch Linear层的权重形状为[out_features, in_features]
-        # 这正好符合我们需要的[ne, nn]形状
+        # 提取WeightsMatrix - PyTorch Linear层的WeightsShape为[out_features, in_features]
+        # 这Exactly符合我们Need的[ne, nn]Shape
         weight_matrix = last_layer.weight.detach().cpu().numpy()
 
         return weight_matrix

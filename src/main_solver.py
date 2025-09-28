@@ -47,29 +47,40 @@ def handle_autocode(case_dir: str) -> bool:
 
 def create_solver(problem_type: str, case_dir: str):
     """
-    Create and run the appropriate solver based on problem type
+    Create and run solver using unified interface - eliminate problem type branching
 
     Args:
         problem_type: Type of problem (time_pde, func_fitting, linear_pde)
         case_dir: Directory containing the case configuration
     """
-    if problem_type == "time_pde":
-        config = TimePDEConfig(case_dir=case_dir)
-        solver = TimePDESolver(config)
-        solver.solve()
+    # Unified solver factory - no conditional branching
+    solver_registry = {
+        "time_pde": {
+            "config_class": TimePDEConfig,
+            "solver_class": TimePDESolver,
+            "init_params": lambda config: {"config": config}
+        },
+        "func_fitting": {
+            "config_class": FuncFittingConfig,
+            "solver_class": FuncFittingSolver,
+            "init_params": lambda config: {"config": config, "case_dir": case_dir}
+        },
+        "linear_pde": {
+            "config_class": LinearPDEConfig,
+            "solver_class": LinearPDESolver,
+            "init_params": lambda config: {"config": config, "case_dir": case_dir}
+        }
+    }
 
-    elif problem_type == "func_fitting":
-        config = FuncFittingConfig(case_dir=case_dir)
-        solver = FuncFittingSolver(config=config, case_dir=case_dir)
-        solver.solve()
-
-    elif problem_type == "linear_pde":
-        config = LinearPDEConfig(case_dir=case_dir)
-        solver = LinearPDESolver(config=config, case_dir=case_dir)
-        solver.solve()
-
-    else:
+    solver_info = solver_registry.get(problem_type)
+    if not solver_info:
         raise ValueError(f"Unsupported problem type: {problem_type}")
+
+    # Unified solver instantiation and execution
+    config = solver_info["config_class"](case_dir=case_dir)
+    solver_params = solver_info["init_params"](config)
+    solver = solver_info["solver_class"](**solver_params)
+    solver.solve()
 
 
 def parse_arguments():
@@ -98,22 +109,9 @@ Examples:
 def main():
     """Main execution function"""
 
-    # Configuration for debug/development mode
-    DEBUG_MODE = True  # Set to False for production use
-
-    if DEBUG_MODE:
-        # Use predefined case for debugging
-        # Uncomment the case you want to test:
-
-        # case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "linear_convection_discontinuity")
-        # case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "Burgers", "Burgers1")
-        # case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "KDV_equation")
-        case_dir = os.path.join(project_root, "cases", "Time_pde_cases", "Allen_Cahn", "AC_equation_100_0.1")
-        # case_dir = os.path.join(project_root, "cases", "linear_pde_cases", "poisson_2d_sinpixsinpiy")
-    else:
-        # Parse command line arguments
-        args = parse_arguments()
-        case_dir = args.case_path
+    # Parse command line arguments
+    args = parse_arguments()
+    case_dir = args.case_path
 
     print(f"Using case directory: {case_dir}")
 

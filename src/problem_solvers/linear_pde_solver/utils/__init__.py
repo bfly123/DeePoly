@@ -1,14 +1,14 @@
 """
-线性偏微分方程求解器工具组件
+LinearPartial differential equationSolve器ToolComponent
 """
 
-# 导出配置类
+# ExportConfigurationclass
 from .config import LinearPDEConfig
 
-# 导出数据生成器
+# ExportData generator
 from .data import LinearPDEDataGenerator
 
-# 导出可视化工具
+# ExportVisualizationTool
 from .visualize import LinearPDEVisualizer
 
 __all__ = [

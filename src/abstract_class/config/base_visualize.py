@@ -74,9 +74,16 @@ class BaseVisualizer:
     def get_model_predictions(self, model: torch.nn.Module, data: Dict) -> np.ndarray:
         """Get neural network model predictions"""
         x = data["x"]
+        # Get model device
+        model_device = next(model.parameters()).device
+
         with torch.no_grad():
-            _, predictions = model(torch.tensor(x, dtype=torch.float64))
-        return predictions.detach().numpy()
+            # Create tensor on the same device as the model
+            x_tensor = torch.tensor(x, dtype=torch.float64, device=model_device)
+            _, predictions = model(x_tensor)
+
+        # Move back to CPU for numpy conversion
+        return predictions.cpu().detach().numpy()
 
     def get_deepoly_predictions(
         self, fitter, data: Dict, model: torch.nn.Module, coeffs: np.ndarray
@@ -406,7 +413,7 @@ class BaseVisualizer:
         try:
             plt.tight_layout()
         except UserWarning:
-            pass  # 忽略不兼容的Axes警告
+            pass  # 忽略不兼容的AxesWarning
         self._save_figure(fig, save_path)
         self._close_figure(fig)
 
@@ -756,7 +763,7 @@ class BaseVisualizer:
         try:
             plt.tight_layout()
         except UserWarning:
-            pass  # 忽略不兼容的Axes警告
+            pass  # 忽略不兼容的AxesWarning
         self._save_figure(fig, save_path)
         self._close_figure(fig)
 

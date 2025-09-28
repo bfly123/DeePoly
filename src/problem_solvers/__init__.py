@@ -1,31 +1,31 @@
 """
-问题求解器模块，包含各种特定问题的求解器
+ProblemSolve器Module，Include各种特定Problem的Solve器
 """
 
-# 导入子模块
+# Import子Module
 from . import func_fitting_solver
 from . import general_pde_solver
 from . import linear_pde_solver
 from . import time_pde_solver
 
-# 直接导出所有求解器类，简化导入
+# 直接ExportAllSolve器class，简化Import
 from .func_fitting_solver.solver import FuncFittingSolver
 from .time_pde_solver import TimePDESolver
 from .linear_pde_solver import LinearPDESolver
 
-# 注意：以下两个求解器类只声明但尚未实现，仅为保持接口一致
+# Note：以Down两个Solve器class只Declaration但尚未Implementation，仅为MaintainInterface一致
 # from .general_pde_solver import GeneralPDESolver
 
 __all__ = [
-    # 子模块
+    # 子Module
     'func_fitting_solver',
     'general_pde_solver',
     'linear_pde_solver',
     'time_pde_solver',
     
-    # 求解器类
+    # Solve器class
     'FuncFittingSolver',
     'TimePDESolver',
     'LinearPDESolver'
-    # 'GeneralPDESolver'  # 未实现
+    # 'GeneralPDESolver'  # 未Implementation
 ] 

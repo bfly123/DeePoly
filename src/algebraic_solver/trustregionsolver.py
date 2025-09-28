@@ -5,17 +5,17 @@ from typing import List, Dict, Tuple, Optional
 from scipy.sparse import linalg as splinalg
 
 class TrustRegionSolver:
-    """优化版信赖域求解器"""
+    """Optimize版信赖域Solve器"""
     
     def __init__(self, use_gpu: bool = True, precondition: bool = True):
         """
         Args:
-            use_gpu: 是否使用GPU加速
-            precondition: 是否使用预处理
+            use_gpu: YesNoUsingGPU加速
+            precondition: YesNoUsing预Process
         """
         self.use_gpu = use_gpu and cp.is_available()
         self.precondition = precondition
-        self._last_step = None  # 缓存上一步结果用于热启动
+        self._last_step = None  # 缓存Up一步Result用于热Start
         
     def solve(
         self,
@@ -29,22 +29,22 @@ class TrustRegionSolver:
         tol: float = 1e-8,
         initial_guess: Optional[np.ndarray] = None
     ) -> np.ndarray:
-        """使用改进的信赖域法求解非线性系统
+        """UsingEnhancement的信赖域法SolveNonlinearSystem
         
-        改进:
-        1. 使用自适应信赖域半径
-        2. 采用预处理技术提高收敛性
-        3. 实现热启动策略
-        4. 优化内存使用
-        5. 改进线搜索策略
+        Enhancement:
+        1. Using自适应信赖域Radius
+        2. 采用预ProcessTechniqueImprovementConvergent性
+        3. Implementation热StartStrategy
+        4. OptimizeMemory usage
+        5. EnhancementLineSearchStrategy
         """
-        # 初始化优化参数
-        eta1, eta2 = 0.1, 0.9  # 更宽松的信赖域更新阈值
-        radius = 2.0  # 更大的初始信赖域半径
+        # InitializeOptimizeParameter
+        eta1, eta2 = 0.1, 0.9  # 更宽松的信赖域UpdateThreshold
+        radius = 2.0  # 更大的初Beginning信赖域Radius
         radius_max = 20.0
         radius_min = 1e-6
         
-        # 智能初始化
+        # 智能Initialize
         ns, n_eqs, dgN = shape
         if initial_guess is not None:
             x = initial_guess.reshape(-1, 1)
@@ -53,35 +53,35 @@ class TrustRegionSolver:
         else:
             x = np.zeros((dgN * ns * n_eqs, 1))
             
-        # 预分配内存
+        # 预AllocateInner存
         if self.use_gpu:
             x_gpu = cp.asarray(x)
             workspace = {"x": x_gpu}
         
-        # 记录最佳解
+        # record最佳Solution
         best_x = x.copy()
         best_residual = float('inf')
         
         for iter in range(max_iter):
-            # 计算残差和雅可比矩阵
+            # ComputeResidual和Jacobian matrix
             f_val, J = build_jacobian_fn(x, A, b, equations, variables)
             f_norm = float(np.linalg.norm(f_val))
             
-            # 更新最佳解
+            # Update最佳Solution
             if f_norm < best_residual:
                 best_residual = f_norm
                 best_x = x.copy()
             
-            # 收敛检查
+            # ConvergentCheck
             if f_norm < tol:
                 break
                 
-            # 构建预处理的系统
+            # Build预Process的System
             g = J.T @ f_val
             B = J.T @ J
             
             if self.precondition:
-                # 使用对角线预处理
+                # Using对CornerLine预Process
                 D = np.diag(np.sqrt(np.diag(B) + 1e-12))
                 D_inv = np.diag(1.0 / np.diag(D))
                 B_scaled = D_inv @ B @ D_inv
@@ -89,7 +89,7 @@ class TrustRegionSolver:
             else:
                 B_scaled, g_scaled = B, g
                 
-            # 求解信赖域子问题
+            # Solve信赖域子Problem
             if self.use_gpu:
                 delta = self._solve_trust_region_subproblem_gpu(
                     B_scaled, g_scaled.flatten(), radius, workspace
@@ -99,25 +99,25 @@ class TrustRegionSolver:
                     B_scaled, g_scaled.flatten(), radius
                 )
                 
-            # 还原预处理的步长
+            # Restore预Process的Step size
             if self.precondition:
                 delta = D_inv @ delta
             delta = delta.reshape(-1, 1)
             
-            # 自适应步长控制
+            # 自适应Step sizeControl
             step_norm = float(np.linalg.norm(delta))
             if step_norm > radius:
                 delta *= (radius / step_norm)
             
-            # 计算实际和预测减少量
+            # Compute实际和Prediction减A small amount of
             new_f_val, _ = build_jacobian_fn(x + delta, A, b, equations, variables)
             actual_reduction = f_norm - float(np.linalg.norm(new_f_val))
             predicted_reduction = float(f_norm - np.linalg.norm(f_val + J @ delta))
             
-            # 计算改进比率
+            # ComputeEnhancementRate
             rho = actual_reduction / (predicted_reduction + 1e-10)
             
-            # 自适应信赖域更新
+            # 自适应信赖域Update
             if rho < eta1:
                 radius = max(0.25 * radius, radius_min)
             elif rho > eta2 and step_norm >= 0.95 * radius:
@@ -125,43 +125,43 @@ class TrustRegionSolver:
             elif eta1 <= rho <= eta2:
                 radius = max(0.5 * radius, radius_min)
                 
-            # 步长接受准则
-            if rho > 0.05:  # 更宽松的接受条件
+            # Step sizeAcceptCriterion
+            if rho > 0.05:  # 更宽松的AcceptCondition
                 x = x + delta
                 
-            # 输出诊断信息
+            # Output诊断information
             print(f"Iteration {iter+1}")
             print(f"Trust radius: {radius:.6f}")
             print(f"Step size: {step_norm:.6f}")
             print(f"Improvement ratio: {rho:.6f}")
             print(f"Residual: {np.mean(np.abs(f_val)):.6f}\n")
             
-            # 收敛检查
+            # ConvergentCheck
             if step_norm < tol * (1 + np.linalg.norm(x)):
                 break
                 
-        # 保存最后的结果用于热启动
+        # SaveFinally的Result用于热Start
         self._last_step = best_x
         
         return best_x.reshape(ns, n_eqs, dgN)
         
     def _solve_trust_region_subproblem(self, B, g, radius, max_iter=None, tol=1e-8):
-        """改进的CPU版本信赖域子问题求解器"""
+        """Enhancement的CPUVersion信赖域子ProblemSolve器"""
         n = len(g)
         max_iter = n if max_iter is None else max_iter
         
-        # 尝试柯西点
+        # Attempt柯西point
         eigen_min = splinalg.eigsh(B, k=1, which='SA', return_eigenvectors=False)[0]
         if eigen_min > 0:
             try:
-                # 尝试直接求解
+                # Attempt直接Solve
                 delta = np.linalg.solve(B, -g)
                 if np.linalg.norm(delta) <= radius:
                     return delta
             except np.linalg.LinAlgError:
                 pass
                 
-        # 回退到截断共轭梯度法
+        # Return退To截断共轭Gradient法
         x = np.zeros_like(g)
         r = g.copy()
         p = -r.copy()
@@ -174,9 +174,9 @@ class TrustRegionSolver:
             Bp = B @ p
             pBp = p.dot(Bp)
             
-            # 处理负曲率
+            # Process负Curvature
             if pBp <= 0:
-                # 求解二次方程
+                # Solve二次Equation
                 a = p_norm_sq
                 b = 2 * x.dot(p)
                 c = x_norm_sq - radius**2
@@ -188,7 +188,7 @@ class TrustRegionSolver:
             alpha = r_norm_sq / (pBp + 1e-15)
             x_new = x + alpha * p
             
-            # 边界检查
+            # BoundaryCheck
             if np.linalg.norm(x_new) > radius:
                 a = p_norm_sq
                 b = 2 * x.dot(p)
@@ -202,7 +202,7 @@ class TrustRegionSolver:
             r_new = r + alpha * Bp
             r_norm_sq_new = r_new.dot(r_new)
             
-            # 收敛检查
+            # ConvergentCheck
             if np.sqrt(r_norm_sq_new) < tol * np.sqrt(r_norm_sq):
                 return x
                 
@@ -215,12 +215,12 @@ class TrustRegionSolver:
         return x
         
     def _solve_trust_region_subproblem_gpu(self, B, g, radius, workspace, max_iter=None, tol=1e-8):
-        """改进的GPU版本信赖域子问题求解器"""
+        """Enhancement的GPUVersion信赖域子ProblemSolve器"""
         if 'B' not in workspace:
             workspace['B'] = cp.asarray(B)
             workspace['g'] = cp.asarray(g)
         else:
-            # 重用已分配的内存
+            # 重用已Allocate的Inner存
             workspace['B'][:] = cp.asarray(B)
             workspace['g'][:] = cp.asarray(g)
             
@@ -230,7 +230,7 @@ class TrustRegionSolver:
         n = len(g)
         max_iter = n if max_iter is None else max_iter
         
-        # 使用GPU进行特征值计算
+        # UsingGPUEnter行EigenvalueCompute
         try:
             eigen_min = float(cp.linalg.eigvalsh(B_gpu)[0])
             if eigen_min > 0:
@@ -243,7 +243,7 @@ class TrustRegionSolver:
         except cp.linalg.LinAlgError:
             pass
             
-        # 初始化
+        # Initialize
         x = cp.zeros_like(g_gpu)
         r = g_gpu.copy()
         p = -r.copy()

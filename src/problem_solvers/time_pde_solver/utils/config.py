@@ -51,15 +51,15 @@ class TimePDEConfig(BaseConfig):
     points_per_swap: int = 1
     Initial_conditions: List[dict] = field(default_factory=list)
 
-    # 时间推进配置 - 从config.json读取
+    # Time推EnterConfiguration - Fromconfig.jsonRead
     time_scheme: str = "IMEX_RK_2_2_2"
     time_scheme_params: Dict = field(default_factory=dict)
 
-    # 算子分离配置 - 从config.json的eq字段解析得到
-    eq_L1: List[str] = field(default_factory=list)      # 主线性算子
-    eq_L2: List[str] = field(default_factory=list)      # 半隐式线性算子  
-    eq_F: List[str] = field(default_factory=list)       # 对应L2的非线性函数(F)
-    eq_N: List[str] = field(default_factory=list)       # 完全非线性项(N)
+    # OperatorsSeparateConfiguration - Fromconfig.json的eqfieldAnalyticalGet
+    eq_L1: List[str] = field(default_factory=list)      # 主Linear operators
+    eq_L2: List[str] = field(default_factory=list)      # 半隐式Linear operators  
+    eq_F: List[str] = field(default_factory=list)       # 对应L2的Nonlinearfunction(F)
+    eq_N: List[str] = field(default_factory=list)       # CompletelyNonlinearItem(N)
 
     # Other parameters
     seed: int = 42
@@ -74,14 +74,14 @@ class TimePDEConfig(BaseConfig):
     x_min_norm: np.ndarray = field(init=False)
     x_max_norm: np.ndarray = field(init=False)
 
-    # 解析后的方程列表
+    # AnalyticalBackward的EquationList
     eq_linear_list: List[str] = field(default_factory=list)
     deriv_orders: List[int] = field(default_factory=list)
     max_deriv_orders: List[int] = field(default_factory=list)
     eq_nonlinear_list: List[str] = field(default_factory=list)
     all_derivatives: List[List[int]] = field(default_factory=list)
 
-    # 时间格式运行时参数
+    # TimeformatRunning时Parameter
     gamma: float = field(init=False)
     max_time_steps: int = field(init=False)
     time_output_interval: int = field(init=False)
@@ -106,7 +106,7 @@ class TimePDEConfig(BaseConfig):
         # Validate configuration
         self._validate_config()
 
-        # 初始化其他参数
+        # Initialize其他Parameter
         self.n_dim = len(self.spatial_vars)
         self.n_eqs = self._determine_n_eqs()
         print(f"Debug: n_dim = {self.n_dim}, n_eqs = {self.n_eqs}, vars_list = {self.vars_list}")
@@ -115,7 +115,7 @@ class TimePDEConfig(BaseConfig):
         self.init_seed()
         self.DNN_degree = self.hidden_dims[-1]
         
-        # 设置结果目录
+        # SetupResultDirectory
         self.results_dir = os.path.join(self.case_dir, "results")
         
         self._auto_code()
@@ -124,25 +124,25 @@ class TimePDEConfig(BaseConfig):
         self._parse_operator_splitting()
 
     def _normalize_eq_format(self):
-        """标准化方程格式并提取算子分离信息"""
+        """StandardizationEquationformat并提取OperatorsSeparateinformation"""
         if isinstance(self.eq, dict):
-            # 从字典格式提取算子分离信息
+            # FromDictionaryformat提取OperatorsSeparateinformation
             self.eq_L1 = self.eq.get("L1", [])
             self.eq_L2 = self.eq.get("L2", [])
-            self.eq_F = self.eq.get("F", [])  # JSON中的F字段
+            self.eq_F = self.eq.get("F", [])  # JSON中的Ffield
             self.eq_N = self.eq.get("N", [])
             
-            # 保持向后兼容的别名
-            self.f_L2 = self.eq_F  # 为向后兼容保留f_L2别名
-            self.N = self.eq_N     # 为向后兼容保留N别名
+            # MaintainTowardBackward兼容的别名
+            self.f_L2 = self.eq_F  # 为TowardBackward兼容保留f_L2别名
+            self.N = self.eq_N     # 为TowardBackward兼容保留N别名
             
             print(f"Extracted operator splitting from config:")
-            print(f"  L1 (主线性算子): {self.eq_L1}")
-            print(f"  L2 (半隐式线性算子): {self.eq_L2}")
-            print(f"  F (非线性函数): {self.eq_F}")
-            print(f"  N (完全非线性项): {self.eq_N}")
+            print(f"  L1 (主Linear operators): {self.eq_L1}")
+            print(f"  L2 (半隐式Linear operators): {self.eq_L2}")
+            print(f"  F (Nonlinearfunction): {self.eq_F}")
+            print(f"  N (CompletelyNonlinearItem): {self.eq_N}")
         elif isinstance(self.eq, list):
-            # 兼容旧的列表格式，将其作为L1算子
+            # 兼容OldListformat，将其作为L1Operators
             self.eq_L1 = self.eq
             self.eq_L2 = []
             self.eq_F = []
@@ -154,13 +154,13 @@ class TimePDEConfig(BaseConfig):
             raise ValueError(f"Invalid eq format: {type(self.eq)}. Must be list or dict.")
 
     def _determine_n_eqs(self):
-        """根据不同的配置方式确定方程数量 - 对于时间PDE，方程数量等于变量数量"""
-        # 对于时间PDE，方程数量就是变量数量，因为L1, L2, F, N是同一个PDE的不同算子项
+        """According toDifferent的Configuration方式确定Number of equations量 - ForTimePDE，Number of equations量等于variable数量"""
+        # ForTimePDE，Number of equations量就Yesvariable数量，BecauseL1, L2, F, NYes同一个PDE的DifferentOperatorsItem
         return len(self.vars_list)
 
     def _setup_time_scheme_params(self):
-        """设置时间格式参数"""
-        # 设置默认参数
+        """SetupTimeformatParameter"""
+        # SetupDefaultParameter
         scheme_defaults = {
             "IMEX_RK_2_2_2": {
                 "gamma": (2 - np.sqrt(2)) / 2,
@@ -189,13 +189,13 @@ class TimePDEConfig(BaseConfig):
             }
         }
 
-        # 获取默认参数
+        # GetDefaultParameter
         defaults = scheme_defaults.get(self.time_scheme, {})
         
-        # 合并用户参数和默认参数
+        # MergeUserParameter和DefaultParameter
         merged_params = {**defaults, **self.time_scheme_params}
 
-        # 设置为类属性
+        # Setup为classattribute
         for key, value in merged_params.items():
             setattr(self, key, value)
 
@@ -203,61 +203,61 @@ class TimePDEConfig(BaseConfig):
         print(f"Time scheme parameters: {merged_params}")
 
     def _parse_operator_splitting(self):
-        """解析算子分离配置"""
+        """AnalyticalOperatorsSeparateConfiguration"""
         print("Parsing operator splitting...")
         print(f"L1 operators: {self.eq_L1}")
         print(f"L2 operators: {self.eq_L2}")
         print(f"F functions: {self.eq_F}")
         print(f"N operators: {self.eq_N}")
 
-        # 构建字典格式的操作符用于解析
+        # BuildDictionaryformat的Operation符用于Analytical
         if isinstance(self.eq, dict):
-            # 对于字典格式，重新构建操作符字典
+            # ForDictionaryformat，Re-BuildOperation符Dictionary
             operators_dict = {}
             
-            # 添加L1算子（主线性算子）
+            # 添加L1Operators（主Linear operators）
             if self.eq_L1:
                 operators_dict['L1'] = self.eq_L1
             
-            # 添加L2算子（半隐式线性算子）
+            # 添加L2Operators（半隐式Linear operators）
             if self.eq_L2:
                 operators_dict['L2'] = self.eq_L2
             
-            # 添加F算子（IMEX-RK需要单独的F函数）
+            # 添加FOperators（IMEX-RKNeed单独的Ffunction）
             if self.eq_F:
                 operators_dict['F'] = self.eq_F
             
-            # 处理半隐式项 L2 * F
+            # Process半隐式Item L2 * F
             if self.eq_L2 and self.eq_F:
                 semi_implicit_terms = []
                 for i, (l2_op, f_func) in enumerate(zip(self.eq_L2, self.eq_F)):
-                    # 构造半隐式项：L2_i * F_i
+                    # Construct半隐式Item：L2_i * F_i
                     semi_implicit_term = f"{l2_op}*({f_func})"
                     semi_implicit_terms.append(semi_implicit_term)
                     print(f"Generated semi-implicit term {i+1}: {semi_implicit_term}")
                 operators_dict['L2F'] = semi_implicit_terms
             
-            # 添加完全非线性项
+            # 添加CompletelyNonlinearItem
             if self.eq_N:
                 operators_dict['N'] = self.eq_N
             
-            # 使用字典格式进行解析
+            # UsingDictionaryformatEnter行Analytical
             self.operator_parse = parse_operators(operators_dict, self.vars_list, self.spatial_vars, self.const_list)
         else:
-            # 兼容旧格式 - 将列表转换为字典格式
+            # 兼容旧format - 将ListConvert为Dictionaryformat
             if isinstance(self.eq, list):
                 operators_dict = {'eq': self.eq}
             else:
                 operators_dict = self.eq
             self.operator_parse = parse_operators(operators_dict, self.vars_list, self.spatial_vars, self.const_list)
 
-        # 输出解析结果并设置配置属性
+        # OutputAnalyticalResult并SetupConfigurationattribute
         if hasattr(self, 'operator_parse'):
             print(f"Successfully parsed equations for time PDE solver")
             
-            # 如果operator_parse是字典，设置为对象属性
+            # Ifoperator_parseYesDictionary，Setup为objectattribute
             if isinstance(self.operator_parse, dict):
-                # 创建一个简单对象来存储解析结果
+                # Create一个简单objectComeStoreAnalyticalResult
                 class ParseResult:
                     pass
                 
@@ -266,7 +266,7 @@ class TimePDEConfig(BaseConfig):
                     setattr(parse_obj, key, value)
                 self.operator_parse = parse_obj
             
-            # 设置base_fitter需要的属性
+            # Setupbase_fitterNeed的attribute
             if hasattr(self.operator_parse, 'max_derivative_orders'):
                 self.max_derivative_orders = self.operator_parse.max_derivative_orders
             if hasattr(self.operator_parse, 'all_derivatives'):
@@ -283,24 +283,24 @@ class TimePDEConfig(BaseConfig):
             print(f"  operator_terms: {getattr(self, 'operator_terms', 'MISSING')}")
 
     def _auto_code(self):
-        """自动代码生成"""
+        """自动代yardGenerate"""
         if hasattr(self, "auto_code") and self.auto_code:
             print("Starting auto code generation for time PDE solver...")
             
-            # 基于算子分离构建方程列表
+            # Based onOperatorsSeparateBuildEquationList
             linear_eqs = []
             nonlinear_eqs = []
             
-            # 添加主线性算子(L1)
+            # 添加主Linear operators(L1)
             linear_eqs.extend(self.eq_L1)
             
-            # 添加半隐式线性算子(L2)
+            # 添加半隐式Linear operators(L2)
             linear_eqs.extend(self.eq_L2)
             
-            # 添加完全非线性项(N)
+            # 添加CompletelyNonlinearItem(N)
             nonlinear_eqs.extend(self.eq_N)
             
-            # 处理半隐式项 L2 * F
+            # Process半隐式Item L2 * F
             if self.eq_L2 and self.eq_F:
                 for l2_op, f_func in zip(self.eq_L2, self.eq_F):
                     semi_implicit_term = f"{l2_op}*({f_func})"
@@ -311,20 +311,20 @@ class TimePDEConfig(BaseConfig):
             print(f"  Linear equations: {linear_eqs}")
             print(f"  Nonlinear equations: {nonlinear_eqs}")
             
-            # 调用代码生成
+            # 调用代yardGenerate
             config_path = os.path.join(self.case_dir, "config.json")
             update_physics_loss_from_config(config_path)
 
-            # 自动将auto_code设置为false
+            # 自动将auto_codeSetup为false
             self._disable_auto_code(config_path)
             print("Auto code generation completed, please check the net.py file, restart the program")
 
-            # 退出程序
+            # ExitProcedure
             import sys
             sys.exit(0)
 
     def _disable_auto_code(self, config_path: str):
-        """将配置文件中的auto_code设置为false"""
+        """将ConfigurationFile中的auto_codeSetup为false"""
         try:
             import json
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -335,10 +335,10 @@ class TimePDEConfig(BaseConfig):
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
 
-            print(f"自动将 auto_code 设置为 false 在文件: {config_path}")
+            print(f"自动将 auto_code Setup为 false AtFile: {config_path}")
 
         except Exception as e:
-            print(f"无法更新配置文件: {e}")
+            print(f"无法UpdateConfigurationFile: {e}")
 
     def _validate_config(self):
         """Validate configuration parameters"""

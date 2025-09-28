@@ -41,19 +41,23 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         ne = self.n_eqs
         dgN = self.dgN
 
-        #L = np.zeros((ne, n_points, ne * dgN))
+        L = np.zeros((ne, n_points, ne * dgN))
         b = np.zeros((ne, n_points))
 
         # construct the fitting equations
         for i in range(ne):
-            b[i,:] = source[:,i]
+            if source.shape[1] > i:
+                b[i,:] = source[:,i]
+            else:
+                # Handle single variable case where source may only have one column
+                b[i,:] = source[:,0]
 
-        # add the spatial discrete terms
-        #for i in range(ne):
-        #    L[i] = eq[i]
+        # add the spatial discrete terms - placeholder for now
+        # This would normally be filled with equation-specific terms
+        # For linear PDEs, these are typically handled by the neural network
 
         # reshape the matrix
-        L = np.vstack([L[i] for i in range(ne)])
-        b = np.vstack([b[i].reshape(-1, 1) for i in range(ne)])
+        L_reshaped = np.vstack([L[i] for i in range(ne)])
+        b_reshaped = np.concatenate([b[i] for i in range(ne)])
 
-        return L, b
+        return L_reshaped, b_reshaped

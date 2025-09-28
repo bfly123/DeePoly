@@ -1,14 +1,14 @@
 """
-时间相关PDE求解器工具组件
+TimeRelatedPDESolve器ToolComponent
 """
 
-# 导出配置类
+# ExportConfigurationclass
 from .config import TimePDEConfig
 
-# 导出数据生成器
+# ExportData generator
 from .data import TimePDEDataGenerator
 
-# 导出可视化工具
+# ExportVisualizationTool
 from .visualize import TimePDEVisualizer
 
 __all__ = [

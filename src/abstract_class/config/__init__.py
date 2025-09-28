@@ -1,5 +1,5 @@
 """
-配置模块，包含各种配置类和数据生成器
+ConfigurationModule，Include各种Configurationclass和Data generator
 """
 
 from .base_config import BaseConfig

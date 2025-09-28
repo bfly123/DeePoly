@@ -1,11 +1,11 @@
 """
-线性偏微分方程求解器核心组件
+LinearPartial differential equationSolve器CoreComponent
 """
 
-# 导出网络模型
+# ExportNetworkModel
 from .net import LinearPDENet
 
-# 导出拟合器
+# ExportFitting器
 from .fitter import LinearPDEFitter
 
 __all__ = [

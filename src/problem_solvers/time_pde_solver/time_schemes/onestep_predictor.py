@@ -1,10 +1,10 @@
 """
 One-Step Predictor-Corrector Time Integration Scheme
 
-单步预测-校正时间积分格式：
-- 预测步：隐式求解 (u^* - u^n)/Δt + L1(u^*) + L2(u^*)⋅F(u^n) + N(u^n) = 0
-- 校正步：显式计算 u^{n+1} = u^n - Δt * [L1_avg + L2F_avg + N_mid]
-- 算子值预计算和时间步间复用，减少75%的算子计算量
+One-step predictor-corrector time integration scheme:
+- Predictor step: Implicit solve (u^* - u^n)/Δt + L1(u^*) + L2(u^*)⋅F(u^n) + N(u^n) = 0
+- Corrector step: Explicit compute u^{n+1} = u^n - Δt * [L1_avg + L2F_avg + N_mid]
+- Operator value pre-computation and time step reuse, reducing 75% operator calculations
 """
 
 from typing import Dict, List, Tuple, Optional, Any
@@ -15,24 +15,24 @@ from .base_time_scheme import BaseTimeScheme
 
 
 class OneStepPredictor(BaseTimeScheme):
-    """单步预测-校正时间积分格式
+    """One-step predictor-corrector time integration scheme
 
-    特点:
-    - 预测步隐式求解，校正步显式计算
-    - 条件校正：仅在 step > 1 时执行校正步
-    - 算子值预计算与时间步间复用
-    - 中点评估提高非线性项精度
+    Features:
+    - Predictor step implicit solve, corrector step explicit computation
+    - Conditional correction: execute corrector step only when step > 1
+    - Operator value pre-computation and time step reuse
+    - Midpoint evaluation improves nonlinear term accuracy
     """
 
     def __init__(self, config):
         super().__init__(config)
-        self.order = 1  # 基本精度阶数
-        self.predictor_solution = None  # 存储预测解 u^*
-        self.predictor_coeffs = None    # 存储预测系数 β^*
-        self.L1_beta_prev = None        # 存储上一时间步的 L1*β^n
-        self.L2_beta_prev = None        # 存储上一时间步的 L2*β^n
-        self.L1_beta_star = None        # 存储当前预测步的 L1*β^*
-        self.L2_beta_star = None        # 存储当前预测步的 L2*β^*
+        self.order = 1  # Basic accuracy order
+        self.predictor_solution = None  # Store predictor solution u^*
+        self.predictor_coeffs = None    # Store predictor coefficients β^*
+        self.L1_beta_prev = None        # Store previous time step L1*β^n
+        self.L2_beta_prev = None        # Store previous time step L2*β^n
+        self.L1_beta_star = None        # Store current predictor step L1*β^*
+        self.L2_beta_star = None        # Store current predictor step L2*β^*
 
     def time_step(
         self,
@@ -43,118 +43,111 @@ class OneStepPredictor(BaseTimeScheme):
         current_time: float = 0.0,
         step: int = 0
     ) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
-        """执行单步预测-校正时间积分
+        """Execute one-step predictor-corrector time integration
 
         Args:
-            U_n: 当前时间步全局解值
-            U_seg: 当前时间步段级解值列表
-            dt: 时间步长
-            coeffs_n: 当前时间步系数 (可选)
-            current_time: 当前时间
-            step: 时间步数
+            U_n: Current time step global solution values
+            U_seg: Current time step segment-level solution list
+            dt: Time step size
+            coeffs_n: Current time step coefficients (optional)
+            current_time: Current time
+            step: Time step number
 
         Returns:
-            Tuple: (新的全局解, 新的段级解, 新的系数)
+            Tuple: (new global solution, new segment-level solution, new coefficients)
         """
 
-        # 存储当前时间和解值（dt缩减已在solver中处理）
+        # StoreCurrent time和Solutionvalue（dtreduction handled in solver）
         self._current_time = current_time
         self.U_seg_n = [seg.copy() for seg in U_seg]
 
-        # 步骤1: 预测步（隐式求解）
+        # Step1: Predictor step（implicit solve）
         U_star_seg, coeffs_star = self._predictor_step(U_seg, dt, step)
 
-        # 步骤2: 校正步（仅当step > 1时执行显式计算）
+        # Step2: Corrector step（only whenstep > 1execute explicit computation）
         if step > 1 and self.L1_beta_prev is not None:
             U_new_seg, coeffs_new = self._corrector_step(
                 U_seg, U_star_seg, dt, coeffs_star, step
             )
         else:
-            # 第一步直接使用预测值
+            # First step directly uses predictor values
             U_new_seg, coeffs_new = U_star_seg, coeffs_star
 
-        # 步骤3: 更新算子值供下一时间步使用
-        # 当前时间步的预测算子值成为下一时间步的"上一步"算子值
+        # Step3: Update operator values for next time step use
+        # Current time步的Predictionoperator values成为Down一Time step的"previous"operator values
         if hasattr(self, 'L1_beta_star') and self.L1_beta_star is not None:
             self.L1_beta_prev = self.L1_beta_star
         if hasattr(self, 'L2_beta_star') and self.L2_beta_star is not None:
             self.L2_beta_prev = self.L2_beta_star
 
-        # 转换为全局数组
+        # Convert to global array
         U_new = self.fitter.segments_to_global(U_new_seg)
 
         return U_new, U_new_seg, coeffs_new
 
     def _predictor_step(self, U_n_seg: List[np.ndarray], dt: float, step: int) -> Tuple[List[np.ndarray], np.ndarray]:
-        """预测步: (u^* - u^n)/Δt + L1(u^*) + L2(u^*)⋅F(u^n) + N(u^n) = 0
+        """Predictor step: (u^* - u^n)/Δt + L1(u^*) + L2(u^*)⋅F(u^n) + N(u^n) = 0
 
-        隐式求解，需要构建和求解线性系统
+        implicit solve，requires building and solving linear system
         """
 
-        # 准备预测步数据 - 按照IMEX-RK的接口格式
+        # PreparePredictor stepData - following IMEX-RK interface format
         predictor_data = {
             "U_n_seg": U_n_seg,
             "dt": dt,
             "step": step,
-            "operation": "onestep_predictor"  # 新的operation类型
+            "operation": "onestep_predictor"  # New operation type
         }
 
-        # 求解预测步系数
+        # SolvePredictor stepCoefficients
         coeffs_star = self.fitter.fit(**predictor_data)
 
-        # 构造预测解
+        # Construct predictor solution
         U_star_global, U_star_seg = self.fitter.construct(
             self.fitter.data, self.fitter._current_model, coeffs_star
         )
 
-        # 直接计算并存储算子值 L1*β 和 L2*β，避免校正步重复计算
+        # 直接Compute并Storeoperator values L1*β 和 L2*β，避免Corrector stepRepetitionCompute
         self.L1_beta_star, self.L2_beta_star = self._compute_operator_values(coeffs_star)
 
-        # 存储预测解供校正步使用
+        # Store predictor solution供Corrector stepUsing
         self.predictor_solution = U_star_seg
         self.predictor_coeffs = coeffs_star
 
         return U_star_seg, coeffs_star
 
     def _compute_operator_values(self, coeffs: np.ndarray) -> Tuple[List[List[Optional[np.ndarray]]], List[List[Optional[np.ndarray]]]]:
-        """计算并存储算子值 L1*β 和 L2*β
+        """Compute并Storeoperator values L1*β 和 L2*β
 
-        参数:
-            coeffs: np.ndarray, shape (ns, n_eqs, dgN) - 系数矩阵
+        Args:
+            coeffs: np.ndarray, shape (ns, n_eqs, dgN) - coefficient matrix
 
-        返回:
+        Returns:
             L1_beta: List[List[np.ndarray]] - shape [ns][n_eqs](n_points,)
             L2_beta: List[List[np.ndarray]] - shape [ns][n_eqs](n_points,)
         """
-        L1_beta = []  # 存储各segment的 L1*β
-        L2_beta = []  # 存储各segment的 L2*β
+        L1_beta = []  # Store L1*β
+        L2_beta = []  # Store L2*β
 
         for seg_idx in range(self.fitter.ns):
-            # 获取该segment的算子 - 注意维度匹配
+            # Get operators for this segment - note dimension matching
             L1_ops = self.fitter._linear_operators[seg_idx].get("L1", None)
             L2_ops = self.fitter._linear_operators[seg_idx].get("L2", None)
 
-            # 计算该segment各方程的算子值
+            # Compute该segment各Equation的operator values
             L1_seg = []
             L2_seg = []
 
             for eq_idx in range(self.config.n_eqs):
-                # 获取系数: shape (dgN,)
+                # Get coefficients: shape (dgN,)
                 beta = coeffs[seg_idx, eq_idx, :]
 
-                # 计算 L1*β: (n_points, dgN) @ (dgN,) = (n_points,)
-                if L1_ops is not None and len(L1_ops) > eq_idx:
-                    L1_val = L1_ops[eq_idx] @ beta  # shape: (n_points,)
-                    L1_seg.append(L1_val)
-                else:
-                    L1_seg.append(None)
+                # Compute L1*β and L2*β with safe indexing
+                L1_val = L1_ops[eq_idx] @ beta if (L1_ops is not None and eq_idx < len(L1_ops)) else None
+                L2_val = L2_ops[eq_idx] @ beta if (L2_ops is not None and eq_idx < len(L2_ops)) else None
 
-                # 计算 L2*β: (n_points, dgN) @ (dgN,) = (n_points,)
-                if L2_ops is not None and len(L2_ops) > eq_idx:
-                    L2_val = L2_ops[eq_idx] @ beta  # shape: (n_points,)
-                    L2_seg.append(L2_val)
-                else:
-                    L2_seg.append(None)
+                L1_seg.append(L1_val)
+                L2_seg.append(L2_val)
 
             L1_beta.append(L1_seg)
             L2_beta.append(L2_seg)
@@ -169,11 +162,11 @@ class OneStepPredictor(BaseTimeScheme):
         coeffs_star: np.ndarray,
         step: int
     ) -> Tuple[List[np.ndarray], np.ndarray]:
-        """校正步: 显式计算
+        """Corrector step: Explicit computation
 
         u^{n+1} = u^n - Δt * [L1(u^*) + L1(u^n)]/2 - Δt * [L2(u^*) + L2(u^n)]/2 ⋅ F((u^n + u^*)/2) - Δt * N((u^* + u^n)/2)
 
-        完全基于预计算的算子值，无需矩阵求解
+        CompletelyBased on预Compute的operator values，no matrix solving required
         """
 
         U_new_seg = []
@@ -182,23 +175,23 @@ class OneStepPredictor(BaseTimeScheme):
             U_n = U_n_seg[seg_idx]
             U_star = U_star_seg[seg_idx]
 
-            # 计算中点值 (u^n + u^*)/2
+            # Compute midpoint values (u^n + u^*)/2
             U_mid = 0.5 * (U_n + U_star)
 
-            # 获取特征矩阵
+            # Get feature matrix
             features = self.fitter._features[seg_idx][0]
 
-            # 计算中点处的函数值
+            # Compute function values at midpoint
             F_mid = self.fitter.F_func(features, U_mid) if self.fitter.has_operator("F") else None
             N_mid = self.fitter.N_func(features, U_mid) if self.fitter.has_operator("N") else None
 
-            # 初始化校正解: u^{n+1} = u^n
+            # Initialize corrected solution: u^{n+1} = u^n
             U_corrected = U_n.copy()
 
-            # 对每个方程进行校正
+            # Perform correction for each equation
             for eq_idx in range(self.config.n_eqs):
-                # 计算 L1 项的平均值: [L1(u^*) + L1(u^n)]/2
-                # 使用预计算的算子值，确保维度匹配
+                # Compute L1 term average: [L1(u^*) + L1(u^n)]/2
+                # Using预Compute的operator values，ensure dimension matching
                 L1_avg = np.zeros(U_n.shape[0])  # shape: (n_points,)
                 if (hasattr(self, 'L1_beta_star') and len(self.L1_beta_star) > seg_idx and
                     len(self.L1_beta_star[seg_idx]) > eq_idx and self.L1_beta_star[seg_idx][eq_idx] is not None and
@@ -210,8 +203,8 @@ class OneStepPredictor(BaseTimeScheme):
                     if L1_n is not None:
                         L1_avg = 0.5 * (L1_star + L1_n)  # shape: (n_points,)
 
-                # 计算 L2⋅F 项的平均值: [L2(u^*) + L2(u^n)]/2 ⋅ F((u^n + u^*)/2)
-                # 使用预计算的算子值，确保维度匹配
+                # Compute L2⋅F term average: [L2(u^*) + L2(u^n)]/2 ⋅ F((u^n + u^*)/2)
+                # Using预Compute的operator values，ensure dimension matching
                 L2F_avg = np.zeros(U_n.shape[0])  # shape: (n_points,)
                 if (hasattr(self, 'L2_beta_star') and len(self.L2_beta_star) > seg_idx and
                     len(self.L2_beta_star[seg_idx]) > eq_idx and self.L2_beta_star[seg_idx][eq_idx] is not None and
@@ -225,27 +218,27 @@ class OneStepPredictor(BaseTimeScheme):
                         L2_avg = 0.5 * (L2_star + L2_n)          # shape: (n_points,)
                         L2F_avg = L2_avg * F_mid[:, eq_idx]       # shape: (n_points,)
 
-                # 计算 N 项: N((u^* + u^n)/2)
+                # Compute N term: N((u^* + u^n)/2)
                 N_contrib = np.zeros(U_n.shape[0])  # shape: (n_points,)
                 if N_mid is not None:
                     # N_mid is always a list in this context
                     N_contrib = N_mid[eq_idx]  # shape: (n_points,)
 
-                # 显式更新: u^{n+1} = u^n - Δt * [L1_avg + L2F_avg + N_contrib]
-                # 确保所有项都是 (n_points,) 的向量
+                # Explicit update: u^{n+1} = u^n - Δt * [L1_avg + L2F_avg + N_contrib]
+                # 确保Allterm都Yes (n_points,) vectors
                 U_corrected[:, eq_idx] -= dt * (L1_avg + L2F_avg + N_contrib)
 
             U_new_seg.append(U_corrected)
 
-        # 由于是显式计算，直接使用预测步系数
+        # Due toYesExplicit computation，直接UsingPredictor stepCoefficients
         coeffs_new = coeffs_star
 
         return U_new_seg, coeffs_new
 
     def build_stage_jacobian(self, segment_idx: int, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        """构建预测步的雅可比矩阵（校正步是显式的，不需要雅可比）
+        """BuildPredictor step的Jacobian matrix（Corrector stepYes显式的，no Jacobian needed）
 
-        与 BaseTimeScheme 接口保持一致
+        Maintain consistency with BaseTimeScheme interface
         """
         operation = kwargs.get("operation", "onestep_predictor")
         dt = kwargs.get("dt")
@@ -259,56 +252,56 @@ class OneStepPredictor(BaseTimeScheme):
             raise ValueError(f"Only onestep_predictor needs Jacobian. Got: {operation}")
 
     def _build_predictor_jacobian(self, segment_idx: int, dt: float, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        """预测步雅可比: [V + Δt⋅L1 + Δt⋅L2⊙F(u^n)] β^* = u^n - Δt⋅N(u^n)
+        """Predictor step雅可比: [V + Δt⋅L1 + Δt⋅L2⊙F(u^n)] β^* = u^n - Δt⋅N(u^n)
 
-        构建线性系统矩阵和右端向量
+        Build linear system matrix and right-hand side vector
         """
 
-        # 获取维度和算子
+        # Get dimensions and operators
         n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
         ne = self.config.n_eqs
         dgN = self.fitter.dgN
 
-        # 获取算子和特征
+        # Get operators and features
         L1_ops = self.fitter._linear_operators[segment_idx].get("L1", None)
         L2_ops = self.fitter._linear_operators[segment_idx].get("L2", None)
         features = self.fitter._features[segment_idx][0]
 
-        # 获取当前解 u^n
+        # Get current solution u^n
         U_n_seg_list = kwargs.get("U_n_seg", [])
         if len(U_n_seg_list) > segment_idx:
             U_n_seg = U_n_seg_list[segment_idx]
         else:
             raise ValueError(f"U_n_seg_list does not contain segment {segment_idx}")
 
-        # 计算 F(u^n) 和 N(u^n)
+        # Compute F(u^n) 和 N(u^n)
         F_n = self.fitter.F_func(features, U_n_seg) if self.fitter.has_operator("F") else None
         N_n = self.fitter.N_func(features, U_n_seg) if self.fitter.has_operator("N") else None
 
-        # 构建系统矩阵
+        # Build system matrix
         A_matrix = np.zeros((ne * n_points, ne * dgN), dtype=np.float64)
         b_vector = []
 
         for eq_idx in range(ne):
-            # 行和列索引
+            # Row and column indices
             row_start, row_end = eq_idx * n_points, (eq_idx + 1) * n_points
             col_start, col_end = eq_idx * dgN, (eq_idx + 1) * dgN
 
-            # 构建该方程的雅可比: V + Δt⋅L1 + Δt⋅L2⊙F(u^n)
-            J_eq = features.copy()  # V项 (n_points, dgN)
+            # Build Jacobian for this equation: V + Δt⋅L1 + Δt⋅L2⊙F(u^n)
+            J_eq = features.copy()  # Vterm (n_points, dgN)
 
-            # 添加 Δt⋅L1 项
+            # Add Δt⋅L1 term
             if L1_ops is not None and len(L1_ops) > eq_idx:
                 J_eq += dt * L1_ops[eq_idx]  # (n_points, dgN)
 
-            # 添加 Δt⋅L2⊙F(u^n) 项
+            # Add Δt⋅L2⊙F(u^n) term
             if L2_ops is not None and F_n is not None and len(L2_ops) > eq_idx:
                 F_eq = F_n[:, eq_idx]  # (n_points,)
                 J_eq += dt * np.diag(F_eq) @ L2_ops[eq_idx]  # (n_points, dgN)
 
             A_matrix[row_start:row_end, col_start:col_end] = J_eq
 
-            # 构建右端向量: u^n - Δt⋅N(u^n)
+            # Build right-hand side vector: u^n - Δt⋅N(u^n)
             rhs_eq = U_n_seg[:, eq_idx].copy()  # (n_points,)
             if N_n is not None:
                 # N_n is always a list in this context
@@ -320,20 +313,20 @@ class OneStepPredictor(BaseTimeScheme):
         return A_matrix, b_final
 
     def get_scheme_info(self) -> Dict[str, Any]:
-        """返回时间积分格式信息"""
+        """ReturnsTime integration schemeinformation"""
         return {
             "name": "OneStepPredictor",
             "type": "predictor-corrector",
             "method": "One-Step Predictor-Corrector",
             "order": self.order,
-            "implicit": "predictor only",  # 仅预测步隐式
-            "explicit": "corrector only", # 仅校正步显式
-            "stages": 2,  # 预测步 + 校正步
-            "conditional_corrector": True,  # 条件校正
-            "operator_reuse": True,  # 算子值复用
-            "first_step_reduction": True,  # 首步时间缩减
+            "implicit": "predictor only",  # 仅Predictor step隐式
+            "explicit": "corrector only", # 仅Corrector step显式
+            "stages": 2,  # Predictor step + Corrector step
+            "conditional_corrector": True,  # Conditional correction
+            "operator_reuse": True,  # operator values复用
+            "first_step_reduction": True,  # First step time reduction
             "equation_form": "∂u/∂t + L1(u) + L2(u)⋅F(u) + N(u) = 0",
-            "description": "单步预测-校正格式，算子值预计算和时间步间复用"
+            "description": "One-step predictor-corrector scheme，operator values预Compute和Time stepBetween复用"
         }
 
     def validate_operators(self) -> Dict[str, bool]:
@@ -362,12 +355,10 @@ class OneStepPredictor(BaseTimeScheme):
         # Get spatial grid spacing
         try:
             x_data = self.fitter.data.get("x", np.array([0.0, 1.0]))
-            if x_data.ndim > 1:
-                x_flat = x_data.flatten()
-            else:
-                x_flat = x_data
+            # Unified coordinate handling - eliminate dimension checking
+            x_flat = x_data.flatten()
 
-            if len(x_flat) > 1:
+            if x_flat.size > 1:
                 dx_min = np.min(np.diff(np.sort(x_flat)))
             else:
                 dx_min = 0.1

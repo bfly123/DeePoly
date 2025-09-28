@@ -6,7 +6,7 @@ from src.abstract_class.config.base_data import BaseDataGenerator
 
 
 class TimePDEDataGenerator(BaseDataGenerator):
-    """时间相关PDE问题的数据生成器"""
+    """TimeRelatedPDEProblem的Data generator"""
 
     def __init__(self, config):
         super().__init__(config)
@@ -18,7 +18,7 @@ class TimePDEDataGenerator(BaseDataGenerator):
         self.boundary_conditions = self.read_boundary_conditions()
 
     def generate_global_field(self, x_global: np.ndarray) -> np.ndarray:
-        """Generate global field values - 初始条件
+        """Generate global field values - Initial conditions
 
         Args:
             x_global: Global point coordinates
@@ -28,9 +28,9 @@ class TimePDEDataGenerator(BaseDataGenerator):
         """
         u_global = np.zeros((x_global.shape[0], self.n_eqs))
         
-        # 检查维度
+        # CheckDimensions
         if x_global.shape[1] == 1:
-            # 1D case - 使用config中定义的初始条件
+            # 1D case - Usingconfig中Definition的Initial conditions
             if self.config.Initial_conditions:
                 ic = self.config.Initial_conditions[0]
                 import sympy as sp
@@ -40,7 +40,7 @@ class TimePDEDataGenerator(BaseDataGenerator):
                 func = sp.lambdify(x, expr, 'numpy')
                 u_global[:, 0] = func(x_global[:, 0])
             else:
-                # 默认初始条件
+                # DefaultInitial conditions
                 u_global[:, 0] = np.cos(np.pi * x_global[:, 0])
         else:
             # 2D case
@@ -69,7 +69,7 @@ class TimePDEDataGenerator(BaseDataGenerator):
         """
         # Generate domain points
         x_global = self._generate_global_points(mode)
-        initial_field = self.generate_global_field(x_global)  # 初始条件场
+        initial_field = self.generate_global_field(x_global)  # Initial conditions场
         global_boundary_dict = self.read_boundary_conditions()
         x_segments, masks = self.split_global_points(x_global)
         initial_segments = self.split_global_field(masks, initial_field)
@@ -102,9 +102,9 @@ class TimePDEDataGenerator(BaseDataGenerator):
         return {
             "x": np.vstack(x_segments),
             "x_segments": x_segments,
-            "U": np.vstack(initial_segments),  # 初始条件数据 (兼容旧接口)
-            "U_seg": initial_segments,         # 分段初始条件数据 (兼容旧接口)
-            "u_segments": initial_segments,    # 可视化兼容
+            "U": np.vstack(initial_segments),  # Initial conditionsData (兼容旧Interface)
+            "U_seg": initial_segments,         # 分段Initial conditionsData (兼容旧Interface)
+            "u_segments": initial_segments,    # Visualization兼容
             "initial": np.vstack(initial_segments),
             "initial_segments": initial_segments,
             "global_boundary_dict": global_boundary_dict,

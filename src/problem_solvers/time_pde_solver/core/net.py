@@ -73,19 +73,21 @@ class TimePDENet(BaseNet):
         pde_loss = 0.0
         #dt = 0.01
         
-        # Time evolution format: (u - u_n)/dt = L1[i] + L2[i]*F[i] + N[i]
+        # Unified time evolution processing - eliminate index checking branches
+        # Pad operators to match n_eqs length for consistent processing
+        L1_padded = L1 + [0.0] * (self.config.n_eqs - len(L1))
+        L2_padded = L2 + [0.0] * (self.config.n_eqs - len(L2))
+        F_padded = F + [0.0] * (self.config.n_eqs - len(F))
+        N_padded = N + [0.0] * (self.config.n_eqs - len(N))
+
         for i in range(self.config.n_eqs):
-            # L1 term (always present)
-            l1_term = L1[i] if i < len(L1) else 0.0
+            # Unified operator application - no conditional branches
+            l1_term = L1_padded[i]
+            l2f_term = L2_padded[i] * F_padded[i]
+            n_term = N_padded[i]
 
-            # L2*F term (only if both L2 and F exist)
-            l2f_term = L2[i] * F[i] if (i < len(L2) and i < len(F)) else 0.0
-
-            # N term (nonlinear, explicit)
-            n_term = N[i] if i < len(N) else 0.0
-
-            # PDE residual: (u - u_n)/dt + L1 + L2*F + N = 0
-            residual_i = (U[:,i] - U_n[:,i]) + dt*( l1_term + l2f_term + n_term)
+            # PDE residual computation
+            residual_i = (U[:,i] - U_n[:,i]) + dt * (l1_term + l2f_term + n_term)
             pde_loss += torch.mean(residual_i**2)
 
 
@@ -98,40 +100,39 @@ class TimePDENet(BaseNet):
         return total_loss
     
     def _compute_boundary_loss(self, data_GPU: Dict) -> torch.Tensor:
-        """Compute boundary condition loss with modular design"""
-        boundary_loss = 0.0
-        global_boundary_dict = data_GPU.get("global_boundary_dict", None)
-        
-        if not global_boundary_dict:
-            return boundary_loss
-            
-        for var_idx in global_boundary_dict:
-            var_bc_dict = global_boundary_dict[var_idx]
-            
-            # Handle each boundary condition type
-            if self._has_bc_data(var_bc_dict, "dirichlet"):
-                boundary_loss += self._compute_dirichlet_loss(var_bc_dict["dirichlet"])
-                
-            if self._has_bc_data(var_bc_dict, "neumann"):
-                boundary_loss += self._compute_neumann_loss(var_bc_dict["neumann"])
-                
-            if self._has_bc_data(var_bc_dict, "robin"):
-                boundary_loss += self._compute_robin_loss(var_bc_dict["robin"])
-                
-            if self._has_periodic_data(var_bc_dict):
-                boundary_loss += self._compute_periodic_loss(var_bc_dict["periodic"])
-                
-        return boundary_loss
+        """Unified boundary condition loss computation - eliminate type branching"""
+        global_boundary_dict = data_GPU.get("global_boundary_dict", {})
+
+        # Boundary condition type handlers - unified interface
+        bc_handlers = {
+            "dirichlet": self._compute_dirichlet_loss,
+            "neumann": self._compute_neumann_loss,
+            "robin": self._compute_robin_loss,
+            "periodic": self._compute_periodic_loss,
+        }
+
+        total_boundary_loss = 0.0
+        for var_idx, var_bc_dict in global_boundary_dict.items():
+            for bc_type, handler in bc_handlers.items():
+                if bc_type in var_bc_dict and self._has_valid_bc_data(var_bc_dict[bc_type]):
+                    total_boundary_loss += handler(var_bc_dict[bc_type])
+
+        return total_boundary_loss
     
-    def _has_bc_data(self, var_bc_dict: Dict, bc_type: str) -> bool:
-        """Check if boundary condition data exists and is non-empty"""
-        return (bc_type in var_bc_dict and 
-                var_bc_dict[bc_type]["x"].shape[0] > 0)
-    
-    def _has_periodic_data(self, var_bc_dict: Dict) -> bool:
-        """Check if periodic boundary condition data exists"""
-        return ('periodic' in var_bc_dict and 
-                var_bc_dict['periodic']['pairs'])
+    def _has_valid_bc_data(self, bc_data: Dict) -> bool:
+        """Unified boundary condition data validation - eliminate type-specific checks"""
+        if not bc_data:
+            return False
+
+        # Check for standard data structure
+        if "x" in bc_data:
+            return bc_data["x"].shape[0] > 0
+
+        # Check for periodic-specific structure
+        if "pairs" in bc_data:
+            return bool(bc_data["pairs"])
+
+        return False
     
     def _compute_dirichlet_loss(self, bc_data: Dict) -> torch.Tensor:
         """Compute Dirichlet boundary condition loss"""

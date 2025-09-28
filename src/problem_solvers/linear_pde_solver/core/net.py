@@ -26,7 +26,7 @@ class LinearPDENet(BaseNet):
             data["source"], dtype=torch.float64, device=self.config.device
         )
 
-        # Transfer global_boundary_dict data to GPU - 纯抽象U处理
+        # Transfer global_boundary_dict data to GPU - 纯AbstractUProcess
         global_boundary_dict = {}
         for var_idx in data["global_boundary_dict"]:
             global_boundary_dict[var_idx] = {}
@@ -34,7 +34,7 @@ class LinearPDENet(BaseNet):
                 global_boundary_dict[var_idx][bc_type] = {}
                 for key, value in data["global_boundary_dict"][var_idx][bc_type].items():
                     if isinstance(value, np.ndarray) and value.size > 0:
-                        # 边界条件点可能也需要梯度，特别是用于Neumann或Robin条件
+                        # Boundary conditionspoint可能也NeedGradient，Especially用于Neumann或RobinCondition
                         if key == "x":
                             global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
                                 value, dtype=torch.float64, device=self.config.device, requires_grad=True
@@ -66,30 +66,42 @@ class LinearPDENet(BaseNet):
 
         _, output = self(x_train)
 # auto code begin
+# Config signature: {"F": ["0"], "L1": ["diff(u,x,2) + diff(u,y,2)"], "L2": ["0"], "N": ["0"]}
         # Extract physical quantities from output
         u = output[..., 0]
 
         # Calculate derivatives in each direction
         du_x = self.gradients(u, x_train)[0][..., 0]
+        du_y = self.gradients(u, x_train)[0][..., 1]
 
-        # Calculate second-order derivatives
+        # Calculate 2nd-order derivatives
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
+        du_yy = self.gradients(du_y, x_train)[0][..., 1]
 
-        # Compute equations as a list
-        eq = [-0.000484*du_xxx, du_x]
+        # L1 operators
+        L1 = [du_xx + du_yy]
 
-        # Add nonlinear terms
-        eq[0] = eq[0] + du_x*(u)
+        # L2 operators (not used in linear PDEs)
+        L2 = []
 
-        pde_loss = torch.mean(sum((eq[i] - source[i]) ** 2 for i in range(2)))
+        # F operators (not used in linear PDEs)
+        F = []
+
+        # N operators (not used in linear PDEs)
+        N = []
 
 # auto code end
+
+        # Calculate PDE residual loss
+        # For linear PDEs: L1(u) - S = 0, where S is the precomputed source term
+        pde_residual = L1[0] - source
+        pde_loss = torch.mean(pde_residual**2)
 
         # Initialize boundary loss
         boundary_loss = 0.0
         boundary_loss_weight = 10.0  # Weight for boundary conditions
 
-        # Process boundary conditions if they exist - 纯抽象U处理
+        # Process boundary conditions if they exist - 纯AbstractUProcess
         if global_boundary_dict:
             # Process each U component in the boundary conditions
             for var_idx in global_boundary_dict:
@@ -236,10 +248,5 @@ class LinearPDENet(BaseNet):
         # Combine losses with appropriate weights
         total_loss = pde_loss + boundary_loss_weight * boundary_loss
 
-        # Occasionally print loss components for debugging
-        if torch.rand(1).item() < 0.01:  # 1% chance of printing
-            print(f"\nLoss Components:")
-            print(f"Boundary Loss: {boundary_loss.item():.8f}")
-            print(f"Total Loss: {total_loss.item():.8f}")
 
         return total_loss

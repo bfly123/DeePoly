@@ -5,16 +5,16 @@ from dataclasses import dataclass
 
 @dataclass
 class BoundaryConstraint:
-    """纯抽象的边界条件约束表示，只使用变量索引"""
-    var_idx: int  # 对应U向量中的分量索引
+    """纯Abstract的Boundary conditionsConstraint表示，只UsingvariableIndex"""
+    var_idx: int  # 对应UVector中的分量Index
     constraint_type: str  # 'dirichlet', 'neumann', 'robin', 'periodic'
-    x_coords: torch.Tensor  # 边界点坐标
-    target_values: Optional[torch.Tensor] = None  # 约束目标值
-    normals: Optional[torch.Tensor] = None  # 法向量(Neumann/Robin需要)
-    # 周期边界条件特有字段
-    x_coords_pair: Optional[torch.Tensor] = None  # 配对边界坐标点
-    normals_pair: Optional[torch.Tensor] = None  # 配对边界法向量
-    periodic_type: Optional[str] = None  # 周期约束类型：'dirichlet'或'neumann'
+    x_coords: torch.Tensor  # Boundarypointcoordinate
+    target_values: Optional[torch.Tensor] = None  # Constraint目标value
+    normals: Optional[torch.Tensor] = None  # 法Vector(Neumann/RobinNeed)
+    # CycleBoundary conditions特有field
+    x_coords_pair: Optional[torch.Tensor] = None  # 配对Boundarycoordinatepoint
+    normals_pair: Optional[torch.Tensor] = None  # 配对Boundary法Vector
+    periodic_type: Optional[str] = None  # CycleConstraintType：'dirichlet'或'neumann'
     
     def evaluate_dirichlet(self, U_pred: torch.Tensor) -> torch.Tensor:
         """Dirichlet: U[var_idx] = target_values"""
@@ -27,12 +27,12 @@ class BoundaryConstraint:
         return normal_derivative - self.target_values
     
     def evaluate_periodic(self, U_pred_1: torch.Tensor, U_pred_2: torch.Tensor, gradients_func=None) -> torch.Tensor:
-        """周期边界条件: 边界对应点的值或导数相等"""
+        """CycleBoundary conditions: Boundary对应point的value或DerivativesEqual"""
         if self.periodic_type == 'dirichlet':
-            # 周期Dirichlet: U(x1) = U(x2)
+            # CycleDirichlet: U(x1) = U(x2)
             return U_pred_1[:, self.var_idx:self.var_idx+1] - U_pred_2[:, self.var_idx:self.var_idx+1]
         elif self.periodic_type == 'neumann':
-            # 周期Neumann: ∂U/∂n(x1) = ∂U/∂n(x2)
+            # CycleNeumann: ∂U/∂n(x1) = ∂U/∂n(x2)
             grads_1 = gradients_func(U_pred_1[:, self.var_idx:self.var_idx+1], self.x_coords)[0]
             grads_2 = gradients_func(U_pred_2[:, self.var_idx:self.var_idx+1], self.x_coords_pair)[0]
             normal_deriv_1 = torch.sum(grads_1 * self.normals, dim=1, keepdim=True)
@@ -42,7 +42,7 @@ class BoundaryConstraint:
             raise ValueError(f"Unknown periodic type: {self.periodic_type}")
     
     def evaluate(self, U_pred: torch.Tensor, gradients_func=None, U_pred_pair: torch.Tensor = None) -> torch.Tensor:
-        """统一评估接口"""
+        """UnifyEvaluationInterface"""
         if self.constraint_type == 'dirichlet':
             return self.evaluate_dirichlet(U_pred)
         elif self.constraint_type == 'neumann':
@@ -55,20 +55,20 @@ class BoundaryConstraint:
             raise NotImplementedError(f"Constraint type {self.constraint_type} not implemented")
 
 class BoundaryConstraintManager:
-    """边界条件约束管理器 - 纯抽象U处理"""
+    """Boundary conditionsConstraint管理器 - 纯AbstractUProcess"""
     
     def __init__(self, config):
         self.config = config
         self.constraints: List[BoundaryConstraint] = []
     
     def build_constraints_from_data(self, boundary_data: Dict) -> None:
-        """从抽象边界条件数据构建约束列表 - 纯U向量索引处理"""
+        """FromAbstractBoundary conditionsDataBuildConstraintList - 纯UVectorIndexProcess"""
         self.constraints.clear()
         
         for var_idx in boundary_data:
             var_boundary_data = boundary_data[var_idx]
             
-            # Dirichlet约束: U[var_idx] = target_values
+            # DirichletConstraint: U[var_idx] = target_values
             if self._has_valid_boundary(var_boundary_data, 'dirichlet'):
                 constraint = BoundaryConstraint(
                     var_idx=var_idx,
@@ -78,7 +78,7 @@ class BoundaryConstraintManager:
                 )
                 self.constraints.append(constraint)
             
-            # Neumann约束: ∂U[var_idx]/∂n = target_values
+            # NeumannConstraint: ∂U[var_idx]/∂n = target_values
             if self._has_valid_boundary(var_boundary_data, 'neumann'):
                 constraint = BoundaryConstraint(
                     var_idx=var_idx,
@@ -89,7 +89,7 @@ class BoundaryConstraintManager:
                 )
                 self.constraints.append(constraint)
             
-            # 周期边界约束
+            # CycleBoundaryConstraint
             if 'periodic' in var_boundary_data and var_boundary_data['periodic']['pairs']:
                 for pair in var_boundary_data['periodic']['pairs']:
                     constraint = BoundaryConstraint(
@@ -107,15 +107,15 @@ class BoundaryConstraintManager:
                     self.constraints.append(constraint)
     
     def compute_boundary_loss(self, U_pred_func, gradients_func, weight: float = 10.0) -> torch.Tensor:
-        """计算边界条件损失 - 纯抽象U处理
+        """ComputeBoundary conditionsLoss - 纯AbstractUProcess
         
         Args:
-            U_pred_func: 函数，输入x_coords返回U_pred
-            gradients_func: 梯度计算函数
-            weight: 损失权重
+            U_pred_func: function，Inputx_coordsReturnU_pred
+            gradients_func: GradientComputefunction
+            weight: LossWeights
         """
         if not self.constraints:
-            # 创建一个dummy tensor用于设备检测
+            # Create一个dummy tensor用于EquipmentDetection
             dummy_x = torch.zeros((1, 1))
             device = next(iter(self.config.__dict__.values())) if hasattr(self.config, 'device') else 'cpu'
             return torch.tensor(0.0, device=device)
@@ -124,12 +124,12 @@ class BoundaryConstraintManager:
         
         for constraint in self.constraints:
             if constraint.constraint_type == 'periodic':
-                # 周期边界条件需要两组预测值
+                # CycleBoundary conditionsNeed两GroupPredictionvalue
                 U_pred_1 = U_pred_func(constraint.x_coords)
                 U_pred_2 = U_pred_func(constraint.x_coords_pair)
                 residual = constraint.evaluate(U_pred_1, gradients_func, U_pred_2)
             else:
-                # 常规边界条件
+                # 常规Boundary conditions
                 U_pred = U_pred_func(constraint.x_coords)
                 residual = constraint.evaluate(U_pred, gradients_func)
             
@@ -139,11 +139,11 @@ class BoundaryConstraintManager:
         return weight * total_loss
     
     def _has_valid_boundary(self, var_boundary_data: Dict, bc_type: str) -> bool:
-        """检查是否有有效的边界条件 - 纯抽象处理"""
+        """CheckYesNo有Valid的Boundary conditions - 纯AbstractProcess"""
         return (bc_type in var_boundary_data and 
                 isinstance(var_boundary_data[bc_type]['x'], np.ndarray) and 
                 var_boundary_data[bc_type]['x'].size > 0)
     
     def _to_tensor(self, data: np.ndarray) -> torch.Tensor:
-        """将numpy数组转换为tensor"""
+        """将numpyArrayConvert为tensor"""
         return torch.tensor(data, dtype=torch.float64, device=self.config.device, requires_grad=True)

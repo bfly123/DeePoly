@@ -92,17 +92,17 @@ class TimePDEFitter(BaseDeepPolyFitter):
        # operation = kwargs.get("operation", "imex_stage")
         
        # if operation == "initial_fit":
-       #     # 对于初始拟合，使用标准的线性拟合（零右端项）
-       #     features = self._features[segment_idx][0]  # 只使用基础特征（u）
+       #     # For初BeginningFitting，UsingStandard的LinearFitting（零RightEndItem）
+       #     features = self._features[segment_idx][0]  # 只Using基础Feature（u）
        #     ne = self.config.n_eqs
        #     n_points = features.shape[0]
        #     
-       #     # 创建单位矩阵作为左端项
+       #     # CreateIdentity matrix作为LeftEndItem
        #     L = features
-       #     # 创建目标值作为右端项（来自u_seg）
+       #     # Create目标value作为RightEndItem（Fromu_seg）
        #     u_seg = kwargs.get("u_seg", [])
        #     if len(u_seg) > segment_idx:
-       #         r = u_seg[segment_idx].reshape(-1)  # 展平为1D向量
+       #         r = u_seg[segment_idx].reshape(-1)  # 展平为1DVector
        #     else:
        #         r = np.zeros(n_points)
        #         
