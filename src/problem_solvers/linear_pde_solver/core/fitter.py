@@ -5,6 +5,7 @@ from torch import nn
 
 from src.abstract_class.base_fitter import BaseDeepPolyFitter
 from src.algebraic_solver import LinearSolver
+from src.utils.shape import ensure_points_eqs, standardize_solution_shape
 
 
 class LinearPDEFitter(BaseDeepPolyFitter):
@@ -31,30 +32,20 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         """construct the jacobian matrix for each segment"""
         # get the data
         source = self.data["source_segments"][segment_idx]
-        L = self._linear_operators[segment_idx]["L1"]
-        
-        #eq = []
-        #for i in range(self.config.n_eqs):
-        #    eq.append(self.equations[f"eq{i}"][segment_idx])
-        
+        L1_precompiled = self._linear_operators[segment_idx]["L1"]
+
         n_points = self.data["x_segments_norm"][segment_idx].shape[0]
         ne = self.n_eqs
         dgN = self.dgN
 
-        L = np.zeros((ne, n_points, ne * dgN))
+        # Use precompiled L1 matrix instead of zeros
+        # L1_precompiled has shape (ne, n_points, ne * dgN)
+        L = L1_precompiled
         b = np.zeros((ne, n_points))
 
-        # construct the fitting equations
+        # Source assignment - source now guaranteed to have shape (n_points, ne)
         for i in range(ne):
-            if source.shape[1] > i:
-                b[i,:] = source[:,i]
-            else:
-                # Handle single variable case where source may only have one column
-                b[i,:] = source[:,0]
-
-        # add the spatial discrete terms - placeholder for now
-        # This would normally be filled with equation-specific terms
-        # For linear PDEs, these are typically handled by the neural network
+            b[i,:] = source[:, i]
 
         # reshape the matrix
         L_reshaped = np.vstack([L[i] for i in range(ne)])

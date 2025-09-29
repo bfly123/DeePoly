@@ -105,20 +105,11 @@ class BasePDEConfig(BaseConfig):
         """Calculate number of equations (unified logic)
 
         Returns:
-            int: Number of equations based on variables or equation count
+            int: Number of equations based on variables count
         """
-        if isinstance(self.eq, dict):
-            # For dictionary format, sum all equations in all operators
-            total_eqs = 0
-            for op_name, eq_list in self.eq.items():
-                if isinstance(eq_list, list):
-                    total_eqs += len(eq_list)
-                else:
-                    total_eqs += 1 if eq_list else 0
-            return max(total_eqs, len(self.vars_list))
-        else:
-            # Fallback to variable count
-            return len(self.vars_list)
+        # Number of equations always equals number of variables
+        # Each operator (L1, L2, F, N, S) applies to all variables uniformly
+        return len(self.vars_list)
 
     def _validate_pde_config(self):
         """Validate common PDE configuration fields"""

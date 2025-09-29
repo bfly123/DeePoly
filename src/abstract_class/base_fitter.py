@@ -548,8 +548,8 @@ class BaseDeepPolyFitter(ABC):
         cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]
 
         # Add to global constraint system
-        self.A.extend(weight * cont)
-        self.b.extend(weight * np.zeros((nw, 1)).flatten())
+        self.A.append(weight * cont)
+        self.b.append(weight * np.zeros((nw, 1)))
 
     def _iter_equation_derivatives(self, eq_idx: int):
         """Generate derivative combinations for given equation

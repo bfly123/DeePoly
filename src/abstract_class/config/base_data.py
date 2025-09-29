@@ -161,31 +161,203 @@ class BaseDataGenerator(ABC):
             x_global: Global point coordinates
 
         Returns:
-            np.ndarray: Source term values (always same shape as x_global points)
+            np.ndarray: Source term values with shape (n_points, n_eqs)
         """
+        n_points = x_global.shape[0]
+        n_eqs = self.n_eqs
+
         # Priority 1: Check for new 'S' field in eq dictionary
         if hasattr(self.config, "eq") and isinstance(self.config.eq, dict) and "S" in self.config.eq:
-            if self.config.eq["S"] and len(self.config.eq["S"]) > 0:
-                source_expr = self.config.eq["S"][0]  # Take first source term
-                if source_expr == "0":
-                    # Explicitly return zeros with correct shape
-                    return np.zeros((x_global.shape[0], 1))
+            s_field = self.config.eq["S"]
+
+            # Handle different S field formats
+            if isinstance(s_field, str):
+                # Format: "S": "data_generate.py" (single file reference)
+                if self._is_file_reference(s_field):
+                    source_single = self._load_source_from_file(s_field, x_global)
+                    return np.tile(source_single, (1, n_eqs))  # Expand to all equations
                 else:
-                    # Parse and evaluate the expression
-                    return self._parse_math_expression(source_expr, x_global)
+                    # Single string expression for all equations
+                    source_single = self._parse_math_expression(s_field, x_global)
+                    return np.tile(source_single, (1, n_eqs))
+
+            elif isinstance(s_field, list) and len(s_field) > 0:
+                # Format: "S": ["-sin(pi*x)*sin(pi*y)"] (formula array)
+                source_results = []
+                for i in range(n_eqs):
+                    source_expr = s_field[i]  # S field guaranteed to have n_eqs entries
+                    if source_expr == "0":
+                        source_results.append(np.zeros((n_points, 1)))
+                    else:
+                        source_results.append(self._parse_math_expression(source_expr, x_global))
+                return np.hstack(source_results)  # (n_points, n_eqs)
 
         # Priority 2: Check legacy 'source_term' field
         if hasattr(self.config, "source_term"):
             if isinstance(self.config.source_term, str):
-                return self._parse_math_expression(self.config.source_term, x_global)
+                source_single = self._parse_math_expression(self.config.source_term, x_global)
+                return np.tile(source_single, (1, n_eqs))
             elif self.config.source_term is True:
                 if hasattr(self.custom_data_generator, "generate_source_term"):
                     return self.custom_data_generator.generate_source_term(x_global)
                 else:
                     raise ValueError("Custom source term generator not found")
 
-        # Default: return zeros with correct shape
-        return np.zeros((x_global.shape[0], 1))
+        # Default: return zeros with correct shape (n_points, n_eqs)
+        return np.zeros((n_points, n_eqs))
+
+    def _is_file_reference(self, source_expr: str) -> bool:
+        """Check if source expression is a file reference
+
+        Args:
+            source_expr: Source expression string
+
+        Returns:
+            bool: True if it's a file reference (ends with .py)
+        """
+        return source_expr.endswith('.py')
+
+    def _load_source_from_file(self, file_name: str, x_global: np.ndarray) -> np.ndarray:
+        """Load source term from file
+
+        Args:
+            file_name: Python file name (e.g., "data_generate.py")
+            x_global: Global point coordinates
+
+        Returns:
+            np.ndarray: Source term values with shape (n_points, 1)
+        """
+        if not self.custom_data_generator:
+            raise ValueError(f"Cannot load source from {file_name}: custom data generator not available")
+
+        if not hasattr(self.custom_data_generator, "generate_source_term"):
+            raise ValueError(f"Function 'generate_source_term' not found in {file_name}")
+
+        # Call the generate_source_term function from data_generate.py
+        source_values = self.custom_data_generator.generate_source_term(x_global)
+
+        # Ensure correct shape (n_points, 1)
+        if source_values.ndim == 1:
+            source_values = source_values.reshape(-1, 1)
+        elif source_values.shape[1] != 1:
+            source_values = source_values[:, 0:1]  # Take first column only
+
+        return source_values
+
+    def load_reference_solution(self, x_global: np.ndarray) -> Optional[np.ndarray]:
+        """Load reference solution using unified format
+
+        Args:
+            x_global: Global point coordinates
+
+        Returns:
+            np.ndarray: Reference solution values with shape (n_points, n_eqs) or None
+        """
+        if not hasattr(self.config, 'reference_solution') or not self.config.reference_solution:
+            return None
+
+        ref_field = self.config.reference_solution
+        n_points = x_global.shape[0]
+        n_eqs = self.n_eqs
+
+        # Handle different reference solution formats
+        if isinstance(ref_field, str):
+            if ref_field.endswith('.mat') or ref_field.endswith('.m'):
+                # Format: "reference_solution": "reference_data/solution.mat"
+                return self._load_reference_from_mat_file(ref_field, x_global)
+            elif ref_field.endswith('.py'):
+                # Format: "reference_solution": "data_generate.py"
+                return self._load_reference_from_file(ref_field, x_global)
+            else:
+                # Format: "reference_solution": "sin(pi*x)*sin(pi*y)" (mathematical expression)
+                ref_single = self._parse_math_expression(ref_field, x_global)
+                return np.tile(ref_single, (1, n_eqs))
+
+        return None
+
+    def _load_reference_from_mat_file(self, file_path: str, x_global: np.ndarray) -> Optional[np.ndarray]:
+        """Load reference solution from .mat file
+
+        Args:
+            file_path: Path to .mat file
+            x_global: Global point coordinates
+
+        Returns:
+            np.ndarray: Reference solution values or None
+        """
+        import scipy.io
+        import os
+
+        # Make path relative to case directory if needed
+        if not os.path.isabs(file_path):
+            case_dir = getattr(self.config, 'case_dir', os.getcwd())
+            file_path = os.path.join(case_dir, file_path)
+
+        # Handle .m file by looking for corresponding .mat file
+        if file_path.endswith('.m'):
+            file_path = file_path.replace('.m', '.mat')
+
+        if not os.path.exists(file_path):
+            print(f"Warning: Reference solution file not found: {file_path}")
+            return None
+
+        try:
+            print(f"Loading reference solution from: {file_path}")
+            data = scipy.io.loadmat(file_path)
+
+            # For time-dependent problems, this would need time interpolation
+            # For now, just return a basic structure
+            if 'usol' in data:
+                # Time-dependent solution format
+                u_ref = data['usol']  # (n_space, n_time)
+                # Return the final time step as default
+                return u_ref[:, -1:].reshape(-1, 1)
+            elif 'u' in data:
+                # Static solution format
+                u_ref = data['u']
+                return u_ref.reshape(-1, 1)
+            else:
+                print(f"Warning: No recognized solution field in {file_path}")
+                return None
+
+        except Exception as e:
+            print(f"Error loading reference solution from {file_path}: {e}")
+            return None
+
+    def _load_reference_from_file(self, file_name: str, x_global: np.ndarray) -> Optional[np.ndarray]:
+        """Load reference solution from data_generate.py file
+
+        Args:
+            file_name: Python file name (e.g., "data_generate.py")
+            x_global: Global point coordinates
+
+        Returns:
+            np.ndarray: Reference solution values with shape (n_points, 1) or None
+        """
+        if not self.custom_data_generator:
+            print(f"Warning: Cannot load reference solution from {file_name}: custom data generator not available")
+            return None
+
+        if not hasattr(self.custom_data_generator, "generate_reference_solution"):
+            print(f"Warning: Function 'generate_reference_solution' not found in {file_name}")
+            return None
+
+        try:
+            # Call the generate_reference_solution function from data_generate.py
+            ref_values = self.custom_data_generator.generate_reference_solution(x_global)
+
+            # Ensure correct shape (n_points, 1)
+            if ref_values.ndim == 1:
+                ref_values = ref_values.reshape(-1, 1)
+            elif ref_values.shape[1] != 1:
+                ref_values = ref_values[:, 0:1]  # Take first column only
+
+            print(f"Loaded reference solution from {file_name}, shape: {ref_values.shape}")
+            return ref_values
+
+        except Exception as e:
+            print(f"Error loading reference solution from {file_name}: {e}")
+            return None
 
     def read_boundary_conditions(self) -> Dict:
         """纯AbstractUBoundary conditionsRead - ExcludeAnyPhysicalvariable引用"""

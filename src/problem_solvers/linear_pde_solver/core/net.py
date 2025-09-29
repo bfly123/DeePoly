@@ -3,9 +3,10 @@ import torch.nn as nn
 import numpy as np
 from typing import Dict, List, Tuple, Any
 from src.abstract_class.base_net import BaseNet
+from src.abstract_class.boundary_conditions import BoundaryConditionMixin
 
 
-class LinearPDENet(BaseNet):
+class LinearPDENet(BoundaryConditionMixin, BaseNet):
     """Linear partial differential equation solving network"""
 
     def prepare_gpu_data(self, data: Dict) -> Dict:
@@ -26,27 +27,9 @@ class LinearPDENet(BaseNet):
             data["source"], dtype=torch.float64, device=self.config.device
         )
 
-        # Transfer global_boundary_dict data to GPU - 纯AbstractUProcess
-        global_boundary_dict = {}
-        for var_idx in data["global_boundary_dict"]:
-            global_boundary_dict[var_idx] = {}
-            for bc_type in data["global_boundary_dict"][var_idx]:
-                global_boundary_dict[var_idx][bc_type] = {}
-                for key, value in data["global_boundary_dict"][var_idx][bc_type].items():
-                    if isinstance(value, np.ndarray) and value.size > 0:
-                        # Boundary conditionspoint可能也NeedGradient，Especially用于Neumann或RobinCondition
-                        if key == "x":
-                            global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                value, dtype=torch.float64, device=self.config.device, requires_grad=True
-                            )
-                        else:
-                            global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                value, dtype=torch.float64, device=self.config.device
-                            )
-                    else:
-                        global_boundary_dict[var_idx][bc_type][key] = value
-
-        gpu_data["global_boundary_dict"] = global_boundary_dict
+        # Use unified boundary condition processing
+        boundary_gpu_data = self.prepare_boundary_gpu_data(data)
+        gpu_data.update(boundary_gpu_data)
 
         return gpu_data
 
@@ -97,121 +80,9 @@ class LinearPDENet(BaseNet):
         pde_residual = L1[0] - source[:,0]
         pde_loss = torch.mean(pde_residual**2)
 
-        # Initialize boundary loss
-        boundary_loss = 0.0
+        # Use unified boundary condition processing
+        boundary_loss = self._compute_boundary_loss(data_GPU)
         boundary_loss_weight = 10.0  # Weight for boundary conditions
-
-        # Process boundary conditions if they exist - 纯AbstractUProcess
-        if global_boundary_dict:
-            # Process each U component in the boundary conditions
-            for var_idx in global_boundary_dict:
-                # Process Dirichlet boundary conditions
-                if (
-                    "dirichlet" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["dirichlet"]["x"].shape[0] > 0
-                ):
-                    x_bc = global_boundary_dict[var_idx]["dirichlet"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["dirichlet"]["values"]
-
-                    # Get model predictions at boundary points
-                    _, pred_bc = self(x_bc)
-
-                    # Calculate boundary loss (MSE between predictions and target values)
-                    bc_error = (pred_bc - u_bc) ** 2
-                    boundary_loss += torch.mean(bc_error)
-
-                # Process Neumann boundary conditions
-                if (
-                    "neumann" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["neumann"]["x"].shape[0] > 0
-                ):
-                    x_bc = global_boundary_dict[var_idx]["neumann"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["neumann"]["values"]
-                    normals = global_boundary_dict[var_idx]["neumann"]["normals"]
-
-                    # Store all normal derivative errors for all boundary points
-                    all_derivatives_errors = []
-
-                    # Calculate normal derivative at each boundary point
-                    for i in range(x_bc.shape[0]):
-                        x_point = x_bc[i : i + 1].clone().detach().requires_grad_(True)
-
-                        # Get prediction
-                        _, u_pred = self(x_point)
-
-                        # Calculate gradient
-                        grads = self.gradients(u_pred, x_point)[0]
-
-                        # Calculate normal derivative (dot product of gradient and normal vector)
-                        normal = normals[i]
-                        normal_derivative = torch.sum(grads * normal)
-
-                        # Calculate error
-                        bc_error = (normal_derivative - u_bc[i]) ** 2
-                        all_derivatives_errors.append(bc_error)
-
-                    # Calculate MSE for all Neumann boundary points
-                    if all_derivatives_errors:
-                        neumann_errors = torch.stack(all_derivatives_errors)
-                        boundary_loss += torch.mean(neumann_errors)
-
-                # Process Robin boundary conditions
-                if (
-                    "robin" in global_boundary_dict[var_idx]
-                    and global_boundary_dict[var_idx]["robin"]["x"].shape[0] > 0
-                ):
-                    x_bc = global_boundary_dict[var_idx]["robin"]["x"]
-                    u_bc = global_boundary_dict[var_idx]["robin"]["values"]
-                    normals = global_boundary_dict[var_idx]["robin"]["normals"]
-                    params = global_boundary_dict[var_idx]["robin"]["params"]
-
-                    # Store all Robin boundary condition errors
-                    all_robin_errors = []
-
-                    # Process each Robin boundary point
-                    for i in range(x_bc.shape[0]):
-                        x_point = x_bc[i : i + 1].clone().detach().requires_grad_(True)
-
-                        # Get prediction
-                        _, u_pred = self(x_point)
-
-                        # Get parameters
-                        alpha, beta = params[0], params[1]
-
-                        # Calculate gradient if beta is non-zero
-                        if abs(beta) > 1e-10:
-                            grads = self.gradients(u_pred, x_point)[0]
-
-                            # Calculate normal derivative
-                            normal = normals[i]
-                            normal_derivative = torch.sum(grads * normal)
-
-                            # Robin condition: alpha*u + beta*du/dn = g
-                            robin_value = alpha * u_pred + beta * normal_derivative
-                            bc_error = (robin_value - u_bc[i]) ** 2
-                        else:
-                            # If beta is zero, it's effectively a Dirichlet condition
-                            bc_error = (alpha * u_pred - u_bc[i]) ** 2
-                        
-                        all_robin_errors.append(bc_error)
-                    
-                    # Calculate MSE for all Robin boundary points
-                    if all_robin_errors:
-                        robin_errors = torch.stack(all_robin_errors)
-                        boundary_loss += torch.mean(robin_errors)
-                
-                # Process periodic boundary conditions
-                if 'periodic' in global_boundary_dict[var_idx] and global_boundary_dict[var_idx]['periodic']['pairs']:
-                    for pair in global_boundary_dict[var_idx]['periodic']['pairs']:
-                        x_bc_1 = pair['x_1']
-                        x_bc_2 = pair['x_2']
-                        # 统一的周期边界条件: U(x1) = U(x2)
-                        _, pred_bc_1 = self(x_bc_1)
-                        _, pred_bc_2 = self(x_bc_2)
-
-                        # 周期边界条件只有一种：函数值相等
-                        periodic_error = (pred_bc_1 - pred_bc_2) ** 2
-                        boundary_loss += torch.mean(periodic_error)
 
         # Combine losses with appropriate weights
         total_loss = pde_loss + boundary_loss_weight * boundary_loss

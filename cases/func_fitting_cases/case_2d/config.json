@@ -4,7 +4,17 @@
   "eq": {
     "L1": [
       "u"
-    ]
+    ],
+    "L2": [
+      "0"
+    ],
+    "F": [
+      "0"
+    ],
+    "N": [
+      "0"
+    ],
+    "S": "data_generate.py"
   },
   "eq_nonlinear": [],
   "vars_list": [
@@ -22,6 +32,7 @@
   ],
   "epochs_adam": 1000,
   "epochs_lbfgs": 0,
+  "max_retries": 1,
   "DNNtol": 2e-05,
   "n_segments": [
     5,
@@ -50,5 +61,6 @@
   "device": "cuda",
   "linear_device": "cpu",
   "output_module_path": "output.py",
+  "reference_solution": "data_generate.py",
   "seed": 42
 }

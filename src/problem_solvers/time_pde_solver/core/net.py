@@ -3,8 +3,9 @@ import numpy as np
 from typing import Dict
 from src.abstract_class.base_net import BaseNet
 from src.abstract_class.constants import pi
+from src.abstract_class.boundary_conditions import BoundaryConditionMixin
 
-class TimePDENet(BaseNet):
+class TimePDENet(BoundaryConditionMixin, BaseNet):
     """Neural network implementation for time-dependent problems"""
     
     def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
@@ -99,107 +100,7 @@ class TimePDENet(BaseNet):
         total_loss = pde_loss + boundary_loss_weight * boundary_loss
         return total_loss
     
-    def _compute_boundary_loss(self, data_GPU: Dict) -> torch.Tensor:
-        """Unified boundary condition loss computation - eliminate type branching"""
-        global_boundary_dict = data_GPU.get("global_boundary_dict", {})
-
-        # Boundary condition type handlers - unified interface
-        bc_handlers = {
-            "dirichlet": self._compute_dirichlet_loss,
-            "neumann": self._compute_neumann_loss,
-            "robin": self._compute_robin_loss,
-            "periodic": self._compute_periodic_loss,
-        }
-
-        total_boundary_loss = 0.0
-        for var_idx, var_bc_dict in global_boundary_dict.items():
-            for bc_type, handler in bc_handlers.items():
-                if bc_type in var_bc_dict and self._has_valid_bc_data(var_bc_dict[bc_type]):
-                    total_boundary_loss += handler(var_bc_dict[bc_type])
-
-        return total_boundary_loss
-    
-    def _has_valid_bc_data(self, bc_data: Dict) -> bool:
-        """Unified boundary condition data validation - eliminate type-specific checks"""
-        if not bc_data:
-            return False
-
-        # Check for standard data structure
-        if "x" in bc_data:
-            return bc_data["x"].shape[0] > 0
-
-        # Check for periodic-specific structure
-        if "pairs" in bc_data:
-            return bool(bc_data["pairs"])
-
-        return False
-    
-    def _compute_dirichlet_loss(self, bc_data: Dict) -> torch.Tensor:
-        """Compute Dirichlet boundary condition loss"""
-        x_bc = bc_data["x"]
-        u_bc = bc_data["values"]
-        
-        _, pred_bc = self(x_bc)
-        return torch.mean((pred_bc - u_bc) ** 2)
-    
-    def _compute_neumann_loss(self, bc_data: Dict) -> torch.Tensor:
-        """Compute Neumann boundary condition loss"""
-        x_bc = bc_data["x"]
-        u_bc = bc_data["values"]
-        normals = bc_data["normals"]
-        
-        errors = []
-        for i in range(x_bc.shape[0]):
-            x_point = x_bc[i:i+1].clone().detach().requires_grad_(True)
-            _, u_pred = self(x_point)
-            
-            grads = self.gradients(u_pred, x_point)[0]
-            normal_derivative = torch.sum(grads * normals[i])
-            
-            errors.append((normal_derivative - u_bc[i]) ** 2)
-        
-        return torch.mean(torch.stack(errors)) if errors else 0.0
-    
-    def _compute_robin_loss(self, bc_data: Dict) -> torch.Tensor:
-        """Compute Robin boundary condition loss"""
-        x_bc = bc_data["x"]
-        u_bc = bc_data["values"]
-        normals = bc_data["normals"]
-        params = bc_data["params"]
-        alpha, beta = params[0], params[1]
-        
-        errors = []
-        for i in range(x_bc.shape[0]):
-            x_point = x_bc[i:i+1].clone().detach().requires_grad_(True)
-            _, u_pred = self(x_point)
-            
-            if abs(beta) > 1e-10:
-                grads = self.gradients(u_pred, x_point)[0]
-                normal_derivative = torch.sum(grads * normals[i])
-                robin_value = alpha * u_pred + beta * normal_derivative
-            else:
-                robin_value = alpha * u_pred
-                
-            errors.append((robin_value - u_bc[i]) ** 2)
-        
-        return torch.mean(torch.stack(errors)) if errors else 0.0
-    
-    def _compute_periodic_loss(self, periodic_data: Dict) -> torch.Tensor:
-        """统一的周期边界条件损失计算"""
-        total_loss = 0.0
-
-        for pair in periodic_data['pairs']:
-            x_bc_1, x_bc_2 = pair['x_1'], pair['x_2']
-
-            _, pred_bc_1 = self(x_bc_1)
-            _, pred_bc_2 = self(x_bc_2)
-
-            # 统一的周期边界条件: U(x1) = U(x2)
-            total_loss += torch.mean((pred_bc_1 - pred_bc_2) ** 2)
-
-        return total_loss
-    
-    # 移除_compute_periodic_neumann_loss方法 - 不再需要复杂的导数约束
+    # Boundary condition processing is now handled by BoundaryConditionMixin
     
     def prepare_gpu_data(self, data: Dict, U_current: np.ndarray = None) -> Dict:
         """Prepare GPU data for time PDE problems
@@ -220,49 +121,9 @@ class TimePDENet(BaseNet):
             U_current, dtype=torch.float64, device=self.config.device
         )
         
-        # Transfer boundary data to GPU - Pure abstract U processing
-        if "global_boundary_dict" in data:
-            global_boundary_dict = {}
-            for var_idx in data["global_boundary_dict"]:
-                global_boundary_dict[var_idx] = {}
-                for bc_type in data["global_boundary_dict"][var_idx]:
-                    global_boundary_dict[var_idx][bc_type] = {}
-                    
-                    if bc_type == 'periodic':
-                        # Handle periodic boundary condition pairs
-                        global_boundary_dict[var_idx][bc_type]['pairs'] = []
-                        for pair in data["global_boundary_dict"][var_idx][bc_type]['pairs']:
-                            gpu_pair = {}
-                            for pair_key, pair_value in pair.items():
-                                if isinstance(pair_value, np.ndarray) and pair_value.size > 0:
-                                    if 'x_' in pair_key:  # x_1, x_2
-                                        gpu_pair[pair_key] = torch.tensor(
-                                            pair_value, dtype=torch.float64, device=self.config.device, requires_grad=True
-                                        )
-                                    else:  # normals_1, normals_2, etc.
-                                        gpu_pair[pair_key] = torch.tensor(
-                                            pair_value, dtype=torch.float64, device=self.config.device
-                                        )
-                                else:
-                                    gpu_pair[pair_key] = pair_value
-                            global_boundary_dict[var_idx][bc_type]['pairs'].append(gpu_pair)
-                    else:
-                        # Handle regular boundary conditions
-                        for key, value in data["global_boundary_dict"][var_idx][bc_type].items():
-                            if isinstance(value, np.ndarray) and value.size > 0:
-                                if key == "x":
-                                    global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                        value, dtype=torch.float64, device=self.config.device, requires_grad=True
-                                    )
-                                else:
-                                    global_boundary_dict[var_idx][bc_type][key] = torch.tensor(
-                                        value, dtype=torch.float64, device=self.config.device
-                                    )
-                            else:
-                                global_boundary_dict[var_idx][bc_type][key] = value
-            gpu_data["global_boundary_dict"] = global_boundary_dict
-        else:
-            gpu_data["global_boundary_dict"] = {}
+        # Use unified boundary condition processing
+        boundary_gpu_data = self.prepare_boundary_gpu_data(data)
+        gpu_data.update(boundary_gpu_data)
         
         # Transfer boundary points and values for physics loss computation
         if "global_boundary_dict" in data and data["global_boundary_dict"]:
