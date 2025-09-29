@@ -1,0 +1,73 @@
+{
+    "problem_type": "linear_pde",
+    "method": "hybrid",
+    "eq": [
+        "diff(u,x,2) + diff(u,y,2)+2*pi^2*u"
+    ],
+    "source_term": "-pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
+    "eq_nonlinear": [],
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x",
+        "y",
+        "z"
+    ],
+    "boundary_conditions": [
+        {
+            "region":[ "left","right","bottom","top","front","back"],
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": 0,
+            "points": 100
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        25
+    ],
+    "epochs_adam": 5000,
+    "epochs_lbfgs": 300,
+    "max_retries": 1,
+    "DNNtol": 0.0001,
+    "learning_rate": 0.001,
+    "n_segments": [
+        5,
+        5
+    ],
+    "points_domain": 3000,
+    "points_per_swap": 30,
+    "points_domain_test": [
+        50,
+        50
+    ],
+    "poly_degree": [
+        3,
+        3,
+        3
+    ],
+    "x_domain": [
+        [
+            0,
+            1
+        ],
+        [
+            0,
+            1
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+    "auto_code": true,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42,
+    "output_module_path": "output.py"
+}

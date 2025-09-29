@@ -1,0 +1,42 @@
+================================================================================
+COMPREHENSIVE ERROR ANALYSIS REPORT
+================================================================================
+
+CONFIGURATION PARAMETERS:
+----------------------------------------
+Problem Type: linear_pde
+Method: hybrid
+Dimensionality: 2D
+Segments: [1, 20]
+Polynomial Degree: [5 5]
+Hidden Dimensions: [12, 32, 32, 25]
+Domain: [[0. 1.]
+ [0. 1.]]
+Test Grid: [50, 50]
+
+TIMING INFORMATION:
+----------------------------------------
+Total Solution Time: 17.4521 seconds
+Neural Network Training Time (Scoper): 16.8255 seconds
+Equation Fitting Time (Sniper): 0.6267 seconds
+Scoper Time Percentage: 96.4%
+Sniper Time Percentage: 3.6%
+
+ERROR METRICS:
+----------------------------------------
+Method          Dataset  MSE          MAE          Max Error    Rel Error   
+--------------------------------------------------------------------------------
+PINNs           Train    4.47e-07     3.55e-04     4.01e-03     6.03e-04    
+DeePoly         Train    3.69e-08     4.97e-05     2.11e-03     1.50e-04    
+PINNs           Test     4.16e-07     3.39e-04     4.00e-03     4.54e-04    
+DeePoly         Test     3.24e-08     4.59e-05     2.08e-03     9.15e-05    
+
+================================================================================
+PERFORMANCE COMPARISON:
+----------------------------------------
+Training MSE Improvement: +91.75%
+Test MSE Improvement: +92.23%
+Training Performance: DeePoly performs better
+Test Performance: DeePoly performs better
+
+================================================================================

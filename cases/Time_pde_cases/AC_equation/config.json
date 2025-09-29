@@ -1,0 +1,96 @@
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "eq"
+    "eq_L1": [
+        "-0.0001*diff(u,x,2)"
+    ],
+    "eq_L2": [
+        "u"
+    ],
+    "f_L2": [
+        "u**2-1"
+    ],
+    "N": [
+    ],
+    "source_term": "0",
+    "eq_nonlinear": [
+        {
+            "coefficient": "5*u",
+            "nonlinear_term": "u**2-1"
+        }
+    ],
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x"
+    ],
+    "Initial_conditions": [
+      {
+        "var": "u",
+        "value": "1/2/(4*pi)**2*sin(4*pi*x)",
+        "points": 100
+      }
+    ],
+    "boundary_conditions": [
+        {
+            "region": "left",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "0",
+            "points": 1
+        },
+        {
+            "region": "right",
+            "var": [
+                "u"
+            ],
+            "type": "dirichlet",
+            "value": "0",
+            "points": 1
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        25
+    ],
+    "epochs_adam": 5000,
+    "epochs_lbfgs": 300,
+    "max_retries": 1,
+    "DNNtol": 0.0001,
+    "learning_rate": 0.001,
+    "n_segments": [
+        10
+    ],
+    "points_domain": 300,
+    "points_per_swap": 1,
+    "points_domain_test": [
+        100
+    ],
+    "poly_degree": [
+        5
+    ],
+    "x_domain": [
+        [
+            0,
+            1
+        ]
+    ],
+    "time_scheme": "IMEX_RK_2_2_2",
+    "time_scheme_params": {
+        "gamma": 0.2928932
+    },
+    "T": 1,
+    "dt": 0.01,
+    "spotter_skip": 10,
+    "auto_code": false,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42,
+    "output_module_path": "output.py"
+}
