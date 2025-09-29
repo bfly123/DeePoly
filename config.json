@@ -222,6 +222,6 @@
   "adaptive_dt": "False",
   "stability_check": "False",
   "results_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
-  "export_time": "2025-09-29 07:24:59",
+  "export_time": "2025-09-29 14:43:24",
   "device_info": "cuda"
 }
