@@ -304,4 +304,4 @@ Solution Data → Unified Visualization → Error Analysis → Reports & Animati
 5. **Boundary Unification**: Consistent boundary processing with GPU acceleration across all problem types
 6. **Factory Pattern**: Unified solver selection and time scheme registration
 
-This enhanced architecture maintains the hybrid "Scoper + Sniper" approach while adding robust nonlinear solving capabilities, unified system maintenance, and advanced time integration methods for industrial-strength PDE solving.
+This enhanced architecture maintains the hybrid "Spotter + Sniper" approach while adding robust nonlinear solving capabilities, unified system maintenance, and advanced time integration methods for industrial-strength PDE solving.

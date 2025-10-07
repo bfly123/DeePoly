@@ -1,0 +1,120 @@
+{
+  "problem_type": "general_pde",
+  "problem_name": "Allen-Cahn 2D",
+  "eq": {
+    "L1": [
+      "diff(u,t)-0.0001*diff(u,x,2)"
+    ],
+    "L2": [
+      "0"
+    ],
+    "F": [
+      "0"
+    ],
+    "N": [
+      "-5*u+5*u**3"
+    ],
+    "S": [
+      "0"
+    ]
+  },
+  "vars_list": [
+    "u"
+  ],
+  "spatial_vars": [
+    "x",
+    "t"
+  ],
+  "x_domain": [
+    [
+      -1,
+      1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "n_segments": [
+    3,
+    3
+  ],
+  "poly_degree": [
+    10,
+    10
+  ],
+  "initial_condition": {
+    "method": "spotter",
+    "formula": "",
+    "spotter_config": {
+      "epochs": 10000,
+      "learning_rate": 0.01,
+      "n_pde_points": 5000,
+      "optimizer": "adam",
+      "target_residual": 0.01,
+      "print_interval": 200,
+      "early_stopping": true,
+      "patience": 500,
+      "max_retries": 1
+    }
+  },
+  "fitter_training": {
+    "epochs": 10000,
+    "learning_rate": 0.01,
+    "optimizer": "adam",
+    "max_retries": 1,
+    "DNNtol": 1e-4
+  },
+  "spotter_skip": 1,
+  "boundary_conditions": [
+    {
+      "type": "dirichlet",
+      "region": "left",
+      "var": "u",
+      "value": "-1.0",
+      "points": 1000
+    },
+    {
+      "type": "dirichlet",
+      "region": "right",
+      "var": "u",
+      "value": "-1.0",
+      "points": 200
+    },
+    {
+      "type": "dirichlet",
+      "region": "bottom",
+      "var": "u",
+      "formula": "x**2 * cos(pi * x)",
+      "points": 200
+    }
+  ],
+  "pseudo_time_stepping": {
+    "max_iterations": 1000,
+    "convergence_tol": 1e-04,
+    "residual_tol": 1e-06,
+    "dt_init": 0.1,
+    "dt_min": 1e-5,
+    "dt_max": 0.5,
+    "adaptive_dt": true,
+    "dt_increase_factor": 1.2,
+    "dt_decrease_factor": 0.5,
+    "check_interval": 10,
+    "print_interval": 50
+  },
+  "realtime_visualization": true,
+  "animation_skip": 10,
+  "save_animation": true,
+  "time_scheme": "implicit_euler",
+  "hidden_dims": [
+    90,
+    90,
+    90,
+    50
+  ],
+  "points_domain": 5000,
+  "points_domain_test": 5000,
+  "reference_solution": "reference_data/allen_cahn_highres.mat",
+  "device": "cpu",
+  "seed": 42
+}

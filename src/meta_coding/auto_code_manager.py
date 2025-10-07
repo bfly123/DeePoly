@@ -74,10 +74,15 @@ class AutoCodeManager:
         Returns:
             Path to the net.py file, or None if not a PDE problem
         """
-        if self.problem_type not in ["time_pde", "linear_pde"]:
+        if self.problem_type not in ["time_pde", "linear_pde", "general_pde"]:
             return None
 
-        solver_dir = "time_pde_solver" if self.problem_type == "time_pde" else "linear_pde_solver"
+        solver_dir_map = {
+            "time_pde": "time_pde_solver",
+            "linear_pde": "linear_pde_solver",
+            "general_pde": "general_pde_solver"
+        }
+        solver_dir = solver_dir_map[self.problem_type]
         return os.path.join(self._src_dir, "problem_solvers", solver_dir, "core", "net.py")
 
     def _save_config(self) -> None:
@@ -180,18 +185,23 @@ class AutoCodeManager:
             True if generation was triggered successfully
         """
         if self.problem_type == "time_pde":
-            from problem_solvers.time_pde_solver.utils import TimePDEConfig
-            from problem_solvers import TimePDESolver
+            from src.problem_solvers.time_pde_solver.utils import TimePDEConfig
+            from src.problem_solvers import TimePDESolver
 
             config = TimePDEConfig(case_dir=self.case_dir)
             _ = TimePDESolver(config)
 
         elif self.problem_type == "linear_pde":
-            from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
-            from problem_solvers import LinearPDESolver
+            from src.problem_solvers.linear_pde_solver.utils import LinearPDEConfig
+            from src.problem_solvers import LinearPDESolver
 
             config = LinearPDEConfig(case_dir=self.case_dir)
             _ = LinearPDESolver(config=config, case_dir=self.case_dir)
+
+        elif self.problem_type == "general_pde":
+            from src.problem_solvers import GeneralPDESolver
+
+            _ = GeneralPDESolver(case_dir=self.case_dir)
 
         else:
             return False
@@ -231,7 +241,7 @@ class AutoCodeManager:
             True if process was restarted, False otherwise
         """
         # Check if problem type supports auto code
-        if self.problem_type not in ["time_pde", "linear_pde"]:
+        if self.problem_type not in ["time_pde", "linear_pde", "general_pde"]:
             return False
 
         # Check consistency between config and generated code

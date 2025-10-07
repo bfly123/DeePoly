@@ -1,0 +1,86 @@
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:21: UserWarning: CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）
+  warnings.warn("CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）")
+<frozen runpy>:128: RuntimeWarning: 'src.problem_solvers.general_pde_solver.solver' found in sys.modules after import of package 'src.problem_solvers.general_pde_solver', but prior to execution of 'src.problem_solvers.general_pde_solver.solver'; this may result in unpredictable behaviour
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:78: UserWarning: 请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute
+  warnings.warn("请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute")
+Successfully loaded configuration from cases/general_pde_cases/AC_equation/config.json
+Configuration exported to config.json
+Custom data generator module not found: cases/general_pde_cases/AC_equation/data_generate.py
+ComputeBackwardEnd: CPU (19Core)
+
+======================================================================
+General PDE Solver - Pseudo-Time Stepping
+======================================================================
+Problem: Allen-Cahn 2D
+Domain: [[-1  1]
+ [ 0  1]]
+Segments: [3, 3]
+Polynomial degree: [10 10]
+Number of equations: 1
+======================================================================
+
+Step 1: Spotter Stage - Global Feature Learning
+----------------------------------------------------------------------
+  Training SpotterNet with 1000 epochs...
+  PDE sampling points: 10000 (resampled each epoch)
+  Initial learning rate: 0.01
+================================================================================
+Spotter阶段训练 (随机采样 + 自适应学习率 + float64)
+================================================================================
+训练轮数: 1000
+PDE残差点数: 10000 (每epoch随机重采样)
+初始学习率: 0.01
+网络结构: [2, 128, 128, 128, 128, 1]
+================================================================================
+Epoch      1/1000 | Loss: 6.582135e+00 | LR: 1.000000e-02 | Time: 0.0s
+   → 学习率调整至 5.000000e-03 (loss=9.919751e-01)
+Epoch    200/1000 | Loss: 7.244889e-01 | LR: 5.000000e-03 | Time: 5.8s
+   → 学习率调整至 3.000000e-03 (loss=4.948899e-01)
+Epoch    400/1000 | Loss: 2.398559e-01 | LR: 3.000000e-03 | Time: 11.6s
+Epoch    600/1000 | Loss: 1.136243e-01 | LR: 3.000000e-03 | Time: 17.4s
+Epoch    800/1000 | Loss: 7.928150e-02 | LR: 3.000000e-03 | Time: 23.1s
+Epoch   1000/1000 | Loss: 6.041816e-02 | LR: 3.000000e-03 | Time: 28.7s
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/problem_solvers/general_pde_solver/solver.py", line 240, in <module>
+    main()
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/problem_solvers/general_pde_solver/solver.py", line 231, in main
+    results = solver.solve()
+              ^^^^^^^^^^^^^^
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/problem_solvers/general_pde_solver/solver.py", line 118, in solve
+    U_steady, coeffs_steady, conv_info = self.fitter.solve_steady_state(
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/problem_solvers/general_pde_solver/core/fitter.py", line 118, in solve_steady_state
+    self._train_neural_network_step(iteration, dt, U_current)
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/problem_solvers/general_pde_solver/core/fitter.py", line 374, in _train_neural_network_step
+    self.model.train_net(self.data, self.model, data_GPU, dt=dt)
+  File "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/abstract_class/base_net.py", line 193, in train_net
+    for epoch in range(self.config.epochs_adam):
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'GeneralPDEConfig' object has no attribute 'epochs_adam'
+================================================================================
+✓ Spotter训练完成! 总用时: 28.75s
+  最佳Loss: 5.222694e-02
+================================================================================
+
+  Transferring network weights from SpotterNet to GeneralPDENet...
+  ✓ Network weights transferred successfully
+  Initial solution: ||U|| = 5.843090e+01, max|U| = 1.011838e+00
+
+Step 2: Fitter Initialization
+----------------------------------------------------------------------
+✓ Operators precompiled
+✓ Features generated
+
+Step 3: Pseudo-Time Stepping to Steady State
+----------------------------------------------------------------------
+======================================================================
+Starting Pseudo-Time Stepping Iteration
+======================================================================
+Max iterations: 500
+Convergence tolerance: 1.00e-04
+Residual tolerance: 1.00e-06
+Initial dt: 0.010000
+======================================================================
+  Training neural network (it=0, inheriting from previous parameters)...

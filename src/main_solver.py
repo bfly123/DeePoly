@@ -24,10 +24,11 @@ for path in [src_dir, project_root]:
         sys.path.insert(0, path)
 
 # Import problem solvers and configurations
-from problem_solvers import TimePDESolver, FuncFittingSolver, LinearPDESolver
+from problem_solvers import TimePDESolver, FuncFittingSolver, LinearPDESolver, GeneralPDESolver
 from problem_solvers.time_pde_solver.utils import TimePDEConfig
 from problem_solvers.func_fitting_solver.utils import FuncFittingConfig
 from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
+from problem_solvers.general_pde_solver.utils import GeneralPDEConfig
 from meta_coding.auto_code_manager import AutoCodeManager
 
 
@@ -69,6 +70,11 @@ def create_solver(problem_type: str, case_dir: str):
             "config_class": LinearPDEConfig,
             "solver_class": LinearPDESolver,
             "init_params": lambda config: {"config": config, "case_dir": case_dir}
+        },
+        "general_pde": {
+            "config_class": GeneralPDEConfig,
+            "solver_class": GeneralPDESolver,
+            "init_params": lambda config: {"config": config}
         }
     }
 
@@ -93,14 +99,16 @@ Examples:
   %(prog)s --case_path cases/time_pde_cases/Allen_Cahn/AC_equation_100_0.1
   %(prog)s --case_path cases/linear_pde_cases/poisson_2d
   %(prog)s --case_path cases/func_fitting_cases/case_2d
+  %(prog)s  (uses default: cases/general_pde_cases/AC_equation)
         """
     )
 
     parser.add_argument(
         '--case_path',
         type=str,
-        required=True,
-        help='Path to case directory containing config.json'
+        required=False,
+        default='cases/general_pde_cases/AC_equation',
+        help='Path to case directory containing config.json (default: cases/general_pde_cases/AC_equation)'
     )
 
     return parser.parse_args()

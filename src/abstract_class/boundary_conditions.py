@@ -248,7 +248,8 @@ def create_boundary_processor(problem_type: str, config) -> BaseBoundaryConditio
     processors = {
         'time_pde': TimePDEBoundaryProcessor,
         'linear_pde': LinearPDEBoundaryProcessor,
-        'func_fitting': FuncFittingBoundaryProcessor
+        'func_fitting': FuncFittingBoundaryProcessor,
+        'general_pde': TimePDEBoundaryProcessor  # Reuse time_pde processor for general_pde
     }
 
     if problem_type not in processors:

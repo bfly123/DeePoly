@@ -165,13 +165,11 @@
     "5*u**3-5*u"
   ],
   "problem_type": "time_pde",
-  "auto_code": "True",
-  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
+  "note": "单步预测-校正格式：算子值预计算和时间步间复用，减少75%算子计算量",
   "reference_solution": "reference_data/allen_cahn_highres.mat",
   "realtime_visualization": "True",
   "animation_skip": "1",
   "n_dim": "1",
-  "n_eqs": "1",
   "x_min": [
     [
       -1.0

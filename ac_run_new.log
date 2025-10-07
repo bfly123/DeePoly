@@ -1,0 +1,316 @@
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:21: UserWarning: CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）
+  warnings.warn("CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）")
+<frozen runpy>:128: RuntimeWarning: 'src.problem_solvers.general_pde_solver.solver' found in sys.modules after import of package 'src.problem_solvers.general_pde_solver', but prior to execution of 'src.problem_solvers.general_pde_solver.solver'; this may result in unpredictable behaviour
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:78: UserWarning: 请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute
+  warnings.warn("请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute")
+Successfully loaded configuration from cases/general_pde_cases/AC_equation/config.json
+Configuration exported to config.json
+Custom data generator module not found: cases/general_pde_cases/AC_equation/data_generate.py
+ComputeBackwardEnd: CPU (19Core)
+
+======================================================================
+General PDE Solver - Pseudo-Time Stepping
+======================================================================
+Problem: Allen-Cahn 2D
+Domain: [[-1  1]
+ [ 0  1]]
+Segments: [3, 3]
+Polynomial degree: [10 10]
+Number of equations: 1
+======================================================================
+
+Step 1: Spotter Stage - Global Feature Learning
+----------------------------------------------------------------------
+  Training SpotterNet with 1000 epochs...
+  PDE sampling points: 10000 (resampled each epoch)
+  Initial learning rate: 0.01
+================================================================================
+Spotter阶段训练 (随机采样 + 自适应学习率 + float64)
+================================================================================
+训练轮数: 1000
+PDE残差点数: 10000 (每epoch随机重采样)
+初始学习率: 0.01
+网络结构: [2, 128, 128, 128, 128, 1]
+================================================================================
+Epoch      1/1000 | Loss: 6.582135e+00 | LR: 1.000000e-02 | Time: 0.1s
+   → 学习率调整至 5.000000e-03 (loss=9.919751e-01)
+Epoch    200/1000 | Loss: 7.244889e-01 | LR: 5.000000e-03 | Time: 8.8s
+   → 学习率调整至 3.000000e-03 (loss=4.948899e-01)
+Epoch    400/1000 | Loss: 2.398559e-01 | LR: 3.000000e-03 | Time: 18.0s
+Epoch    600/1000 | Loss: 1.136243e-01 | LR: 3.000000e-03 | Time: 26.8s
+Epoch    800/1000 | Loss: 7.928150e-02 | LR: 3.000000e-03 | Time: 35.6s
+Epoch   1000/1000 | Loss: 6.041816e-02 | LR: 3.000000e-03 | Time: 45.3s
+================================================================================
+✓ Spotter训练完成! 总用时: 45.28s
+  最佳Loss: 5.222694e-02
+================================================================================
+
+  Transferring network weights from SpotterNet to GeneralPDENet...
+  ✓ Network weights transferred successfully
+  Initial solution: ||U|| = 5.843090e+01, max|U| = 1.011838e+00
+
+Step 2: Fitter Initialization
+----------------------------------------------------------------------
+✓ Operators precompiled
+✓ Features generated
+
+Step 3: Pseudo-Time Stepping to Steady State
+----------------------------------------------------------------------
+======================================================================
+Starting Pseudo-Time Stepping Iteration
+======================================================================
+Max iterations: 500
+Convergence tolerance: 1.00e-04
+Residual tolerance: 1.00e-06
+Initial dt: 0.010000
+======================================================================
+自动选择method: parallel_svd
+=== Linear Solve Step 1 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 332427037056.07007
+Residual Analysis:
+  ||Ax-b||_2 = 2.670214e-01
+  ||Ax-b||_∞ = 2.677933e-02
+  ||Ax-b||_1 = 1.126221e+01
+  ||b||_2 = 4.671469e+02
+  Relative residual = 5.716006e-04
+Solve time: 7.088098s
+Matrix rank: 1054
+---------------------------------------------
+Iter      1 | τ=  0.000000 | dt=1.000000e-02 | Residual=1.306802e-02 | ||U||=5.840367e+01 | Time=8.16s
+自动选择method: parallel_svd
+=== Linear Solve Step 2 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 332427037056.07007
+Residual Analysis:
+  ||Ax-b||_2 = 1.332372e-01
+  ||Ax-b||_∞ = 3.840600e-02
+  ||Ax-b||_1 = 5.284221e+00
+  ||b||_2 = 4.671441e+02
+  Relative residual = 2.852165e-04
+Solve time: 7.146240s
+Matrix rank: 1054
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 3 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 323457440993.5542
+Residual Analysis:
+  ||Ax-b||_2 = 6.420017e-02
+  ||Ax-b||_∞ = 1.176772e-02
+  ||Ax-b||_1 = 2.899266e+00
+  ||b||_2 = 4.671474e+02
+  Relative residual = 1.374302e-04
+Solve time: 4.372826s
+Matrix rank: 1054
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 4 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 323457440993.5542
+Residual Analysis:
+  ||Ax-b||_2 = 6.279138e-02
+  ||Ax-b||_∞ = 1.532664e-02
+  ||Ax-b||_1 = 2.667054e+00
+  ||b||_2 = 4.671437e+02
+  Relative residual = 1.344156e-04
+Solve time: 4.439535s
+Matrix rank: 1054
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 5 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 323457440993.5542
+Residual Analysis:
+  ||Ax-b||_2 = 4.373499e-02
+  ||Ax-b||_∞ = 7.288221e-03
+  ||Ax-b||_1 = 1.990674e+00
+  ||b||_2 = 4.671404e+02
+  Relative residual = 9.362280e-05
+Solve time: 3.590218s
+Matrix rank: 1054
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 6 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 342590932224.00256
+Residual Analysis:
+  ||Ax-b||_2 = 2.738206e-02
+  ||Ax-b||_∞ = 4.110572e-03
+  ||Ax-b||_1 = 1.247121e+00
+  ||b||_2 = 4.671169e+02
+  Relative residual = 5.861929e-05
+Solve time: 3.254143s
+Matrix rank: 1053
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 7 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 337546463435.3184
+Residual Analysis:
+  ||Ax-b||_2 = 2.989208e-02
+  ||Ax-b||_∞ = 4.725611e-03
+  ||Ax-b||_1 = 1.429263e+00
+  ||b||_2 = 4.671206e+02
+  Relative residual = 6.399221e-05
+Solve time: 5.011952s
+Matrix rank: 1053
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 8 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341875598054.7419
+Residual Analysis:
+  ||Ax-b||_2 = 2.103796e-02
+  ||Ax-b||_∞ = 2.821642e-03
+  ||Ax-b||_1 = 9.611391e-01
+  ||b||_2 = 4.671080e+02
+  Relative residual = 4.503876e-05
+Solve time: 4.225941s
+Matrix rank: 1051
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 9 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 342188961684.133
+Residual Analysis:
+  ||Ax-b||_2 = 2.210672e-02
+  ||Ax-b||_∞ = 4.069307e-03
+  ||Ax-b||_1 = 1.036361e+00
+  ||b||_2 = 4.671112e+02
+  Relative residual = 4.732646e-05
+Solve time: 4.809941s
+Matrix rank: 1051
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 10 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341454110814.98364
+Residual Analysis:
+  ||Ax-b||_2 = 1.903625e-02
+  ||Ax-b||_∞ = 2.499080e-03
+  ||Ax-b||_1 = 8.909952e-01
+  ||b||_2 = 4.671050e+02
+  Relative residual = 4.075369e-05
+Solve time: 4.986473s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 11 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341422575693.10114
+Residual Analysis:
+  ||Ax-b||_2 = 1.701479e-02
+  ||Ax-b||_∞ = 2.835543e-03
+  ||Ax-b||_1 = 7.682773e-01
+  ||b||_2 = 4.671075e+02
+  Relative residual = 3.642585e-05
+Solve time: 3.779518s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 12 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341746501162.5133
+Residual Analysis:
+  ||Ax-b||_2 = 1.404852e-02
+  ||Ax-b||_∞ = 1.471978e-03
+  ||Ax-b||_1 = 5.573875e-01
+  ||b||_2 = 4.671044e+02
+  Relative residual = 3.007576e-05
+Solve time: 3.394592s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 13 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341641040318.75006
+Residual Analysis:
+  ||Ax-b||_2 = 1.412961e-02
+  ||Ax-b||_∞ = 1.787828e-03
+  ||Ax-b||_1 = 5.802449e-01
+  ||b||_2 = 4.671063e+02
+  Relative residual = 3.024923e-05
+Solve time: 4.479671s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 14 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341996366230.7971
+Residual Analysis:
+  ||Ax-b||_2 = 1.274920e-02
+  ||Ax-b||_∞ = 1.367115e-03
+  ||Ax-b||_1 = 4.577997e-01
+  ||b||_2 = 4.671048e+02
+  Relative residual = 2.729409e-05
+Solve time: 3.952103s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 15 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 341915487096.58636
+Residual Analysis:
+  ||Ax-b||_2 = 1.268964e-02
+  ||Ax-b||_∞ = 1.336983e-03
+  ||Ax-b||_1 = 4.683560e-01
+  ||b||_2 = 4.671060e+02
+  Relative residual = 2.716651e-05
+Solve time: 5.891391s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 16 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 342176781789.3598
+Residual Analysis:
+  ||Ax-b||_2 = 1.203970e-02
+  ||Ax-b||_∞ = 1.316815e-03
+  ||Ax-b||_1 = 3.933822e-01
+  ||b||_2 = 4.671052e+02
+  Relative residual = 2.577513e-05
+Solve time: 3.742281s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 17 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 342119920699.59674
+Residual Analysis:
+  ||Ax-b||_2 = 1.193424e-02
+  ||Ax-b||_∞ = 1.289427e-03
+  ||Ax-b||_1 = 3.975606e-01
+  ||b||_2 = 4.671060e+02
+  Relative residual = 2.554932e-05
+Solve time: 5.150890s
+Matrix rank: 1050
+---------------------------------------------
+自动选择method: parallel_svd
+=== Linear Solve Step 18 ===
+Method: parallel_svd
+Matrix size: 13087 x 1179
+Condition number: 342298519665.9172
+Residual Analysis:
+  ||Ax-b||_2 = 1.160007e-02
+  ||Ax-b||_∞ = 1.268148e-03
+  ||Ax-b||_1 = 3.516427e-01
+  ||b||_2 = 4.671056e+02
+  Relative residual = 2.483393e-05

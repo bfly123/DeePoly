@@ -423,20 +423,26 @@ class BaseDataGenerator(ABC):
 
             # Process常规Boundary conditions
             region = bc['region']
-            value = bc['value']
-            
+
             # GenerateBoundarypoint和法Vector
             x_boundary = self._generate_boundary_points(region, points)
             if x_boundary.size == 0:
                 continue
-                
+
             normals = self._get_boundary_normals(region, x_boundary.shape[0]) if bc_type != 'dirichlet' else None
-            
-            # ComputeBoundaryvalue
-            if isinstance(value, str):
-                boundary_values = self._parse_math_expression(value, x_boundary)
+
+            # ComputeBoundaryvalue - 支持 'value' 或 'formula'
+            if 'formula' in bc:
+                # 使用公式计算边界值
+                boundary_values = self._parse_math_expression(bc['formula'], x_boundary)
+            elif 'value' in bc:
+                value = bc['value']
+                if isinstance(value, str):
+                    boundary_values = self._parse_math_expression(value, x_boundary)
+                else:
+                    boundary_values = np.full((x_boundary.shape[0], 1), float(value))
             else:
-                boundary_values = np.full((x_boundary.shape[0], 1), float(value))
+                raise ValueError(f"Boundary condition must have either 'value' or 'formula' field: {bc}")
             
             # 添加ToAllU分量的Boundary conditions（DefaultAll分量UsingSameBoundary conditions）
             for var_idx in range(len(self.config.vars_list)):

@@ -87,8 +87,12 @@ class ImexFirstOrder(BaseTimeScheme):
         self, segment_idx: int, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
         """BuildIMEX一阶Phase的段Jacobian matrix
-        
-        一阶format: [V - Δt*L1 - Δt*L2⊙F(U^n)] β^{n+1} = U^n + Δt*N(U^n)
+
+        一阶format: [V + Δt*L1 + Δt*L2⊙F(U^n)] β^{n+1} = U^n - Δt*N(U^n)
+
+        推导: ∂u/∂t + L1(u) + L2(u)·F(u) + N(u) = 0
+             (u^{n+1} - u^n)/Δt + L1(u^{n+1}) + L2(u^{n+1})·F(u^n) + N(u^n) = 0
+             整理: [V + Δt·L1 + Δt·L2⊙F(u^n)]·β^{n+1} = u^n - Δt·N(u^n)
         """
 
         n_points = len(self.fitter.data["x_segments_norm"][segment_idx])
@@ -143,19 +147,19 @@ class ImexFirstOrder(BaseTimeScheme):
             col_start = eq_idx * dgN
             col_end = (eq_idx + 1) * dgN
             
-            # Build该Equation的Jacobian matrix: V - Δt*L1 - Δt*L2⊙F
+            # Build该Equation的Jacobian matrix: V + Δt*L1 + Δt*L2⊙F
             J_eq = V.copy()  # FromFeature matrixVStart
-            
-            # 减Go隐式L1Item: -Δt*L1（强制存在化：移除条件检查）
+
+            # 加上隐式L1项: +Δt*L1（强制存在化：移除条件检查）
             # L1算子强制存在，无需检查
-            J_eq -= dt * L1
-            
-            # 减Go隐式L2⊙FItem: -Δt*diag(F)*L2（强制存在化：移除条件检查）
+            J_eq += dt * L1
+
+            # 加上隐式L2⊙F项: +Δt*diag(F)*L2（强制存在化：移除条件检查）
             # L2和F算子强制存在，无需检查
             F_eq = F_n[:, eq_idx]
-            # L2⊙FItemLinear化: -Δt * diag(F_eq) @ L2
+            # L2⊙F项线性化: +Δt * diag(F_eq) @ L2
             L2F_term = dt * np.diag(F_eq) @ L2
-            J_eq -= L2F_term
+            J_eq += L2F_term
             
             # 将该Equation的Jacobian matrix放入FinalMatrix
             L_final[row_start:row_end, col_start:col_end] = J_eq
@@ -168,8 +172,11 @@ class ImexFirstOrder(BaseTimeScheme):
 
     def _build_stage_rhs(self, segment_idx: int, **kwargs) -> np.ndarray:
         """BuildIMEX一阶Phase的RightEndVector
-        
-        一阶format RHS: U^n + Δt*N(U^n)
+
+        一阶format RHS: U^n - Δt*N(U^n)
+
+        推导: 从方程 ∂u/∂t + L1(u) + L2(u)·F(u) + N(u) = 0
+             整理得: [V + Δt·L1 + Δt·L2⊙F(u^n)]·β^{n+1} = u^n - Δt·N(u^n)
         """
 
         ne = self.config.n_eqs
@@ -185,13 +192,15 @@ class ImexFirstOrder(BaseTimeScheme):
         # InitializeRightEndVector: (n_points, ne)
         rhs = np.zeros((n_points, ne))
 
-        # 一阶format RHS: U^n + Δt*N(U^n)
+        # 一阶format RHS: U^n - Δt*N(U^n)
         # 基础Item: U^n
         rhs[:, :] = U_n_seg
-        
-        # 添加NonlinearItem: Δt*N(U^n)（强制存在化：移除条件检查）
+
+        # 减去非线性项: -Δt*N(U^n)（强制存在化：移除条件检查）
         # N算子强制存在，无需检查
-        rhs += dt * N_n
+        # 注意：N_n 是列表，每个方程一个数组 [N_0, N_1, ...], 每个 N_i shape: (n_points,)
+        for eq_idx in range(ne):
+            rhs[:, eq_idx] -= dt * N_n[eq_idx]
 
         return rhs
 

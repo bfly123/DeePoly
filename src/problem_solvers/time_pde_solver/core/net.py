@@ -72,20 +72,12 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
         
         
         pde_loss = 0.0
-        #dt = 0.01
-        
-        # Unified time evolution processing - eliminate index checking branches
-        # Pad operators to match n_eqs length for consistent processing
-        L1_padded = L1 + [0.0] * (self.config.n_eqs - len(L1))
-        L2_padded = L2 + [0.0] * (self.config.n_eqs - len(L2))
-        F_padded = F + [0.0] * (self.config.n_eqs - len(F))
-        N_padded = N + [0.0] * (self.config.n_eqs - len(N))
 
+        # Directly use operators (config should define correct number of equations)
         for i in range(self.config.n_eqs):
-            # Unified operator application - no conditional branches
-            l1_term = L1_padded[i]
-            l2f_term = L2_padded[i] * F_padded[i]
-            n_term = N_padded[i]
+            l1_term = L1[i]
+            l2f_term = L2[i] * F[i]
+            n_term = N[i]
 
             # PDE residual computation
             residual_i = (U[:,i] - U_n[:,i]) + dt * (l1_term + l2f_term + n_term)

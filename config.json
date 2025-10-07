@@ -5,72 +5,109 @@
       -0.33333333333333337,
       0.33333333333333326,
       1.0
+    ],
+    [
+      0.0,
+      0.3333333333333333,
+      0.6666666666666666,
+      1.0
     ]
   ],
-  "case_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1",
+  "case_dir": "cases/general_pde_cases/AC_equation",
   "vars_list": [
     "u"
   ],
   "spatial_vars": [
-    "x"
+    "x",
+    "t"
   ],
   "eq": {
     "L1": [
-      "-0.0001*diff(u,x,2)"
+      "diff(u,t)-0.0001*diff(u,x,2)"
     ],
-    "L2": [],
-    "F": [],
+    "L2": [
+      "0"
+    ],
+    "F": [
+      "0"
+    ],
     "N": [
       "-5*u+5*u**3"
+    ],
+    "S": [
+      "0"
     ]
   },
   "eq_nonlinear": [],
   "const_list": [],
   "n_segments": [
+    "3",
     "3"
   ],
   "poly_degree": [
+    10,
     10
   ],
   "x_domain": [
     [
       -1,
       1
+    ],
+    [
+      0,
+      1
     ]
   ],
   "method": "hybrid",
   "hidden_dims": [
-    "12",
-    "32",
-    "32",
-    "10"
+    "90",
+    "90",
+    "90",
+    "50"
   ],
-  "device": "cuda",
+  "device": "cpu",
   "linear_device": "cpu",
-  "learning_rate": "0.01",
-  "points_domain": "100",
-  "points_domain_test": [
-    "100"
-  ],
+  "learning_rate": "0.001",
+  "points_domain": "5000",
+  "points_domain_test": "5000",
   "points_per_swap": "1",
   "seed": "42",
   "boundary_conditions": [
     {
-      "type": "periodic",
-      "pairs": [
-        "left",
-        "right"
-      ],
-      "points": "1"
+      "type": "dirichlet",
+      "region": "left",
+      "var": "u",
+      "value": "-1.0",
+      "points": "1000"
+    },
+    {
+      "type": "dirichlet",
+      "region": "right",
+      "var": "u",
+      "value": "-1.0",
+      "points": "200"
+    },
+    {
+      "type": "dirichlet",
+      "region": "bottom",
+      "var": "u",
+      "formula": "x**2 * cos(pi * x)",
+      "points": "200"
     }
   ],
   "operator_parse": {
     "derivatives": [
       [
+        "0",
         "0"
       ],
       [
-        "2"
+        "0",
+        "1"
+      ],
+      [
+        "2",
+        "0"
       ]
     ],
     "all_derivatives": {
@@ -78,23 +115,29 @@
         "0",
         "0"
       ],
-      "U_xx": [
+      "U_t": [
         "0",
         "1"
+      ],
+      "U_xx": [
+        "0",
+        "2"
       ]
     },
     "max_derivative_orders": [
       [
-        "2"
+        "2",
+        "1"
       ]
     ],
     "operator_terms": {
       "L1": [
         {
           "derivative_indices": [
-            "1"
+            "1",
+            "2"
           ],
-          "symbolic_expr": "-0.0001*U_xx"
+          "symbolic_expr": "U_t-0.0001*U_xx"
         }
       ],
       "L2": [
@@ -106,7 +149,7 @@
       "F": [
         {
           "derivative_indices": [],
-          "symbolic_expr": "1"
+          "symbolic_expr": "0"
         }
       ],
       "N": [
@@ -117,7 +160,7 @@
           "symbolic_expr": "-5*U+5*U**3"
         }
       ],
-      "L2F": [
+      "S": [
         {
           "derivative_indices": [],
           "symbolic_expr": "0"
@@ -125,103 +168,342 @@
       ]
     }
   },
-  "T": "1",
-  "dt": "0.1",
-  "spotter_skip": "1",
-  "epochs_adam": "20000",
-  "epochs_lbfgs": "0",
-  "max_retries": "1",
-  "DNNtol": "0.01",
-  "Initial_conditions": [
-    {
-      "var": "u",
-      "value": "x**2*cos(pi*x)",
-      "points": "100"
+  "Initial_conditions": [],
+  "results_dir": "results",
+  "max_iterations": "1000",
+  "convergence_tol": "0.0001",
+  "residual_tol": "1e-06",
+  "dt_init": "0.1",
+  "dt_min": "1e-05",
+  "dt_max": "0.5",
+  "adaptive_dt": "True",
+  "dt_increase_factor": "1.2",
+  "dt_decrease_factor": "0.5",
+  "check_interval": "10",
+  "print_interval": "50",
+  "max_residual": "10000000000.0",
+  "residual_stagnation_steps": "50",
+  "spotter_epochs": "10000",
+  "problem_type": "general_pde",
+  "problem_name": "Allen-Cahn 2D",
+  "initial_condition": {
+    "method": "spotter",
+    "formula": "",
+    "spotter_config": {
+      "epochs": "10000",
+      "learning_rate": "0.01",
+      "n_pde_points": "5000",
+      "optimizer": "adam",
+      "target_residual": "0.01",
+      "print_interval": "200",
+      "early_stopping": "True",
+      "patience": "500",
+      "max_retries": "3"
     }
-  ],
-  "time_scheme": "onestep_predictor",
-  "time_scheme_params": {},
-  "eq_L1": [
-    "-0.0001*diff(u,x,2)"
-  ],
-  "eq_L2": [
-    "0"
-  ],
-  "eq_F": [
-    "1"
-  ],
-  "eq_N": [
-    "-5*u+5*u**3"
-  ],
-  "eq_linear_list": [],
-  "deriv_orders": [],
-  "max_deriv_orders": [],
-  "eq_nonlinear_list": [],
-  "all_derivatives": [],
-  "f_L2": [
-    "1"
-  ],
-  "N": [
-    "-5*u+5*u**3"
-  ],
-  "problem_type": "time_pde",
-  "auto_code": "False",
-  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
-  "reference_solution": "reference_data/allen_cahn_highres.mat",
+  },
+  "fitter_training": {
+    "epochs": "10000",
+    "learning_rate": "0.01",
+    "optimizer": "adam",
+    "max_retries": "1",
+    "DNNtol": "0.0001"
+  },
+  "spotter_skip": "1",
+  "pseudo_time_stepping": {
+    "max_iterations": "1000",
+    "convergence_tol": "0.0001",
+    "residual_tol": "1e-06",
+    "dt_init": "0.1",
+    "dt_min": "1e-05",
+    "dt_max": "0.5",
+    "adaptive_dt": "True",
+    "dt_increase_factor": "1.2",
+    "dt_decrease_factor": "0.5",
+    "check_interval": "10",
+    "print_interval": "50"
+  },
   "realtime_visualization": "True",
-  "animation_skip": "1",
-  "n_dim": "1",
+  "animation_skip": "10",
+  "save_animation": "True",
+  "time_scheme": "implicit_euler",
+  "reference_solution": "reference_data/allen_cahn_highres.mat",
+  "n_dim": "2",
   "n_eqs": "1",
   "x_min": [
     [
-      -1.0
+      -1.0,
+      0.0
     ],
     [
-      -0.33333333333333337
+      -0.33333333333333337,
+      0.0
     ],
     [
-      0.33333333333333326
+      0.33333333333333326,
+      0.0
+    ],
+    [
+      -1.0,
+      0.3333333333333333
+    ],
+    [
+      -0.33333333333333337,
+      0.3333333333333333
+    ],
+    [
+      0.33333333333333326,
+      0.3333333333333333
+    ],
+    [
+      -1.0,
+      0.6666666666666666
+    ],
+    [
+      -0.33333333333333337,
+      0.6666666666666666
+    ],
+    [
+      0.33333333333333326,
+      0.6666666666666666
     ]
   ],
   "x_max": [
     [
-      -0.33333333333333337
+      -0.33333333333333337,
+      0.3333333333333333
     ],
     [
-      0.33333333333333326
+      0.33333333333333326,
+      0.3333333333333333
     ],
     [
+      1.0,
+      0.3333333333333333
+    ],
+    [
+      -0.33333333333333337,
+      0.6666666666666666
+    ],
+    [
+      0.33333333333333326,
+      0.6666666666666666
+    ],
+    [
+      1.0,
+      0.6666666666666666
+    ],
+    [
+      -0.33333333333333337,
+      1.0
+    ],
+    [
+      0.33333333333333326,
+      1.0
+    ],
+    [
+      1.0,
       1.0
     ]
   ],
   "x_min_norm": [
     [
+      0.0,
       0.0
     ],
     [
+      0.0,
       0.0
     ],
     [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
       0.0
     ]
   ],
   "x_max_norm": [
     [
+      1.0,
       1.0
     ],
     [
+      1.0,
       1.0
     ],
     [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
       1.0
     ]
   ],
-  "DNN_degree": "10",
-  "max_time_steps": "11",
-  "time_output_interval": "1",
-  "adaptive_dt": "False",
-  "stability_check": "False",
-  "results_dir": "cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1/results",
-  "export_time": "2025-09-29 15:45:37",
-  "device_info": "cuda"
+  "DNN_degree": "50",
+  "config_dict": {
+    "problem_type": "general_pde",
+    "problem_name": "Allen-Cahn 2D",
+    "eq": {
+      "L1": [
+        "diff(u,t)-0.0001*diff(u,x,2)"
+      ],
+      "L2": [
+        "0"
+      ],
+      "F": [
+        "0"
+      ],
+      "N": [
+        "-5*u+5*u**3"
+      ],
+      "S": [
+        "0"
+      ]
+    },
+    "vars_list": [
+      "u"
+    ],
+    "spatial_vars": [
+      "x",
+      "t"
+    ],
+    "x_domain": [
+      [
+        "-1",
+        "1"
+      ],
+      [
+        "0",
+        "1"
+      ]
+    ],
+    "n_segments": [
+      "3",
+      "3"
+    ],
+    "poly_degree": [
+      "10",
+      "10"
+    ],
+    "initial_condition": {
+      "method": "spotter",
+      "formula": "",
+      "spotter_config": {
+        "epochs": "10000",
+        "learning_rate": "0.01",
+        "n_pde_points": "5000",
+        "optimizer": "adam",
+        "target_residual": "0.01",
+        "print_interval": "200",
+        "early_stopping": "True",
+        "patience": "500",
+        "max_retries": "3"
+      }
+    },
+    "fitter_training": {
+      "epochs": "10000",
+      "learning_rate": "0.01",
+      "optimizer": "adam",
+      "max_retries": "1",
+      "DNNtol": "0.0001"
+    },
+    "spotter_skip": "1",
+    "boundary_conditions": [
+      {
+        "type": "dirichlet",
+        "region": "left",
+        "var": "u",
+        "value": "-1.0",
+        "points": "1000"
+      },
+      {
+        "type": "dirichlet",
+        "region": "right",
+        "var": "u",
+        "value": "-1.0",
+        "points": "200"
+      },
+      {
+        "type": "dirichlet",
+        "region": "bottom",
+        "var": "u",
+        "formula": "x**2 * cos(pi * x)",
+        "points": "200"
+      }
+    ],
+    "pseudo_time_stepping": {
+      "max_iterations": "1000",
+      "convergence_tol": "0.0001",
+      "residual_tol": "1e-06",
+      "dt_init": "0.1",
+      "dt_min": "1e-05",
+      "dt_max": "0.5",
+      "adaptive_dt": "True",
+      "dt_increase_factor": "1.2",
+      "dt_decrease_factor": "0.5",
+      "check_interval": "10",
+      "print_interval": "50"
+    },
+    "realtime_visualization": "True",
+    "animation_skip": "10",
+    "save_animation": "True",
+    "time_scheme": "implicit_euler",
+    "hidden_dims": [
+      "90",
+      "90",
+      "90",
+      "50"
+    ],
+    "points_domain": "5000",
+    "points_domain_test": "5000",
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "device": "cpu",
+    "seed": "42"
+  },
+  "dt_safety_factor": "0.8",
+  "save_interval": "500",
+  "export_time": "2025-10-06 10:02:06",
+  "device_info": "cpu"
 }
