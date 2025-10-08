@@ -1,0 +1,43 @@
+======================================================================
+                   ERROR STATISTICS REPORT                    
+======================================================================
+
+【Timeinformation】
+----------------------------------------
+  TimeRange:     [0.010000, 1.000000]
+  Time step数:     11
+  Time step size:     0.1
+  Spacepoint数:     1001
+
+【ComputeTimeStatistics】
+----------------------------------------
+  PhysicalComputeTime: 39.85 second
+  Average每步耗时: 3.6229 second
+  ComputeEfficiency:     0.28 步/second
+  Physical/ComputeTime比: 0.0248
+
+【误差Statistics】
+----------------------------------------
+  TimeAverage误差:
+    - L2  误差:   1.403516e+00
+    - L∞  误差:   2.002577e+00
+
+  最大误差 (所Sometimes刻):
+    - L2  误差:   1.440244e+00
+    - L∞  误差:   2.007796e+00
+
+  Error analysis:
+    - L∞/L2 Rate: 1.43
+    - Phase对Precision:   -0.1 位小数
+
+【Solve器Configuration】
+----------------------------------------
+  Timeformat:     onestep_predictor
+  Neural network:     [12, 32, 32, 10]
+  分Number of segments量:     [3, 2]
+  Polynomial阶:     [10  2]
+  EquipmentType:     cpu
+
+======================================================================
+GenerateTime: 2025-10-08 21:51:46
+======================================================================

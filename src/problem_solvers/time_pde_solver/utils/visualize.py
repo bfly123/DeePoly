@@ -21,18 +21,18 @@ class TimePDEVisualizer(BaseVisualizer):
         # Unified figure initialization regardless of dimension
         figure_config = {
             1: {"figsize": (6, 4), "projection": None},
-            2: {"figsize": (6, 6), "projection": "3d"}
+            # Use 2D axes for 2D problems; scatter colored by u over (x,y)
+            2: {"figsize": (6, 6), "projection": None}
         }
 
         config_2d = figure_config.get(self.n_dim, figure_config[1])
         self.fig = plt.figure(figsize=config_2d["figsize"])
 
-        subplot_args = [111]
+        # Correctly pass projection as a keyword, not a positional dict
         if config_2d["projection"]:
-            subplot_args.append({"projection": config_2d["projection"]})
-            self.ax = self.fig.add_subplot(*subplot_args)
+            self.ax = self.fig.add_subplot(111, projection=config_2d["projection"])
         else:
-            self.ax = self.fig.add_subplot(*subplot_args)
+            self.ax = self.fig.add_subplot(111)
 
         # Setup紧凑layout
         self.fig.tight_layout(pad=1.0)
@@ -337,39 +337,51 @@ class TimePDEVisualizer(BaseVisualizer):
         plt.pause(0.01)
     
     def _plot_evolution_step_2d(self, T: float, u: np.ndarray, x: np.ndarray, save_path: Optional[str] = None) -> None:
-        """2DTime演化StepVisualization"""
-        self.ax.clear()
-        
-        # 绘制3D散pointGraph
+        """2D Time evolution: scatter field over (x,y) with color=u"""
+        # Prepare data
+        x2d = x if x.ndim == 2 else x.reshape(-1, 2)
         u_vals = u[:, 0] if u.ndim > 1 else u
-        scatter = self.ax.scatter(x[:, 0], x[:, 1], u_vals, c=u_vals, cmap="RdBu", s=15, alpha=0.8)
-        
-        # Setup视Corner和label
-        self.ax.view_init(elev=30, azim=45)
-        self.ax.set_xlabel("x", fontsize=12)
-        self.ax.set_ylabel("y", fontsize=12)
-        self.ax.set_zlabel("u", fontsize=12)
-        self.ax.set_title(f"Solution at T = {T:.4f}", fontsize=14, fontweight='bold')
-        
-        # SetupcoordinateAxisRange
-        if hasattr(self.config, 'x_domain'):
-            self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
-            self.ax.set_ylim([self.config.x_domain[1][0], self.config.x_domain[1][1]])
-            
-        # 动态AdjustmentzAxisRange
-        zmin, zmax = u_vals.min(), u_vals.max()
-        margin = (zmax - zmin) * 0.1 if zmax != zmin else 0.1
-        self.ax.set_zlim([zmin - margin, zmax + margin])
-        
-        # 添加color条
-        if not hasattr(self, '_colorbar_2d') or self._colorbar_2d is None:
-            self._colorbar_2d = plt.colorbar(scatter, ax=self.ax, shrink=0.5, aspect=20)
-            self._colorbar_2d.set_label('u', fontsize=12)
-        
+
+        # Initialize or update scatter
+        if not hasattr(self, '_scatter2d') or self._scatter2d is None:
+            self.ax.clear()
+            sc = self.ax.scatter(
+                x2d[:, 0], x2d[:, 1], c=u_vals, cmap="RdBu_r", s=20, alpha=0.9, edgecolors='none'
+            )
+            self._scatter2d = sc
+            self.ax.set_xlabel("x", fontsize=12)
+            self.ax.set_ylabel("y", fontsize=12)
+            self.ax.set_title(f"Solution at T = {T:.4f}", fontsize=14, fontweight='bold')
+            self.ax.set_aspect('equal')
+
+            # Axis limits from config if available
+            if hasattr(self.config, 'x_domain') and len(self.config.x_domain) >= 2:
+                self.ax.set_xlim([self.config.x_domain[0][0], self.config.x_domain[0][1]])
+                self.ax.set_ylim([self.config.x_domain[1][0], self.config.x_domain[1][1]])
+
+            # Colorbar
+            self._colorbar_2d = getattr(self, '_colorbar_2d', None)
+            if self._colorbar_2d is None:
+                self._colorbar_2d = plt.colorbar(self._scatter2d, ax=self.ax, shrink=0.8)
+                self._colorbar_2d.set_label('u', fontsize=12)
+        else:
+            # Update scatter offsets and colors
+            self._scatter2d.set_offsets(np.column_stack((x2d[:, 0], x2d[:, 1])))
+            self._scatter2d.set_array(u_vals)
+            # Update color limits for stability
+            umin, umax = float(np.min(u_vals)), float(np.max(u_vals))
+            if umax > umin:
+                self._scatter2d.set_clim(umin, umax)
+            if hasattr(self, '_colorbar_2d') and self._colorbar_2d is not None:
+                self._colorbar_2d.update_normal(self._scatter2d)
+            self.ax.set_title(f"Solution at T = {T:.4f}", fontsize=14, fontweight='bold')
+
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        plt.draw()
+        # Draw and briefly pause to refresh
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
         plt.pause(0.01)
     
     def plot_evolution_step_with_reference(self, T: float, u: np.ndarray, x: np.ndarray,

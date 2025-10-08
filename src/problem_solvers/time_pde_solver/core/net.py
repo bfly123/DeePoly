@@ -39,7 +39,7 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
         nu = param[0]["nu"]
 
 # auto code begin
-# Config signature: {"F": [], "L1": ["-0.0001*diff(u,x,2)"], "L2": [], "N": ["-5*u+5*u**3"]}
+# Config signature: {"F": ["0"], "L1": ["-0.0001*diff(u,x,2)"], "L2": ["0"], "N": ["-5*u+5*u**3"]}
         # Extract physical quantities from output
         u = U[..., 0]
 
@@ -53,12 +53,10 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
         L1 = [-0.0001*du_xx]
 
         # L2 operators
-        L2 = [
-        ]
+        L2 = [0]
 
         # F operators
-        F = [
-        ]
+        F = [0]
 
         # N operators
         N = [-5*u+5*u**3]

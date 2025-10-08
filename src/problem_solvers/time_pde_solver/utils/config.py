@@ -191,10 +191,11 @@ class TimePDEConfig(BasePDEConfig):
         """Auto-code generation for time PDEs"""
         if hasattr(self, "auto_code") and self.auto_code:
             try:
-                update_hybrid_fitter_code(self.case_dir)
+                # Use the new unified entrypoint that reads config.json
+                config_path = os.path.join(self.case_dir, "config.json")
+                update_physics_loss_from_config(config_path)
 
                 # Disable auto_code in config
-                config_path = os.path.join(self.case_dir, "config.json")
                 self._disable_auto_code(config_path)
 
                 print("Auto code completed, please check the generated files and restart the program")
