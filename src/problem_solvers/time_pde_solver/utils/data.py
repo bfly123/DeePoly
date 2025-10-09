@@ -27,35 +27,49 @@ class TimePDEDataGenerator(BaseDataGenerator):
             np.ndarray: Global field values (initial conditions)
         """
         u_global = np.zeros((x_global.shape[0], self.n_eqs))
-        
-        # CheckDimensions (spatial dimensionality - legitimate check)
-        if x_global.shape[1] == 1:
-            # 1D case - Usingconfig中Definition的Initial conditions
-            if self.config.Initial_conditions:
-                ic = self.config.Initial_conditions[0]
-                import sympy as sp
-                x = sp.Symbol('x')
-                pi = sp.pi
-                expr = sp.sympify(ic['value'])
-                func = sp.lambdify(x, expr, 'numpy')
+
+        # Unified handling for all dimensions - read from config.Initial_conditions
+        if self.config.Initial_conditions:
+            ic = self.config.Initial_conditions[0]
+            import sympy as sp
+
+            # Create symbolic variables based on spatial_vars
+            spatial_vars = getattr(self.config, 'spatial_vars', ['x'])
+            n_dim = x_global.shape[1]
+
+            # Create sympy symbols
+            symbols = []
+            symbol_dict = {'pi': sp.pi}
+            for i, var_name in enumerate(spatial_vars[:n_dim]):
+                sym = sp.Symbol(var_name)
+                symbols.append(sym)
+                symbol_dict[var_name] = sym
+
+            # Parse initial condition expression
+            expr = sp.sympify(ic['value'])
+
+            # Create lambda function with appropriate number of arguments
+            func = sp.lambdify(symbols, expr, 'numpy')
+
+            # Evaluate initial condition
+            if n_dim == 1:
                 u_global[:, 0] = func(x_global[:, 0])
             else:
-                # DefaultInitial conditions
-                u_global[:, 0] = np.cos(np.pi * x_global[:, 0])
+                # Multi-dimensional case: pass each coordinate column
+                coords = [x_global[:, i] for i in range(n_dim)]
+                u_global[:, 0] = func(*coords)
+
+            # Diagnostic output
+            print(f"Initial field generated from config: '{ic['value']}'")
+            print(f"  Shape: {u_global.shape}, n_dim: {n_dim}")
+            print(f"  Value range: [{u_global.min():.6e}, {u_global.max():.6e}]")
+            print(f"  Mean: {u_global.mean():.6e}, Std: {u_global.std():.6e}")
+
         else:
-            # 2D case
-            x_center = 0.3
-            y_center = 0.3
-            width = 0.2
-            sharpness = 50
-            
-            x_transition = 0.5 * (np.tanh(sharpness * (x_global[:, 0] - (x_center - width/2))) - 
-                                 np.tanh(sharpness * (x_global[:, 0] - (x_center + width/2))))
-            y_transition = 0.5 * (np.tanh(sharpness * (x_global[:, 1] - (y_center - width/2))) - 
-                                 np.tanh(sharpness * (x_global[:, 1] - (y_center + width/2))))
-            
-            u_global[:, 0] = x_transition * y_transition + 1
-        
+            # Default initial conditions if not specified in config
+            print("Warning: No Initial_conditions in config, using default cos(pi*x)")
+            u_global[:, 0] = np.cos(np.pi * x_global[:, 0])
+
         return u_global
 
     def generate_data(self, mode: str = "train") -> Dict:

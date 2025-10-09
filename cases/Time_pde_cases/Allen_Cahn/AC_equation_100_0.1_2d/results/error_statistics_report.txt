@@ -11,24 +11,24 @@
 
 【ComputeTimeStatistics】
 ----------------------------------------
-  PhysicalComputeTime: 39.85 second
-  Average每步耗时: 3.6229 second
-  ComputeEfficiency:     0.28 步/second
-  Physical/ComputeTime比: 0.0248
+  PhysicalComputeTime: 36.77 second
+  Average每步耗时: 3.3430 second
+  ComputeEfficiency:     0.30 步/second
+  Physical/ComputeTime比: 0.0269
 
 【误差Statistics】
 ----------------------------------------
   TimeAverage误差:
-    - L2  误差:   1.403516e+00
-    - L∞  误差:   2.002577e+00
+    - L2  误差:   2.133231e-02
+    - L∞  误差:   4.999070e-02
 
   最大误差 (所Sometimes刻):
-    - L2  误差:   1.440244e+00
-    - L∞  误差:   2.007796e+00
+    - L2  误差:   3.188276e-02
+    - L∞  误差:   7.745155e-02
 
   Error analysis:
-    - L∞/L2 Rate: 1.43
-    - Phase对Precision:   -0.1 位小数
+    - L∞/L2 Rate: 2.34
+    - Phase对Precision:   1.7 位小数
 
 【Solve器Configuration】
 ----------------------------------------
@@ -39,5 +39,5 @@
   EquipmentType:     cpu
 
 ======================================================================
-GenerateTime: 2025-10-08 21:51:46
+GenerateTime: 2025-10-08 22:55:18
 ======================================================================

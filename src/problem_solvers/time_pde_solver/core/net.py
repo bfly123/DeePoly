@@ -39,18 +39,19 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
         nu = param[0]["nu"]
 
 # auto code begin
-# Config signature: {"F": ["0"], "L1": ["-0.0001*diff(u,x,2)"], "L2": ["0"], "N": ["-5*u+5*u**3"]}
+# Config signature: {"F": ["0"], "L1": ["-0.0001*diff(u,x,2)+diff(u,y)"], "L2": ["0"], "N": ["-5*u+5*u**3"]}
         # Extract physical quantities from output
         u = U[..., 0]
 
         # Calculate derivatives in each direction
         du_x = self.gradients(u, x_train)[0][..., 0]
+        du_y = self.gradients(u, x_train)[0][..., 1]
 
         # Calculate 2nd-order derivatives
         du_xx = self.gradients(du_x, x_train)[0][..., 0]
 
         # L1 operators
-        L1 = [-0.0001*du_xx]
+        L1 = [-0.0001*du_xx+du_y]
 
         # L2 operators
         L2 = [0]

@@ -3,7 +3,7 @@
     "method": "hybrid",
     "eq": {
         "L1": [
-            "0.0001*diff(u,x,2)-diff(u,y)"
+            "-0.0001*diff(u,x,2)+diff(u,y)"
         ],
         "L2": [
             "0"
@@ -12,7 +12,7 @@
             "0"
         ],
         "N": [
-            "5*u-5*u**3"
+            "-5*u+5*u**3"
         ]
     },
     "vars_list": [
@@ -82,7 +82,7 @@
         ]
     ],
     "time_scheme": "onestep_predictor",
-    "T": 1,
+    "T": 10,
     "dt": 0.1,
     "spotter_skip": 1,
     "reference_solution": "reference_data/allen_cahn_highres.mat",
