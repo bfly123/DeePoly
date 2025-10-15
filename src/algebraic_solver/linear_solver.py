@@ -127,9 +127,12 @@ class LinearSolver:
         
         # Performance跟踪
         self.performance_history = [] if performance_tracking else None
-        
+
         # Step计数器，用于跟踪每步的ResidualNorm
         self.step_counter = 0
+
+        # 当前时间步的统计信息收集（用于汇总输出）
+        self.current_step_stats = []
     
     def _check_gpu_capability(self) -> bool:
         """CheckGPUYesNo适合Compute（Performance、Inner存等）"""
@@ -281,7 +284,24 @@ class LinearSolver:
         
         # Step计数器Increment
         self.step_counter += 1
-        
+
+        # 收集统计信息（不论verbose状态）
+        stats = {
+            'step': self.step_counter,
+            'method': method,
+            'matrix_shape': A.shape,
+            'condition_number': info.get('condition_number', None),
+            'residual_norm': residual_norm,
+            'residual_norm_inf': residual_norm_inf,
+            'residual_norm_1': residual_norm_1,
+            'relative_residual': relative_residual,
+            'b_norm': b_norm,
+            'solve_time': solve_time,
+            'iterations': info.get('iterations', None),
+            'rank': info.get('rank', None)
+        }
+        self.current_step_stats.append(stats)
+
         if self.verbose:
             print(f"=== Linear Solve Step {self.step_counter} ===")
             print(f"Method: {method}")
@@ -299,7 +319,7 @@ class LinearSolver:
             if 'rank' in info:
                 print(f"Matrix rank: {info['rank']}")
             print("-" * 45)
-                
+
         # recordPerformance
         if self.performance_tracking:
             self.performance_history.append({
@@ -685,95 +705,120 @@ class LinearSolver:
         
         return x, info
     
-    def _solve_gpu_svd(self, A: np.ndarray, b: np.ndarray, 
+    def _solve_gpu_svd(self, A: np.ndarray, b: np.ndarray,
                        rcond: float = None, **kwargs) -> Tuple[np.ndarray, Dict]:
         """UsingCuPy的SVDDecomposeSolve"""
         if not self.use_gpu:
             raise RuntimeError("请求GPUSolve，但GPUUnavailable")
-            
+
         # 转移DataToGPU
         A_gpu = cp.asarray(A)
         b_gpu = cp.asarray(b)
-        
-        # ExecutionSVDDecompose
-        U, s, Vh = cp.linalg.svd(A_gpu, full_matrices=False)
-        
-        # Compute伪逆
-        rcond = rcond or float(cp.finfo(cp.float64).eps * max(A_gpu.shape))
-        s_mask = s > rcond * s[0]
-        s_inv = cp.zeros_like(s)
-        s_inv[s_mask] = 1/s[s_mask]
-        
-        # ComputeSolution
-        x_gpu = Vh.T @ (s_inv.reshape(-1, 1) * (U.T @ b_gpu))
-        
-        # ComputeValid秩和Condition number
-        rank = int(cp.sum(s_mask))
-        condition_number = float(s[0] / s[s_mask][-1]) if rank > 0 else float('inf')
-        
-        # 将Result转ReturnCPU
-        x = cp.asnumpy(x_gpu)
-        s_cpu = cp.asnumpy(s)
-        
-        info = {
-            'rank': rank,
-            'singular_values': s_cpu,
-            'condition_number': condition_number,
-            'backend': 'cupy'
-        }
-        
-        return x, info
+
+        try:
+            # ExecutionSVDDecompose
+            U, s, Vh = cp.linalg.svd(A_gpu, full_matrices=False)
+
+            # Compute伪逆
+            rcond = rcond or float(cp.finfo(cp.float64).eps * max(A_gpu.shape))
+            s_mask = s > rcond * s[0]
+            s_inv = cp.zeros_like(s)
+            s_inv[s_mask] = 1/s[s_mask]
+
+            # ComputeSolution
+            x_gpu = Vh.T @ (s_inv.reshape(-1, 1) * (U.T @ b_gpu))
+
+            # ComputeValid秩和Condition number
+            rank = int(cp.sum(s_mask))
+            condition_number = float(s[0] / s[s_mask][-1]) if rank > 0 else float('inf')
+
+            # 将Result转ReturnCPU
+            x = cp.asnumpy(x_gpu)
+            s_cpu = cp.asnumpy(s)
+
+            info = {
+                'rank': rank,
+                'singular_values': s_cpu,
+                'condition_number': condition_number,
+                'backend': 'cupy'
+            }
+
+            return x, info
+        finally:
+            # Clean up GPU memory
+            del A_gpu, b_gpu
+            if 'x_gpu' in locals():
+                del x_gpu
+            if 'U' in locals():
+                del U, s, Vh, s_inv
+            cp.get_default_memory_pool().free_all_blocks()
     
     def _solve_gpu_qr(self, A: np.ndarray, b: np.ndarray, **kwargs) -> Tuple[np.ndarray, Dict]:
         """UsingCuPy的QRDecomposeSolve"""
         if not self.use_gpu:
             raise RuntimeError("请求GPUSolve，但GPUUnavailable")
-            
+
         # 转移DataToGPU
         A_gpu = cp.asarray(A)
         b_gpu = cp.asarray(b)
-        
-        # ExecutionQRDecompose
-        Q, R = cp.linalg.qr(A_gpu, mode='economic')
-        
-        # ComputeSolution
-        QTb = Q.T @ b_gpu
-        x_gpu = cp.linalg.solve_triangular(R, QTb)
-        
-        # ComputeCondition number
-        condition_number = float(cp.linalg.cond(R))
-        
-        # 将Result转ReturnCPU
-        x = cp.asnumpy(x_gpu)
-        
-        info = {
-            'condition_number': condition_number,
-            'backend': 'cupy'
-        }
-        
-        return x, info
-    
+
+        try:
+            # ExecutionQRDecompose
+            Q, R = cp.linalg.qr(A_gpu, mode='economic')
+
+            # ComputeSolution
+            QTb = Q.T @ b_gpu
+            x_gpu = cp.linalg.solve_triangular(R, QTb)
+
+            # ComputeCondition number
+            condition_number = float(cp.linalg.cond(R))
+
+            # 将Result转ReturnCPU
+            x = cp.asnumpy(x_gpu)
+
+            info = {
+                'condition_number': condition_number,
+                'backend': 'cupy'
+            }
+
+            return x, info
+        finally:
+            # Clean up GPU memory
+            del A_gpu, b_gpu
+            if 'x_gpu' in locals():
+                del x_gpu
+            if 'Q' in locals():
+                del Q, R, QTb
+            cp.get_default_memory_pool().free_all_blocks()
+
     def _solve_gpu_lstsq(self, A: np.ndarray, b: np.ndarray, **kwargs) -> Tuple[np.ndarray, Dict]:
         """UsingCuPy的Encapsulation最小二乘functionSolve，针对大型MatrixOptimize"""
         if not self.use_gpu:
             raise RuntimeError("请求GPUSolve，但GPUUnavailable")
-            
+
         # 转移DataToGPU
         A_gpu = cp.asarray(A)
         b_gpu = cp.asarray(b)
-        
-        # UsinggelsSolve最小二乘Problem（可能UsingcuSOLVER）
-        # CuPyCurrently没有直接暴露gels，Therefore我们Usinglstsq
-        x_gpu = cp.linalg.lstsq(A_gpu, b_gpu)[0]
-        
-        # 将Result转ReturnCPU
-        x = cp.asnumpy(x_gpu)
-        
-        info = {
-            'backend': 'cupy'
-        }
-        
-        return x, info
+
+        try:
+            # UsinggelsSolve最小二乘Problem（可能UsingcuSOLVER）
+            # CuPyCurrently没有直接暴露gels，Therefore我们Usinglstsq
+            x_gpu = cp.linalg.lstsq(A_gpu, b_gpu)[0]
+
+            # 将Result转ReturnCPU
+            x = cp.asnumpy(x_gpu)
+
+            info = {
+                'backend': 'cupy'
+            }
+
+            return x, info
+        finally:
+            # Clean up GPU memory
+            del A_gpu, b_gpu
+            if 'x_gpu' in locals():
+                del x_gpu
+            cp.get_default_memory_pool().free_all_blocks()
     
     def _process_matrix_chunk(self, func: Callable, A_chunk: np.ndarray, *args, **kwargs) -> np.ndarray:
         """ProcessMatrix分Block的工作function"""
@@ -1033,9 +1078,56 @@ class LinearSolver:
         if self.performance_tracking:
             self.performance_history = []
             
+    def get_step_summary(self, clear_buffer: bool = False) -> Dict:
+        """获取当前时间步的线性求解统计汇总
+
+        Args:
+            clear_buffer: 是否在获取汇总后清空统计缓冲区（默认False）
+
+        Returns:
+            Dict: 包含汇总统计信息的字典
+        """
+        if not self.current_step_stats:
+            return {
+                'num_solves': 0,
+                'total_time': 0.0,
+                'methods_used': [],
+                'max_residual': 0.0,
+                'max_relative_residual': 0.0
+            }
+
+        num_solves = len(self.current_step_stats)
+        total_time = sum(s['solve_time'] for s in self.current_step_stats)
+        methods_used = list(set(s['method'] for s in self.current_step_stats))
+
+        # 找到最大残差
+        max_residual = max(s['residual_norm'] for s in self.current_step_stats)
+        max_relative_residual = max(s['relative_residual'] for s in self.current_step_stats)
+
+        # 收集所有条件数（过滤None）
+        condition_numbers = [s['condition_number'] for s in self.current_step_stats if s['condition_number'] is not None]
+        max_condition = max(condition_numbers) if condition_numbers else None
+
+        summary = {
+            'num_solves': num_solves,
+            'total_time': total_time,
+            'methods_used': methods_used,
+            'max_residual': max_residual,
+            'max_relative_residual': max_relative_residual,
+            'max_condition_number': max_condition,
+            'stats': self.current_step_stats  # 保留详细信息
+        }
+
+        # 可选：自动清空缓冲区防止内存泄漏
+        if clear_buffer:
+            self.current_step_stats = []
+
+        return summary
+
     def reset_step_counter(self):
         """ResetStep计数器，适用于NewTime step或新Problem"""
         self.step_counter = 0
+        self.current_step_stats = []  # 清空统计缓冲区
         if self.verbose:
             print("=== Linear Solver Step Counter Reset ===")
 

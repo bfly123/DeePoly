@@ -1,0 +1,105 @@
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:21: UserWarning: CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）
+  warnings.warn("CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）")
+Using case directory: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D
+✓ config与net.py代yard一致
+Problem type: fixiteration_pde
+Successfully loaded configuration from cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from default values):
+  time_scheme: implicit_euler
+  max_iterations: 1000
+  residual_tol: 1.00e-05
+  dt_init: 0.1, dt_range: [1e-05, 0.5]
+  adaptive_dt: True
+Initial condition method: spotter
+  Spotter epochs: 15000
+  Spotter learning rate: 0.01
+Fitter training parameters (from main config):
+  epochs_adam: 20000
+  epochs_lbfgs: 0
+  DNNtol: 1.00e-04
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+Successfully loaded configuration from cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from default values):
+  time_scheme: implicit_euler
+  max_iterations: 1000
+  residual_tol: 1.00e-05
+  dt_init: 0.1, dt_range: [1e-05, 0.5]
+  adaptive_dt: True
+Initial condition method: spotter
+  Spotter epochs: 15000
+  Spotter learning rate: 0.01
+Fitter training parameters (from main config):
+  epochs_adam: 20000
+  epochs_lbfgs: 0
+  DNNtol: 1.00e-04
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+Configuration exported to config.json
+Custom data generator module not found: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/data_generate.py
+⚠️  警告: FixIterationPDEDataGenerator用于problem_type='general_pde', 当前为'fixiteration_pde'
+Loading reference solution: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/reference_data/allen_cahn_highres.mat
+
+======================================================================
+Fixed-Point Iteration Solver
+======================================================================
+Domain: [[-1  1]
+ [ 0  1]]
+Segments: [5, 3]
+Polynomial degree: [9 6]
+======================================================================
+
+Initializing solution using method: 'spotter'
+  Using Spotter network for initialization...
+  Warning: SpotterNet not available (No module named 'problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver.core.spotter_init')
+  Falling back to zero initialization
+======================================================================
+Fixed-Point Iteration
+======================================================================
+Max iterations: 1000
+Convergence tolerance: 1.00e-05
+======================================================================
+Iter    1 | Residual: 1.000000e+00 | ||U||: 1.617016e+01
+Iter   17 | Residual: 7.502261e-06 | ||U||: 2.100746e+01
+
+======================================================================
+✓ Converged at iteration 17!
+  Final residual: 7.502261e-06
+  Total time: 5.53s
+======================================================================
+  Interpolated from 5045 training points to 10000 test points
+收敛历史已保存至: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/results/convergence_history.png
+最终解已保存至: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/results/final_solution.png
+Warning: 没有残差历史数据
+✓ Results saved to: cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D/results
+Solving completed successfully!

@@ -1,0 +1,104 @@
+{
+    "problem_type": "fixiteration_pde",
+    "method": "hybrid",
+    "eq": {
+        "L1": [
+            "-0.0001*diff(u,x,2)+diff(u,y)"
+        ],
+        "L2": [
+            "0"
+        ],
+        "F": [
+            "0"
+        ],
+        "N": [
+            "-5*u+5*u**3"
+        ],
+        "S": [
+            "0"
+        ]
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x",
+        "y"
+    ],
+    "boundary_conditions": [
+        {
+            "type": "dirichlet",
+            "region": 
+                "left",
+            "points": 500,
+            "weight": 10,
+            "value":-1
+        },
+                {
+            "type": "dirichlet",
+            "region": 
+                "right",
+            "points": 500,
+            "weight": 10,
+            "value":-1
+        },
+        {
+            "type": "dirichlet",
+            "region": "bottom",
+            "var": "u",
+            "formula": "x**2 * cos(pi * x)",
+            "points": 500,
+            "weight": 10
+        }
+    ],
+    "hidden_dims": [
+        128,
+        128,
+        128,
+        50
+    ],
+    "epochs_adam": 10000,
+    "epochs_lbfgs": 0,
+    "max_retries": 0,
+    "DNNtol": 0.0001,
+    "learning_rate": 0.001,
+    "n_segments": [
+        5,
+        3
+    ],
+    "points_domain": 10000,
+    "points_per_swap": 10,
+    "points_domain_test": [
+        100,
+        100
+    ],
+    "poly_degree": [
+        9,
+        6
+    ],
+    "x_domain": [
+        [
+            -1,
+            1
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+      "fixiteration": {
+          "max_iterations": 1,
+          "residual_tol": 1e-06,
+          "check_interval": 10,
+          "print_interval": 1,
+          "save_interval": 100
+      },
+    "spotter_skip": 1,
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "realtime_visualization": false,
+    "animation_skip": 10,
+    "device": "cuda",
+    "linear_device": "cuda",
+    "seed": 42,
+    "auto_code": false
+}

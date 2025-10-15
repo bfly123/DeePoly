@@ -5,53 +5,36 @@
       -0.33333333333333337,
       0.33333333333333326,
       1.0
-    ],
-    [
-      0.0,
-      0.3333333333333333,
-      0.6666666666666666,
-      1.0
     ]
   ],
-  "case_dir": "cases/Time_pde_cases/New_test_2D",
+  "case_dir": ".",
   "vars_list": [
     "u"
   ],
   "spatial_vars": [
-    "x",
-    "y"
+    "x"
   ],
   "eq": {
     "L1": [
-      "-0.0001*diff(u,x,2)+diff(u,y)"
+      "-0.0001*diff(u,x,2)"
     ],
-    "L2": [
-      "0"
-    ],
-    "F": [
-      "0"
-    ],
+    "L2": [],
+    "F": [],
     "N": [
-      "-5*u+5*u**3"
+      "5*u**3-5*u"
     ]
   },
   "eq_nonlinear": [],
   "const_list": [],
   "n_segments": [
-    "3",
     "3"
   ],
   "poly_degree": [
-    6,
-    6
+    10
   ],
   "x_domain": [
     [
       -1,
-      1
-    ],
-    [
-      0,
       1
     ]
   ],
@@ -65,12 +48,11 @@
   "device": "cuda",
   "linear_device": "cpu",
   "learning_rate": "0.01",
-  "points_domain": "10000",
+  "points_domain": "100",
   "points_domain_test": [
-    "100",
     "100"
   ],
-  "points_per_swap": "10",
+  "points_per_swap": "1",
   "seed": "42",
   "boundary_conditions": [
     {
@@ -79,29 +61,16 @@
         "left",
         "right"
       ],
-      "points": "200"
-    },
-    {
-      "type": "dirichlet",
-      "region": "bottom",
-      "var": "u",
-      "formula": "x**2 * cos(pi * x)",
-      "points": "200"
+      "points": "1"
     }
   ],
   "operator_parse": {
     "derivatives": [
       [
-        "0",
         "0"
       ],
       [
-        "0",
-        "1"
-      ],
-      [
-        "2",
-        "0"
+        "2"
       ]
     ],
     "all_derivatives": {
@@ -109,29 +78,23 @@
         "0",
         "0"
       ],
-      "U_y": [
-        "0",
-        "1"
-      ],
       "U_xx": [
         "0",
-        "2"
+        "1"
       ]
     },
     "max_derivative_orders": [
       [
-        "2",
-        "1"
+        "2"
       ]
     ],
     "operator_terms": {
       "L1": [
         {
           "derivative_indices": [
-            "1",
-            "2"
+            "1"
           ],
-          "symbolic_expr": "-0.0001*U_xx+U_y"
+          "symbolic_expr": "-0.0001*U_xx"
         }
       ],
       "L2": [
@@ -143,7 +106,7 @@
       "F": [
         {
           "derivative_indices": [],
-          "symbolic_expr": "0"
+          "symbolic_expr": "1"
         }
       ],
       "N": [
@@ -151,7 +114,7 @@
           "derivative_indices": [
             "0"
           ],
-          "symbolic_expr": "-5*U+5*U**3"
+          "symbolic_expr": "5*U**3-5*U"
         }
       ],
       "L2F": [
@@ -162,10 +125,10 @@
       ]
     }
   },
-  "T": "10",
-  "dt": "0.1",
+  "T": "0.03",
+  "dt": "0.01",
   "spotter_skip": "1",
-  "epochs_adam": "20000",
+  "epochs_adam": "100",
   "epochs_lbfgs": "0",
   "max_retries": "1",
   "DNNtol": "0.01",
@@ -173,22 +136,22 @@
     {
       "var": "u",
       "value": "x**2*cos(pi*x)",
-      "points": "10000"
+      "points": "100"
     }
   ],
   "time_scheme": "onestep_predictor",
   "time_scheme_params": {},
   "eq_L1": [
-    "-0.0001*diff(u,x,2)+diff(u,y)"
+    "-0.0001*diff(u,x,2)"
   ],
   "eq_L2": [
     "0"
   ],
   "eq_F": [
-    "0"
+    "1"
   ],
   "eq_N": [
-    "-5*u+5*u**3"
+    "5*u**3-5*u"
   ],
   "eq_linear_list": [],
   "deriv_orders": [],
@@ -196,176 +159,69 @@
   "eq_nonlinear_list": [],
   "all_derivatives": [],
   "f_L2": [
-    "0"
+    "1"
   ],
   "N": [
-    "-5*u+5*u**3"
+    "5*u**3-5*u"
   ],
   "problem_type": "time_pde",
+  "note": "\u5355\u6b65\u9884\u6d4b-\u6821\u6b63\u683c\u5f0f\uff1a\u7b97\u5b50\u503c\u9884\u8ba1\u7b97\u548c\u65f6\u95f4\u6b65\u95f4\u590d\u7528\uff0c\u51cf\u5c1175%\u7b97\u5b50\u8ba1\u7b97\u91cf",
   "reference_solution": "reference_data/allen_cahn_highres.mat",
-  "realtime_visualization": "True",
+  "realtime_visualization": "False",
   "animation_skip": "1",
-  "auto_code": "False",
-  "n_dim": "2",
-  "n_eqs": "1",
+  "n_dim": "1",
   "x_min": [
     [
-      -1.0,
-      0.0
+      -1.0
     ],
     [
-      -0.33333333333333337,
-      0.0
+      -0.33333333333333337
     ],
     [
-      0.33333333333333326,
-      0.0
-    ],
-    [
-      -1.0,
-      0.3333333333333333
-    ],
-    [
-      -0.33333333333333337,
-      0.3333333333333333
-    ],
-    [
-      0.33333333333333326,
-      0.3333333333333333
-    ],
-    [
-      -1.0,
-      0.6666666666666666
-    ],
-    [
-      -0.33333333333333337,
-      0.6666666666666666
-    ],
-    [
-      0.33333333333333326,
-      0.6666666666666666
+      0.33333333333333326
     ]
   ],
   "x_max": [
     [
-      -0.33333333333333337,
-      0.3333333333333333
+      -0.33333333333333337
     ],
     [
-      0.33333333333333326,
-      0.3333333333333333
+      0.33333333333333326
     ],
     [
-      1.0,
-      0.3333333333333333
-    ],
-    [
-      -0.33333333333333337,
-      0.6666666666666666
-    ],
-    [
-      0.33333333333333326,
-      0.6666666666666666
-    ],
-    [
-      1.0,
-      0.6666666666666666
-    ],
-    [
-      -0.33333333333333337,
-      1.0
-    ],
-    [
-      0.33333333333333326,
-      1.0
-    ],
-    [
-      1.0,
       1.0
     ]
   ],
   "x_min_norm": [
     [
-      0.0,
       0.0
     ],
     [
-      0.0,
       0.0
     ],
     [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
       0.0
     ]
   ],
   "x_max_norm": [
     [
-      1.0,
       1.0
     ],
     [
-      1.0,
       1.0
     ],
     [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
-      1.0
-    ],
-    [
-      1.0,
       1.0
     ]
   ],
   "DNN_degree": "10",
-  "max_time_steps": "101",
+  "max_time_steps": "4",
   "time_output_interval": "1",
   "adaptive_dt": "False",
   "stability_check": "False",
-  "results_dir": "cases/Time_pde_cases/New_test_2D/results",
-  "export_time": "2025-10-08 23:21:21",
+  "results_dir": "./results",
+  "auto_code": "False",
+  "n_eqs": "1",
+  "export_time": "2025-10-13 22:54:51",
   "device_info": "cuda"
 }

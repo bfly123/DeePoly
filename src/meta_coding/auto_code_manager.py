@@ -69,21 +69,17 @@ class AutoCodeManager:
 
     def _get_net_path(self) -> Optional[str]:
         """
-        Get the path to net.py based on problem type
+        Get the path to base_net.py (unified for all problem types)
 
         Returns:
-            Path to the net.py file, or None if not a PDE problem
+            Path to base_net.py file, or None if not a PDE problem
         """
-        if self.problem_type not in ["time_pde", "linear_pde", "general_pde"]:
+        if self.problem_type not in ["time_pde", "linear_pde", "general_pde", "fixiteration_pde"]:
             return None
 
-        solver_dir_map = {
-            "time_pde": "time_pde_solver",
-            "linear_pde": "linear_pde_solver",
-            "general_pde": "general_pde_solver"
-        }
-        solver_dir = solver_dir_map[self.problem_type]
-        return os.path.join(self._src_dir, "problem_solvers", solver_dir, "core", "net.py")
+        # All problem types now share the same compute_pde_operators() in BaseNet
+        # Auto_spotter generates code directly to base_net.py
+        return os.path.join(self._src_dir, "abstract_class", "base_net.py")
 
     def _save_config(self) -> None:
         """Save the current configuration back to file"""
@@ -185,7 +181,7 @@ class AutoCodeManager:
             True if generation was triggered successfully
         """
         if self.problem_type == "time_pde":
-            from src.problem_solvers.time_pde_solver.utils import TimePDEConfig
+            from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.utils import TimePDEConfig
             from src.problem_solvers import TimePDESolver
 
             config = TimePDEConfig(case_dir=self.case_dir)
@@ -199,9 +195,14 @@ class AutoCodeManager:
             _ = LinearPDESolver(config=config, case_dir=self.case_dir)
 
         elif self.problem_type == "general_pde":
-            from src.problem_solvers import GeneralPDESolver
+            from src.problem_solvers import PseudoTimePDESolver
 
-            _ = GeneralPDESolver(case_dir=self.case_dir)
+            _ = PseudoTimePDESolver(case_dir=self.case_dir)
+
+        elif self.problem_type == "fixiteration_pde":
+            from src.problem_solvers import FixIterationPDESolver
+
+            _ = FixIterationPDESolver(case_dir=self.case_dir)
 
         else:
             return False
@@ -213,7 +214,7 @@ class AutoCodeManager:
         Restart the Python process to load newly generated code
 
         This method builds the restart command with appropriate arguments
-        and starts a new process while terminating the current one.
+        and replaces the current process with the new one using os.execv.
         """
         time.sleep(0.5)  # Wait for filesystem sync
 
@@ -223,9 +224,9 @@ class AutoCodeManager:
         python_exe = sys.executable
         new_cmd = [python_exe] + sys.argv
 
-        # Start new process and exit current one
-        subprocess.call(new_cmd)
-        sys.exit(0)
+        # Replace current process with new one (no process accumulation)
+        os.execv(python_exe, new_cmd)
+        # Note: Code after os.execv() will never be executed
 
     def handle_autocode_workflow(self) -> bool:
         """
@@ -241,7 +242,7 @@ class AutoCodeManager:
             True if process was restarted, False otherwise
         """
         # Check if problem type supports auto code
-        if self.problem_type not in ["time_pde", "linear_pde", "general_pde"]:
+        if self.problem_type not in ["time_pde", "linear_pde", "general_pde", "fixiteration_pde"]:
             return False
 
         # Check consistency between config and generated code

@@ -225,8 +225,57 @@ class EquationProcessor:
         eq_dict = config_dict.get("eq", {})
         problem_type = config_dict.get("problem_type", "linear_pde")
 
+        # For time_pde, prefer separate eq_L1, eq_L2, eq_F, eq_N fields, fallback to "eq" field
+        if problem_type == "time_pde":
+            # Check if using old format (separate fields) or new format (unified eq field)
+            has_separate_fields = any(key in config_dict for key in ["eq_L1", "eq_L2", "eq_F", "eq_N"])
+
+            # Generate operators from separate fields for time PDE
+            op_mappings = [
+                ("eq_L1", "L1", "L1 operators"),
+                ("eq_L2", "L2", "L2 operators"),
+                ("eq_F", "F", "F operators"),
+                ("eq_N", "N", "N operators")
+            ]
+
+            for config_key, code_name, comment in op_mappings:
+                operators_code.append(f"        # {comment}")
+
+                # Try separate field first, then fallback to eq dict
+                if has_separate_fields:
+                    eq_list = config_dict.get(config_key, [])
+                else:
+                    # Fallback to unified eq field
+                    eq_list = eq_dict.get(code_name, [])
+
+                if eq_list:
+                    eq_terms = []
+                    for eq in eq_list:
+                        eq_pytorch = self._convert_equation_to_pytorch(eq)
+                        eq_terms.append(eq_pytorch)
+
+                    if len(eq_terms) == 1:
+                        operators_code.append(f"        {code_name} = [{eq_terms[0]}]")
+                    else:
+                        operators_code.append(f"        {code_name} = [")
+                        for i, term in enumerate(eq_terms):
+                            if i == len(eq_terms) - 1:
+                                operators_code.append(f"            {term}")
+                            else:
+                                operators_code.append(f"            {term},")
+                        operators_code.append("        ]")
+                else:
+                    # Empty operator - shouldn't happen if config is properly normalized
+                    operators_code.append(f"        {code_name} = []")
+
+                operators_code.append("")
+
+            # Add S operator (source term) for time_pde - always 0 for Allen-Cahn type equations
+            operators_code.append("        # S operators (source term)")
+            operators_code.append("        S = [0]")
+
         # For linear_pde, only process L1 operators, skip S (handled separately in data processing)
-        if problem_type == "linear_pde":
+        elif problem_type == "linear_pde":
             # Only generate L1 operators for linear PDEs
             if "L1" in eq_dict:
                 operators_code.append("        # L1 operators")
@@ -264,7 +313,7 @@ class EquationProcessor:
             operators_code.append("        N = []")
 
         else:
-            # For other problem types, process all operators as before
+            # For other problem types (general_pde), process all operators from "eq" field
             for op_name, eq_list in eq_dict.items():
                 # Skip S field for all problem types (handled in data processing)
                 if op_name == "S":
@@ -296,47 +345,21 @@ class EquationProcessor:
 
                 if op_name != list(eq_dict.keys())[-1]:  # 不YesFinally一个Operators，添加空行
                     operators_code.append("")
-        
-        # ForTimePDE，还NeedProcessExtra的Operatorsfield
-        if config_dict.get("problem_type") == "time_pde":
-            # Processing timePDE特有的Operators
-            time_operators = ["eq_L1", "eq_L2", "f_L2", "N"]
-            for op_type in time_operators:
-                if op_type in config_dict and config_dict[op_type]:
-                    if op_type == "f_L2":
-                        operators_code.append("")
-                        operators_code.append("        # f_L2 functions (nonlinear functions for L2)")
-                        op_display_name = "f_L2"
-                    elif op_type == "N":
-                        operators_code.append("")
-                        operators_code.append("        # N operators (fully nonlinear)")
-                        op_display_name = "N"
-                    elif op_type == "eq_L1":
-                        operators_code.append("")
-                        operators_code.append("        # Additional L1 operators (implicit linear)")
-                        op_display_name = "L1_extra"
-                    elif op_type == "eq_L2":
-                        operators_code.append("")
-                        operators_code.append("        # Additional L2 operators (semi-implicit linear)")
-                        op_display_name = "L2_extra"
-                    
-                    # GenerateListformat
-                    eq_terms = []
-                    for eq in config_dict[op_type]:
-                        eq_pytorch = self._convert_equation_to_pytorch(eq)
-                        eq_terms.append(eq_pytorch)
-                    
-                    if len(eq_terms) == 1:
-                        operators_code.append(f"        {op_display_name} = [{eq_terms[0]}]")
-                    else:
-                        operators_code.append(f"        {op_display_name} = [")
-                        for i, term in enumerate(eq_terms):
-                            if i == len(eq_terms) - 1:
-                                operators_code.append(f"            {term}")
-                            else:
-                                operators_code.append(f"            {term},")
-                        operators_code.append("        ]")
-        
+
+        # === 统一补充缺失的算子 ===
+        # 确保L1, L2, F, N, S这5个必备算子始终存在
+        # 如果config中没有定义，则默认设置为[0]
+        required_operators = ["L1", "L2", "F", "N", "S"]
+        operators_str = "\n".join(operators_code)
+
+        for op_name in required_operators:
+            # 检查算子是否已经生成（使用正则匹配 "算子名 = "）
+            if not re.search(rf"^\s*{op_name}\s*=", operators_str, re.MULTILINE):
+                # 算子缺失，添加默认值
+                operators_code.append("")
+                operators_code.append(f"        # {op_name} operators (default)")
+                operators_code.append(f"        {op_name} = [0]")
+
         return "\n".join(operators_code)
 
     def generate_code_for_pytorch_net(
@@ -388,7 +411,29 @@ class EquationProcessor:
             if config_dict:
                 # 提取OperatorsConfiguration
                 sig_dict = {}
-                if "eq" in config_dict:  # 新format
+                problem_type = config_dict.get("problem_type", "linear_pde")
+
+                # For time_pde, prefer separate fields, fallback to unified eq field
+                if problem_type == "time_pde":
+                    has_separate_fields = any(key in config_dict for key in ["eq_L1", "eq_L2", "eq_F", "eq_N"])
+
+                    if has_separate_fields:
+                        sig_dict = {
+                            "L1": config_dict.get("eq_L1", []),
+                            "L2": config_dict.get("eq_L2", []),
+                            "F": config_dict.get("eq_F", []),
+                            "N": config_dict.get("eq_N", [])
+                        }
+                    else:
+                        # Fallback to unified eq field
+                        eq = config_dict.get("eq", {})
+                        sig_dict = {
+                            "L1": eq.get("L1", []),
+                            "L2": eq.get("L2", []),
+                            "F": eq.get("F", []),
+                            "N": eq.get("N", [])
+                        }
+                elif "eq" in config_dict:  # 新format for other problem types
                     eq = config_dict["eq"]
                     sig_dict = {
                         "L1": eq.get("L1", []),
@@ -479,8 +524,8 @@ class AutoCodeGenerator:
         end_idx = net_content.find("# auto code end")
         auto_code_block = net_content[begin_idx:end_idx]
 
-        # Checkauto codeBlockYesNo为空
-        lines = auto_code_block.split('\n')[1:-1]
+        # Checkauto codeBlockYesNo为空 - use entire block, not sliced lines
+        lines = auto_code_block.split('\n')[1:]  # Only skip first line (the marker itself)
         has_code = any(line.strip() and not line.strip().startswith('#') for line in lines)
 
         if not has_code:
@@ -489,25 +534,27 @@ class AutoCodeGenerator:
         # 提取CurrentConfiguration的Operators签名
         config_signature = self._extract_config_signature()
 
-        # Atauto codeBlock中SearchConfiguration签名
+        # Atauto codeBlock中SearchConfiguration签名 - use regex on entire block
         if "# Config signature:" in auto_code_block:
-            # 提取Save的签名
-            for line in lines:
-                if "# Config signature:" in line:
-                    saved_sig = line.split("# Config signature:")[1].strip()
-                    try:
-                        saved_dict = json.loads(saved_sig)
-                        current_dict = json.loads(config_signature)
+            # Use regex to find signature directly in entire block
+            signature_pattern = r'#\s*Config signature:\s*(\{.*?\})'
+            signature_match = re.search(signature_pattern, auto_code_block)
 
-                        # Compare两个签名
-                        if saved_dict == current_dict:
-                            return False, "config与net.py代yard一致"
-                        else:
-                            # 找ExitSpecific的差异
-                            diff_msg = self._find_signature_diff(saved_dict, current_dict)
-                            return True, f"configOperatorsDefinition已更改: {diff_msg}"
-                    except:
-                        return True, "无法AnalyticalSave的签名"
+            if signature_match:
+                saved_sig = signature_match.group(1).strip()
+                try:
+                    saved_dict = json.loads(saved_sig)
+                    current_dict = json.loads(config_signature)
+
+                    # Compare两个签名
+                    if saved_dict == current_dict:
+                        return False, "config与net.py代yard一致"
+                    else:
+                        # 找ExitSpecific的差异
+                        diff_msg = self._find_signature_diff(saved_dict, current_dict)
+                        return True, f"configOperatorsDefinition已更改: {diff_msg}"
+                except:
+                    return True, "无法AnalyticalSave的签名"
 
         # If没有签名，Pass更Abstract的方式Check
         return self._abstract_consistency_check(auto_code_block, config_signature)
@@ -516,7 +563,28 @@ class AutoCodeGenerator:
         """提取ConfigurationFile的Operators签名"""
         sig_dict = {}
 
-        if "eq" in self.config_dict:  # 新format
+        # For time_pde, prefer separate fields, fallback to unified eq field
+        if self.problem_type == "time_pde":
+            # Check if using old format (separate fields)
+            has_separate_fields = any(key in self.config_dict for key in ["eq_L1", "eq_L2", "eq_F", "eq_N"])
+
+            if has_separate_fields:
+                sig_dict = {
+                    "L1": self.config_dict.get("eq_L1", []),
+                    "L2": self.config_dict.get("eq_L2", []),
+                    "F": self.config_dict.get("eq_F", []),
+                    "N": self.config_dict.get("eq_N", [])
+                }
+            else:
+                # Fallback to unified eq field
+                eq = self.config_dict.get("eq", {})
+                sig_dict = {
+                    "L1": eq.get("L1", []),
+                    "L2": eq.get("L2", []),
+                    "F": eq.get("F", []),
+                    "N": eq.get("N", [])
+                }
+        elif "eq" in self.config_dict:  # 新format for other problem types
             eq = self.config_dict["eq"]
             sig_dict = {
                 "L1": eq.get("L1", []),
@@ -605,17 +673,13 @@ class AutoCodeGenerator:
             return True, f"ConsistencyCheckExit错: {str(e)}"
 
     def _get_net_file_path(self) -> str:
-        """According toProblemType确定net.pyFilePath"""
-        case_dir = os.path.dirname(self.config_path)
-        
-        if self.problem_type == "linear_pde":
-            return "src/problem_solvers/linear_pde_solver/core/net.py"
-        elif self.problem_type == "time_pde":
-            return "src/problem_solvers/time_pde_solver/core/net.py"
-        elif self.problem_type == "func_fitting":
-            return "src/problem_solvers/func_fitting_solver/core/net.py"
-        else:
-            raise ValueError(f"不Support的ProblemType: {self.problem_type}")
+        """Unified generation to base_net.py - no problem_type detection needed
+
+        All problem types now share the same compute_pde_operators() method in BaseNet.
+        Auto_spotter generates code directly to base_net.py, eliminating the need for
+        problem_type branching.
+        """
+        return "src/abstract_class/base_net.py"
 
     def _get_equations(self) -> Union[List[str], Dict[str, List[str]]]:
         """GetEquationGroup用于DerivativesAnalyze"""

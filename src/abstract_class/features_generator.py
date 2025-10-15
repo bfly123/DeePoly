@@ -3,7 +3,6 @@ import torch
 from typing import List, Tuple, Optional, Union, Dict
 from dataclasses import dataclass
 from torch import nn
-from src.algebraic_solver.linear_solver import LinearSolver
 import itertools
 import math
 

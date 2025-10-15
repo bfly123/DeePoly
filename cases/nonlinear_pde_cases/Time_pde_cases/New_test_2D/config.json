@@ -1,0 +1,105 @@
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "eq": {
+        "L1": [
+            "-0.0001*diff(u,x,2)+diff(u,y)"
+        ],
+        "L2": [
+            "0"
+        ],
+        "F": [
+            "0"
+        ],
+        "N": [
+            "-5*u+5*u**3"
+        ]
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x",
+        "y"
+    ],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",
+            "points": 10000
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",
+            "pairs": [
+                "left",
+                "right"
+            ],
+            "points": 200
+        },
+         { "type":"dirichlet",
+            "region":"left",
+            "var":"u",
+            "value":-1,
+           "points":300},
+         { "type":"dirichlet",
+            "region":"right",
+            "var":"u",
+            "value":-1,
+            "points":300},
+        {
+            "type": "dirichlet",
+            "region": "bottom",
+            "var": "u",
+            "formula": "x**2 * cos(pi * x)",
+            "points": 200
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        10
+    ],
+    "epochs_adam": 20000,
+    "epochs_lbfgs": 0,
+    "max_retries": 1,
+    "DNNtol": 0.01,
+    "learning_rate": 0.01,
+    "n_segments": [
+        3,
+        3
+    ],
+    "points_domain": 10000,
+    "points_per_swap": 10,
+    "points_domain_test": [
+        100,
+        100
+    ],
+    "poly_degree": [
+        6,
+        6
+    ],
+    "x_domain": [
+        [
+            -1,
+            1
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+    "time_scheme": "imex_1st",
+    "T": 10,
+    "dt": 0.1,
+    "spotter_skip": 1,
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "realtime_visualization": true,
+    "animation_skip": 1,
+    "device": "cuda",
+    "linear_device": "cpu",
+    "seed": 42,
+    "auto_code": false
+}

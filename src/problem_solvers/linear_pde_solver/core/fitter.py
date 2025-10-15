@@ -5,7 +5,7 @@ from torch import nn
 
 from src.abstract_class.base_fitter import BaseDeepPolyFitter
 from src.algebraic_solver import LinearSolver
-from src.utils.shape import ensure_points_eqs, standardize_solution_shape
+from src.abstract_class.shape import ensure_points_eqs, standardize_solution_shape
 
 
 class LinearPDEFitter(BaseDeepPolyFitter):

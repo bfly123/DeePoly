@@ -24,11 +24,12 @@ for path in [src_dir, project_root]:
         sys.path.insert(0, path)
 
 # Import problem solvers and configurations
-from problem_solvers import TimePDESolver, FuncFittingSolver, LinearPDESolver, GeneralPDESolver
-from problem_solvers.time_pde_solver.utils import TimePDEConfig
+from problem_solvers import TimePDESolver, FuncFittingSolver, LinearPDESolver, PseudoTimePDESolver, FixIterationPDESolver
+from problem_solvers.nonlinear_pde_solver.time_pde_solver.utils import TimePDEConfig
 from problem_solvers.func_fitting_solver.utils import FuncFittingConfig
 from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
-from problem_solvers.general_pde_solver.utils import GeneralPDEConfig
+from problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver.utils import PseudoTimePDEConfig
+from problem_solvers.nonlinear_pde_solver.fixiteration_pde_solver.utils import FixIterationPDEConfig
 from meta_coding.auto_code_manager import AutoCodeManager
 
 
@@ -72,9 +73,14 @@ def create_solver(problem_type: str, case_dir: str):
             "init_params": lambda config: {"config": config, "case_dir": case_dir}
         },
         "general_pde": {
-            "config_class": GeneralPDEConfig,
-            "solver_class": GeneralPDESolver,
-            "init_params": lambda config: {"config": config}
+            "config_class": PseudoTimePDEConfig,
+            "solver_class": PseudoTimePDESolver,
+            "init_params": lambda config: {"case_dir": case_dir}
+        },
+        "fixiteration_pde": {
+            "config_class": FixIterationPDEConfig,
+            "solver_class": FixIterationPDESolver,
+            "init_params": lambda config: {"case_dir": case_dir}
         }
     }
 

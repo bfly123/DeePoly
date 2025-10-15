@@ -6,18 +6,35 @@ from torch import nn
 from itertools import product
 
 from .operator_factory import create_operator_factory
-from src.utils.shape import safe_segment_slice, concat_segments
+from src.abstract_class.shape import safe_segment_slice, concat_segments
 
 
 class BaseDeepPolyFitter(ABC):
-    """Abstract base class for DeePoly fitters"""
+    """Abstract base class for DeePoly fitters
 
-    def __init__(self, config, dt: float = None, data: Dict = None):
+    Provides common functionality for all fitters including:
+    - Time-stepping infrastructure (time_step, time_scheme)
+    - Operator compilation and caching
+    - Constraint handling
+    - Feature generation
+    """
+
+    def __init__(self, config, dt: float = None, data: Dict = None, time_scheme: str = None):
         from src.abstract_class.features_generator import FeatureGenerator
 
         self.config = config
         self.data = data
         self.dt = dt
+
+        # Time-stepping infrastructure (optional, used by time-dependent solvers)
+        self.time_scheme = None
+        self._time_scheme_name = time_scheme
+        if time_scheme is not None:
+            self._initialize_time_scheme(time_scheme)
+
+        # Maintain current segment-level solution values (used by time-stepping methods)
+        self.U_seg_current = None  # List[np.ndarray] - current timestep segment values
+        self.U_seg_prev = None  # List[np.ndarray] - previous timestep segment values
 
         # Base dimensions - standardize to consistent format
         self.n_dim = config.n_dim
@@ -210,9 +227,23 @@ class BaseDeepPolyFitter(ABC):
 
             row_start = row_end
 
+        # ============= DIAGNOSTIC 6: Separate PDE and boundary residuals =============
+        # print(f"\n[DIAGNOSTIC 6] System assembly:")
+        # print(f"  PDE system: J1 shape {J1.shape}, b1 norm {np.linalg.norm(b1):.6e}")
+        # print(f"  Constraints: A shape {self.A_constraints.shape}, b norm {np.linalg.norm(self.b_constraints):.6e}")
+        # print(f"  Total rows: PDE {J1.shape[0]} + BC {self.A_constraints.shape[0]} = {J1.shape[0] + self.A_constraints.shape[0]}")
+
         # Assemble final results
         J = np.vstack([J1, self.A_constraints])
         r = np.vstack([b1, self.b_constraints])
+
+        # ============= DIAGNOSTIC 7: Final system properties =============
+        # print(f"\n[DIAGNOSTIC 7] Final assembled system:")
+        # print(f"  J shape: {J.shape}")
+        # print(f"  J norm: {np.linalg.norm(J, 'fro'):.6e}")
+        # print(f"  r norm: {np.linalg.norm(r):.6e}")
+        # print(f"  J nnz ratio: {np.count_nonzero(J)/J.size:.4f}")
+        # print(f"  Split index (PDE/BC boundary): {J1.shape[0]}")
 
         return J, r
 
@@ -743,3 +774,62 @@ class BaseDeepPolyFitter(ABC):
         else:
             print("\nNote: System is linear and can be solved directly.")
         print("=" * 30)
+
+    # ================== Time-Stepping Infrastructure (Optional) ==================
+    # These methods provide time-stepping functionality used by time-dependent solvers
+    # (TimePDEFitter, PseudoTimePDEFitter). Not all fitters need to use these.
+
+    def _initialize_time_scheme(self, scheme_name: str):
+        """Initialize time integration scheme (lazy import to avoid circular dependency)"""
+        from src.problem_solvers.nonlinear_pde_solver.time_schemes import create_time_scheme
+        self.time_scheme = create_time_scheme(scheme_name, self.config)
+        self.time_scheme.set_fitter(self)
+
+    def time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float,
+                  coeffs_n: np.ndarray = None, **kwargs) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
+        """Execute one time step using the configured time scheme
+
+        This is a common interface for time-dependent solvers. Requires time_scheme to be initialized.
+
+        Args:
+            U_n: Current timestep global solution values
+            U_seg: Current timestep segment-level solution values
+            dt: Time step size
+            coeffs_n: Current timestep coefficients
+            **kwargs: Additional parameters (current_time, step, etc.)
+
+        Returns:
+            Tuple[np.ndarray, List[np.ndarray], np.ndarray]: (new global solution, new segment solutions, coefficients)
+        """
+        if self.time_scheme is None:
+            raise RuntimeError("Time scheme not initialized. Pass time_scheme to __init__ or call _initialize_time_scheme()")
+
+        if not self._precompiled:
+            raise RuntimeError("Operators not precompiled. Call fitter_init() first.")
+
+        # Update current segment-level solution values
+        self.U_seg_current = U_seg
+
+        # Delegate to time scheme
+        U_new, U_seg_new, coeffs = self.time_scheme.time_step(U_n, U_seg, dt, coeffs_n, **kwargs)
+
+        # Update maintained segment-level solution values
+        self.U_seg_prev = self.U_seg_current
+        self.U_seg_current = U_seg_new
+
+        return U_new, U_seg_new, coeffs
+
+    def _get_source_term(self, segment_idx: int) -> np.ndarray:
+        """Get source term for segment (common utility for all fitters)
+
+        Args:
+            segment_idx: Segment index
+
+        Returns:
+            Source term array (n_points, n_eqs)
+        """
+        if "source_segments" in self.data:
+            return self.data["source_segments"][segment_idx]
+
+        n_points = len(self.data["x_segments"][segment_idx])
+        return np.zeros((n_points, self.config.n_eqs))

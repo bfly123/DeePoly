@@ -1,7 +1,7 @@
 import re
 import numpy as np
 from typing import Dict, List, Optional, Any, Callable
-from src.utils.shape import ensure_points_eqs, safe_eq_col, broadcast_coeffs
+from src.abstract_class.shape import ensure_points_eqs, safe_eq_col, broadcast_coeffs
 
 
 class OperatorFactory:

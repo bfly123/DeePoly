@@ -1,0 +1,3049 @@
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:21: UserWarning: CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）
+  warnings.warn("CuPy未Installation，GPU加速Function将Unavailable。Using pip install cupy-cuda11x Installation（According toCUDAVersion选择）")
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver.py:78: UserWarning: 请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute
+  warnings.warn("请求UsingGPU但CuPyUnavailable，将Return退ToCPUCompute")
+Using case directory: cases/general_pde_cases/New_test_2D
+Code regeneration needed: configOperatorsDefinition已更改: L1Operators已Modification
+=== Running automatic code generation ===
+Successfully loaded configuration from cases/general_pde_cases/New_test_2D/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from nested 'pseudo_time'):
+  time_scheme: implicit_euler
+  max_iterations: 1000
+  convergence_tol: 1.00e-04
+  dt_init: 0.1, dt_range: [1e-05, 0.5]
+  adaptive_dt: True
+Initial condition method: given
+  Spotter epochs: 10000
+  Spotter learning rate: 0.01
+Fitter training parameters:
+  epochs: 1000
+  learning_rate: 0.01
+  DNNtol: 1.00e-04
+Update代yard时Exit错: 不Support的ProblemType: general_pde
+Auto-code generation failed: 不Support的ProblemType: general_pde
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+Configuration exported to config.json
+Custom data generator module not found: cases/general_pde_cases/New_test_2D/data_generate.py
+ComputeBackwardEnd: CPU (19Core)
+Problem type: general_pde
+Successfully loaded configuration from cases/general_pde_cases/New_test_2D/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from nested 'pseudo_time'):
+  time_scheme: implicit_euler
+  max_iterations: 1000
+  convergence_tol: 1.00e-04
+  dt_init: 0.1, dt_range: [1e-05, 0.5]
+  adaptive_dt: True
+Initial condition method: given
+  Spotter epochs: 10000
+  Spotter learning rate: 0.01
+Fitter training parameters:
+  epochs: 1000
+  learning_rate: 0.01
+  DNNtol: 1.00e-04
+Update代yard时Exit错: 不Support的ProblemType: general_pde
+Auto-code generation failed: 不Support的ProblemType: general_pde
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+Configuration exported to config.json
+Custom data generator module not found: cases/general_pde_cases/New_test_2D/data_generate.py
+ComputeBackwardEnd: CPU (19Core)
+
+======================================================================
+General PDE Solver - Pseudo-Time Stepping
+======================================================================
+Problem: Steady-State PDE
+Domain: [[-1  1]
+ [ 0  1]]
+Segments: [3, 3]
+Polynomial degree: [6 6]
+Number of equations: 1
+======================================================================
+
+Step 1: Initial Condition (given)
+----------------------------------------------------------------------
+  Using given Initial_conditions...
+  Initialized u with: x**2*cos(pi*x)
+    ||u|| = 3.770674e+01, max|u| = 9.999535e-01
+
+Step 2: Fitter Initialization
+----------------------------------------------------------------------
+✓ Operators precompiled
+✓ Features generated
+
+Step 3: Pseudo-Time Stepping to Steady State
+----------------------------------------------------------------------
+======================================================================
+Starting Pseudo-Time Stepping Iteration
+======================================================================
+Max iterations: 1000
+Convergence tolerance: 1.00e-04
+Residual tolerance: 1.00e-06
+Initial dt: 0.100000
+======================================================================
+  Training neural network (it=0, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.504498e+00, LR: 1.000000e-02
+   Learning rate adjusted to 5.000000e-03 at epoch 199, loss 9.844563e-03
+Final Adam Loss: 0.0031651021826975077
+Using best model, loss value: 0.0031651021826975077
+  Neural network training completed, loss: 3.16125988e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 1 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 402368972487.1738
+Residual Analysis:
+  ||Ax-b||_2 = 5.091015e-01
+  ||Ax-b||_∞ = 2.306439e-01
+  ||Ax-b||_1 = 2.052594e+01
+  ||b||_2 = 7.087111e+01
+  Relative residual = 7.183485e-03
+Solve time: 0.411179s
+Matrix rank: 482
+---------------------------------------------
+Iter      1 | τ=  0.100000 | dt=1.000000e-01 | Residual=1.877705e-01 | ||U||=4.482280e+01 | Time=7.01s
+  Training neural network (it=1, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.146652e-02, LR: 1.000000e-02
+   Learning rate adjusted to 5.000000e-03 at epoch 389, loss 9.994941e-03
+Final Adam Loss: 0.006759502977474709
+Using best model, loss value: 0.006759502977474709
+  Neural network training completed, loss: 6.75516435e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 2 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 408236767106.7451
+Residual Analysis:
+  ||Ax-b||_2 = 4.414709e-01
+  ||Ax-b||_∞ = 2.027274e-01
+  ||Ax-b||_1 = 1.659852e+01
+  ||b||_2 = 7.481636e+01
+  Relative residual = 5.900727e-03
+Solve time: 0.372309s
+Matrix rank: 494
+---------------------------------------------
+  Training neural network (it=2, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.786659e-02, LR: 1.000000e-02
+   Learning rate adjusted to 5.000000e-03 at epoch 829, loss 9.998774e-03
+Final Adam Loss: 0.00939231628942959
+Using best model, loss value: 0.00939231628942959
+  Neural network training completed, loss: 9.38842020e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 3 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 408859781394.6362
+Residual Analysis:
+  ||Ax-b||_2 = 4.598272e-01
+  ||Ax-b||_∞ = 1.867574e-01
+  ||Ax-b||_1 = 2.175804e+01
+  ||b||_2 = 7.874569e+01
+  Relative residual = 5.839395e-03
+Solve time: 0.430198s
+Matrix rank: 505
+---------------------------------------------
+  Training neural network (it=3, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.027452e-02, LR: 1.000000e-02
+Final Adam Loss: 0.011003859355925544
+Using best model, loss value: 0.011003859355925544
+  Neural network training completed, loss: 1.09882179e-02
+自动选择method: parallel_svd
+=== Linear Solve Step 4 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 374340548337.45184
+Residual Analysis:
+  ||Ax-b||_2 = 3.491955e-01
+  ||Ax-b||_∞ = 1.440120e-01
+  ||Ax-b||_1 = 1.547234e+01
+  ||b||_2 = 8.145919e+01
+  Relative residual = 4.286754e-03
+Solve time: 0.322919s
+Matrix rank: 510
+---------------------------------------------
+  Training neural network (it=4, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.253799e-02, LR: 1.000000e-02
+   Learning rate adjusted to 5.000000e-03 at epoch 485, loss 9.989972e-03
+Final Adam Loss: 0.005196969835774539
+Using best model, loss value: 0.005196969835774539
+  Neural network training completed, loss: 6.00477386e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 5 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 394286526222.93225
+Residual Analysis:
+  ||Ax-b||_2 = 7.170899e-01
+  ||Ax-b||_∞ = 1.819453e-01
+  ||Ax-b||_1 = 4.725163e+01
+  ||b||_2 = 8.388376e+01
+  Relative residual = 8.548615e-03
+Solve time: 0.656033s
+Matrix rank: 517
+---------------------------------------------
+  Training neural network (it=5, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.458044e-02, LR: 1.000000e-02
+   Learning rate adjusted to 5.000000e-03 at epoch 260, loss 9.974840e-03
+Final Adam Loss: 0.0016087588859171886
+Using best model, loss value: 0.0016087588859171886
+  Neural network training completed, loss: 1.60608310e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 6 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 402591067684.014
+Residual Analysis:
+  ||Ax-b||_2 = 1.166904e+00
+  ||Ax-b||_∞ = 2.182577e-01
+  ||Ax-b||_1 = 7.782148e+01
+  ||b||_2 = 8.637938e+01
+  Relative residual = 1.350906e-02
+Solve time: 1.682758s
+Matrix rank: 519
+---------------------------------------------
+  Training neural network (it=6, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 7.139130e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 7.139130e-03
+Final Adam Loss: 0.003376210246569829
+Using best model, loss value: 0.003376210246569829
+  Neural network training completed, loss: 2.60086442e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 7 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 413151268689.77136
+Residual Analysis:
+  ||Ax-b||_2 = 1.385146e+00
+  ||Ax-b||_∞ = 2.285419e-01
+  ||Ax-b||_1 = 9.702715e+01
+  ||b||_2 = 8.897977e+01
+  Relative residual = 1.556697e-02
+Solve time: 0.484729s
+Matrix rank: 523
+---------------------------------------------
+  Training neural network (it=7, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 7.507975e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 7.507975e-03
+Final Adam Loss: 0.0025140593374265306
+Using best model, loss value: 0.0025140593374265306
+  Neural network training completed, loss: 2.47209795e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 8 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 411603155945.2915
+Residual Analysis:
+  ||Ax-b||_2 = 1.177409e+00
+  ||Ax-b||_∞ = 2.620583e-01
+  ||Ax-b||_1 = 7.603655e+01
+  ||b||_2 = 9.122279e+01
+  Relative residual = 1.290696e-02
+Solve time: 0.588820s
+Matrix rank: 521
+---------------------------------------------
+  Training neural network (it=8, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 7.696127e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 7.696127e-03
+Final Adam Loss: 0.00274538904341942
+Using best model, loss value: 0.00274538904341942
+  Neural network training completed, loss: 2.74287616e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 9 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 363788160187.9439
+Residual Analysis:
+  ||Ax-b||_2 = 1.284812e+00
+  ||Ax-b||_∞ = 2.796208e-01
+  ||Ax-b||_1 = 7.914200e+01
+  ||b||_2 = 9.407536e+01
+  Relative residual = 1.365727e-02
+Solve time: 0.345750s
+Matrix rank: 525
+---------------------------------------------
+  Training neural network (it=9, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 6.627570e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 6.627570e-03
+Final Adam Loss: 0.0015431177996443632
+Using best model, loss value: 0.0015431177996443632
+  Neural network training completed, loss: 1.54051927e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 10 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 305307851375.05945
+Residual Analysis:
+  ||Ax-b||_2 = 1.696057e+00
+  ||Ax-b||_∞ = 3.037208e-01
+  ||Ax-b||_1 = 1.045537e+02
+  ||b||_2 = 9.659771e+01
+  Relative residual = 1.755795e-02
+Solve time: 0.343677s
+Matrix rank: 529
+---------------------------------------------
+  Training neural network (it=10, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.354227e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.354227e-03
+Final Adam Loss: 0.0004932309617872662
+Using best model, loss value: 0.0004932309617872662
+  Neural network training completed, loss: 4.92383074e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 11 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 368749265602.6284
+Residual Analysis:
+  ||Ax-b||_2 = 1.475402e+00
+  ||Ax-b||_∞ = 3.080091e-01
+  ||Ax-b||_1 = 8.939897e+01
+  ||b||_2 = 9.900959e+01
+  Relative residual = 1.490161e-02
+Solve time: 0.393270s
+Matrix rank: 530
+---------------------------------------------
+  Training neural network (it=11, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.306554e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.306554e-03
+Final Adam Loss: 0.0004920619702545759
+Using best model, loss value: 0.0004920619702545759
+  Neural network training completed, loss: 4.78736889e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 12 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 288073460010.1343
+Residual Analysis:
+  ||Ax-b||_2 = 1.579052e+00
+  ||Ax-b||_∞ = 3.319499e-01
+  ||Ax-b||_1 = 9.550219e+01
+  ||b||_2 = 1.017006e+02
+  Relative residual = 1.552648e-02
+Solve time: 0.301874s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=12, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 9.125199e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 9.125199e-04
+Final Adam Loss: 0.00045438473390123276
+Using best model, loss value: 0.00045438473390123276
+  Neural network training completed, loss: 4.54093780e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 13 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 227505239055.03415
+Residual Analysis:
+  ||Ax-b||_2 = 1.774759e+00
+  ||Ax-b||_∞ = 3.491430e-01
+  ||Ax-b||_1 = 9.728863e+01
+  ||b||_2 = 1.048274e+02
+  Relative residual = 1.693030e-02
+Solve time: 0.326571s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=13, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 8.283667e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 8.283667e-04
+Final Adam Loss: 0.0005757800301898176
+Using best model, loss value: 0.0005757800301898176
+  Neural network training completed, loss: 4.95685381e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 14 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 270007384818.33572
+Residual Analysis:
+  ||Ax-b||_2 = 2.127003e+00
+  ||Ax-b||_∞ = 3.538314e-01
+  ||Ax-b||_1 = 1.126104e+02
+  ||b||_2 = 1.086668e+02
+  Relative residual = 1.957363e-02
+Solve time: 0.331841s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=14, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 6.169290e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 6.169290e-04
+Final Adam Loss: 0.00037267502476198987
+Using best model, loss value: 0.00037267502476198987
+  Neural network training completed, loss: 3.72517632e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 15 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 226424175115.1792
+Residual Analysis:
+  ||Ax-b||_2 = 1.850267e+00
+  ||Ax-b||_∞ = 3.491416e-01
+  ||Ax-b||_1 = 9.370845e+01
+  ||b||_2 = 1.087756e+02
+  Relative residual = 1.700995e-02
+Solve time: 0.659538s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=15, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.832697e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.832697e-04
+Final Adam Loss: 0.0002980138253044745
+Using best model, loss value: 0.0002980138253044745
+  Neural network training completed, loss: 2.97864245e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 16 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 192102600980.6952
+Residual Analysis:
+  ||Ax-b||_2 = 1.665191e+00
+  ||Ax-b||_∞ = 3.451784e-01
+  ||Ax-b||_1 = 8.203280e+01
+  ||b||_2 = 1.088038e+02
+  Relative residual = 1.530453e-02
+Solve time: 0.644114s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=16, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.730650e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.730650e-04
+Final Adam Loss: 0.0002531678328925126
+Using best model, loss value: 0.0002531678328925126
+  Neural network training completed, loss: 2.53060623e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 17 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 216343865311.97168
+Residual Analysis:
+  ||Ax-b||_2 = 1.587707e+00
+  ||Ax-b||_∞ = 3.310941e-01
+  ||Ax-b||_1 = 8.821677e+01
+  ||b||_2 = 1.088667e+02
+  Relative residual = 1.458395e-02
+Solve time: 0.578325s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=17, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.826008e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.826008e-04
+Final Adam Loss: 0.0002170807558411179
+Using best model, loss value: 0.0002170807558411179
+  Neural network training completed, loss: 2.17026420e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 18 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 277252988777.97943
+Residual Analysis:
+  ||Ax-b||_2 = 1.471127e+00
+  ||Ax-b||_∞ = 3.322555e-01
+  ||Ax-b||_1 = 8.510538e+01
+  ||b||_2 = 1.088616e+02
+  Relative residual = 1.351374e-02
+Solve time: 0.408453s
+Matrix rank: 531
+---------------------------------------------
+  Training neural network (it=18, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.238586e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.238586e-04
+Final Adam Loss: 0.00020577728183330754
+Using best model, loss value: 0.00020577728183330754
+  Neural network training completed, loss: 3.22966111e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 19 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 208923726058.00137
+Residual Analysis:
+  ||Ax-b||_2 = 1.381489e+00
+  ||Ax-b||_∞ = 3.489869e-01
+  ||Ax-b||_1 = 8.367627e+01
+  ||b||_2 = 1.088394e+02
+  Relative residual = 1.269292e-02
+Solve time: 0.343447s
+Matrix rank: 530
+---------------------------------------------
+  Training neural network (it=19, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.311531e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.311531e-04
+Final Adam Loss: 0.00015891816463601646
+Using best model, loss value: 0.00015891816463601646
+  Neural network training completed, loss: 1.58875390e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 20 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 200924642210.39233
+Residual Analysis:
+  ||Ax-b||_2 = 1.372539e+00
+  ||Ax-b||_∞ = 3.322453e-01
+  ||Ax-b||_1 = 8.518955e+01
+  ||b||_2 = 1.088123e+02
+  Relative residual = 1.261382e-02
+Solve time: 0.367308s
+Matrix rank: 530
+---------------------------------------------
+  Training neural network (it=20, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.554177e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.554177e-04
+Final Adam Loss: 0.00011939319346835408
+Using best model, loss value: 0.00011939319346835408
+  Neural network training completed, loss: 1.19346266e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 21 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 228989595074.15915
+Residual Analysis:
+  ||Ax-b||_2 = 1.306962e+00
+  ||Ax-b||_∞ = 3.195500e-01
+  ||Ax-b||_1 = 8.214127e+01
+  ||b||_2 = 1.087764e+02
+  Relative residual = 1.201513e-02
+Solve time: 0.423845s
+Matrix rank: 529
+---------------------------------------------
+  Training neural network (it=21, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.089684e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.089684e-04
+Final Adam Loss: 8.611254472378128e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 8.611254472378128e-05
+  Neural network training completed, loss: 8.60816600e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 22 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 334272445109.8926
+Residual Analysis:
+  ||Ax-b||_2 = 1.178508e+00
+  ||Ax-b||_∞ = 3.196947e-01
+  ||Ax-b||_1 = 7.195765e+01
+  ||b||_2 = 1.087177e+02
+  Relative residual = 1.084008e-02
+Solve time: 0.321389s
+Matrix rank: 529
+---------------------------------------------
+  Training neural network (it=22, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 8.776839e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 8.776839e-05
+Final Adam Loss: 6.532327100641574e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 6.532327100641574e-05
+  Neural network training completed, loss: 6.53043200e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 23 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 165682326417.24103
+Residual Analysis:
+  ||Ax-b||_2 = 1.099624e+00
+  ||Ax-b||_∞ = 3.226827e-01
+  ||Ax-b||_1 = 6.701677e+01
+  ||b||_2 = 1.087009e+02
+  Relative residual = 1.011605e-02
+Solve time: 0.309740s
+Matrix rank: 528
+---------------------------------------------
+  Training neural network (it=23, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 7.176248e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 7.176248e-05
+Final Adam Loss: 0.00011600433721967846
+Using best model, loss value: 0.00011600433721967846
+  Neural network training completed, loss: 8.26578756e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 24 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 149139301857.83682
+Residual Analysis:
+  ||Ax-b||_2 = 1.035253e+00
+  ||Ax-b||_∞ = 3.205417e-01
+  ||Ax-b||_1 = 6.129126e+01
+  ||b||_2 = 1.086174e+02
+  Relative residual = 9.531192e-03
+Solve time: 0.422124s
+Matrix rank: 528
+---------------------------------------------
+  Training neural network (it=24, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 8.902271e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 8.902271e-05
+Final Adam Loss: 6.215018944403818e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 6.215018944403818e-05
+  Neural network training completed, loss: 6.21162477e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 25 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 376423546888.1073
+Residual Analysis:
+  ||Ax-b||_2 = 9.342052e-01
+  ||Ax-b||_∞ = 2.613450e-01
+  ||Ax-b||_1 = 5.944547e+01
+  ||b||_2 = 1.086610e+02
+  Relative residual = 8.597431e-03
+Solve time: 0.392648s
+Matrix rank: 529
+---------------------------------------------
+  Training neural network (it=25, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 6.458735e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 6.458735e-05
+Final Adam Loss: 4.662490965357835e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.662490965357835e-05
+  Neural network training completed, loss: 4.65266943e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 26 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 297684743267.65283
+Residual Analysis:
+  ||Ax-b||_2 = 9.230911e-01
+  ||Ax-b||_∞ = 2.989688e-01
+  ||Ax-b||_1 = 5.447289e+01
+  ||b||_2 = 1.085813e+02
+  Relative residual = 8.501378e-03
+Solve time: 0.456138s
+Matrix rank: 528
+---------------------------------------------
+  Training neural network (it=26, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 5.358450e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 5.358450e-05
+Final Adam Loss: 4.345469161693273e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.345469161693273e-05
+  Neural network training completed, loss: 4.34025006e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 27 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 305701007849.177
+Residual Analysis:
+  ||Ax-b||_2 = 9.102943e-01
+  ||Ax-b||_∞ = 3.218612e-01
+  ||Ax-b||_1 = 5.004743e+01
+  ||b||_2 = 1.086531e+02
+  Relative residual = 8.377991e-03
+Solve time: 0.519326s
+Matrix rank: 528
+---------------------------------------------
+  Training neural network (it=27, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.750119e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.750119e-05
+Final Adam Loss: 4.431739811455436e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.431739811455436e-05
+  Neural network training completed, loss: 4.43048931e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 28 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 280951935946.50726
+Residual Analysis:
+  ||Ax-b||_2 = 9.638177e-01
+  ||Ax-b||_∞ = 3.200121e-01
+  ||Ax-b||_1 = 5.167864e+01
+  ||b||_2 = 1.085924e+02
+  Relative residual = 8.875550e-03
+Solve time: 1.563539s
+Matrix rank: 528
+---------------------------------------------
+  Training neural network (it=28, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.770556e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.770556e-05
+Final Adam Loss: 3.8593129606094345e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.8593129606094345e-05
+  Neural network training completed, loss: 3.85813062e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 29 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 178525353018.51578
+Residual Analysis:
+  ||Ax-b||_2 = 9.255023e-01
+  ||Ax-b||_∞ = 3.218711e-01
+  ||Ax-b||_1 = 4.787336e+01
+  ||b||_2 = 1.086684e+02
+  Relative residual = 8.516755e-03
+Solve time: 0.341213s
+Matrix rank: 527
+---------------------------------------------
+  Training neural network (it=29, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.321940e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.321940e-05
+Final Adam Loss: 3.780152240234554e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.780152240234554e-05
+  Neural network training completed, loss: 3.77882737e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 30 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 246811416565.7709
+Residual Analysis:
+  ||Ax-b||_2 = 8.261677e-01
+  ||Ax-b||_∞ = 2.649279e-01
+  ||Ax-b||_1 = 4.543954e+01
+  ||b||_2 = 1.086522e+02
+  Relative residual = 7.603784e-03
+Solve time: 0.432090s
+Matrix rank: 527
+---------------------------------------------
+  Training neural network (it=30, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.968315e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.968315e-05
+Final Adam Loss: 4.0301791968981e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.0301791968981e-05
+  Neural network training completed, loss: 4.73778359e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 31 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 187459292526.87408
+Residual Analysis:
+  ||Ax-b||_2 = 7.594548e-01
+  ||Ax-b||_∞ = 2.302836e-01
+  ||Ax-b||_1 = 4.243839e+01
+  ||b||_2 = 1.087019e+02
+  Relative residual = 6.986585e-03
+Solve time: 0.554012s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=31, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 5.010698e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 5.010698e-05
+Final Adam Loss: 3.7578840850752014e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.7578840850752014e-05
+  Neural network training completed, loss: 3.75650559e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 32 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 148911632294.19974
+Residual Analysis:
+  ||Ax-b||_2 = 1.074706e+00
+  ||Ax-b||_∞ = 3.796251e-01
+  ||Ax-b||_1 = 5.650020e+01
+  ||b||_2 = 1.087125e+02
+  Relative residual = 9.885765e-03
+Solve time: 0.301034s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=32, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.513328e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.513328e-05
+Final Adam Loss: 3.726004410041627e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.726004410041627e-05
+  Neural network training completed, loss: 3.72472629e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 33 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 148966565189.5137
+Residual Analysis:
+  ||Ax-b||_2 = 1.035592e+00
+  ||Ax-b||_∞ = 3.530675e-01
+  ||Ax-b||_1 = 5.522467e+01
+  ||b||_2 = 1.087196e+02
+  Relative residual = 9.525353e-03
+Solve time: 0.328562s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=33, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.389614e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.389614e-05
+Final Adam Loss: 4.232079820458219e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.232079820458219e-05
+  Neural network training completed, loss: 4.25910395e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 34 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 154308483407.76062
+Residual Analysis:
+  ||Ax-b||_2 = 9.843318e-01
+  ||Ax-b||_∞ = 2.929972e-01
+  ||Ax-b||_1 = 5.549916e+01
+  ||b||_2 = 1.088127e+02
+  Relative residual = 9.046112e-03
+Solve time: 0.419483s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=34, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.833014e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.833014e-05
+Final Adam Loss: 4.3090856762731035e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.3090856762731035e-05
+  Neural network training completed, loss: 4.30787677e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 35 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 211737598553.59653
+Residual Analysis:
+  ||Ax-b||_2 = 9.439983e-01
+  ||Ax-b||_∞ = 3.024158e-01
+  ||Ax-b||_1 = 5.156077e+01
+  ||b||_2 = 1.087451e+02
+  Relative residual = 8.680838e-03
+Solve time: 0.284445s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=35, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.929643e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.929643e-05
+Final Adam Loss: 4.112763082667838e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.112763082667838e-05
+  Neural network training completed, loss: 4.11160175e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 36 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 318401807214.9315
+Residual Analysis:
+  ||Ax-b||_2 = 8.837301e-01
+  ||Ax-b||_∞ = 2.863892e-01
+  ||Ax-b||_1 = 4.940158e+01
+  ||b||_2 = 1.088577e+02
+  Relative residual = 8.118211e-03
+Solve time: 0.344201s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=36, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.772529e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.772529e-05
+Final Adam Loss: 0.00040928516005703594
+Using best model, loss value: 0.00040928516005703594
+  Neural network training completed, loss: 2.71445889e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 37 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 148755532481.13467
+Residual Analysis:
+  ||Ax-b||_2 = 1.366168e+00
+  ||Ax-b||_∞ = 2.807412e-01
+  ||Ax-b||_1 = 6.810152e+01
+  ||b||_2 = 1.087635e+02
+  Relative residual = 1.256091e-02
+Solve time: 0.348902s
+Matrix rank: 525
+---------------------------------------------
+  Training neural network (it=37, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.483739e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.483739e-04
+Final Adam Loss: 2.4522071650020396e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.4522071650020396e-05
+  Neural network training completed, loss: 2.45111908e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 38 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 285831125394.89294
+Residual Analysis:
+  ||Ax-b||_2 = 6.811433e-01
+  ||Ax-b||_∞ = 2.747924e-01
+  ||Ax-b||_1 = 3.415441e+01
+  ||b||_2 = 9.823277e+01
+  Relative residual = 6.933973e-03
+Solve time: 0.502471s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=38, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.365077e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.365077e-05
+Final Adam Loss: 2.2588869984841272e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.2588869984841272e-05
+  Neural network training completed, loss: 2.25784924e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 39 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 241160601551.68262
+Residual Analysis:
+  ||Ax-b||_2 = 6.713367e-01
+  ||Ax-b||_∞ = 2.673659e-01
+  ||Ax-b||_1 = 3.330787e+01
+  ||b||_2 = 1.001872e+02
+  Relative residual = 6.700821e-03
+Solve time: 0.299481s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=39, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.857864e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.857864e-05
+Final Adam Loss: 2.335902659750706e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.335902659750706e-05
+  Neural network training completed, loss: 2.33522492e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 40 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 203205470619.03687
+Residual Analysis:
+  ||Ax-b||_2 = 6.765162e-01
+  ||Ax-b||_∞ = 2.445380e-01
+  ||Ax-b||_1 = 3.615746e+01
+  ||b||_2 = 1.026612e+02
+  Relative residual = 6.589794e-03
+Solve time: 0.622902s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=40, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.485261e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.485261e-05
+Final Adam Loss: 2.2378632926465095e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.2378632926465095e-05
+  Neural network training completed, loss: 2.23718670e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 41 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 334036630584.76715
+Residual Analysis:
+  ||Ax-b||_2 = 7.304772e-01
+  ||Ax-b||_∞ = 2.581885e-01
+  ||Ax-b||_1 = 3.851106e+01
+  ||b||_2 = 1.026396e+02
+  Relative residual = 7.116912e-03
+Solve time: 0.297486s
+Matrix rank: 527
+---------------------------------------------
+  Training neural network (it=41, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.455246e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.455246e-05
+Final Adam Loss: 4.0141304413183375e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.0141304413183375e-05
+  Neural network training completed, loss: 5.48136523e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 42 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 273566947046.9692
+Residual Analysis:
+  ||Ax-b||_2 = 7.742150e-01
+  ||Ax-b||_∞ = 2.376231e-01
+  ||Ax-b||_1 = 3.955025e+01
+  ||b||_2 = 1.026500e+02
+  Relative residual = 7.542281e-03
+Solve time: 0.388272s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=42, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.747269e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.747269e-05
+Final Adam Loss: 1.6966675322030183e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.6966675322030183e-05
+  Neural network training completed, loss: 1.69569153e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 43 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 387354147895.1427
+Residual Analysis:
+  ||Ax-b||_2 = 6.965995e-01
+  ||Ax-b||_∞ = 2.883649e-01
+  ||Ax-b||_1 = 3.232372e+01
+  ||b||_2 = 9.557364e+01
+  Relative residual = 7.288616e-03
+Solve time: 0.604169s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=43, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.905142e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.905142e-05
+Final Adam Loss: 1.4890472484370952e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4890472484370952e-05
+  Neural network training completed, loss: 1.48652188e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 44 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 387675877402.37286
+Residual Analysis:
+  ||Ax-b||_2 = 7.078443e-01
+  ||Ax-b||_∞ = 3.135798e-01
+  ||Ax-b||_1 = 3.116554e+01
+  ||b||_2 = 9.558181e+01
+  Relative residual = 7.405639e-03
+Solve time: 0.753600s
+Matrix rank: 526
+---------------------------------------------
+  Training neural network (it=44, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.811560e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.811560e-05
+Final Adam Loss: 0.00011185982079480754
+Using best model, loss value: 0.00011185982079480754
+  Neural network training completed, loss: 1.70083831e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 45 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 327563123173.1979
+Residual Analysis:
+  ||Ax-b||_2 = 7.747370e-01
+  ||Ax-b||_∞ = 2.675677e-01
+  ||Ax-b||_1 = 3.950327e+01
+  ||b||_2 = 9.692389e+01
+  Relative residual = 7.993251e-03
+Solve time: 0.408431s
+Matrix rank: 525
+---------------------------------------------
+  Training neural network (it=45, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.539947e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.539947e-04
+Final Adam Loss: 1.4240820190904818e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4240820190904818e-05
+  Neural network training completed, loss: 1.42294447e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 46 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 333302902024.6819
+Residual Analysis:
+  ||Ax-b||_2 = 6.823956e-01
+  ||Ax-b||_∞ = 2.662642e-01
+  ||Ax-b||_1 = 3.111181e+01
+  ||b||_2 = 9.305131e+01
+  Relative residual = 7.333541e-03
+Solve time: 0.329778s
+Matrix rank: 520
+---------------------------------------------
+  Training neural network (it=46, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.726625e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.726625e-05
+Final Adam Loss: 1.4343737924251268e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4343737924251268e-05
+  Neural network training completed, loss: 1.43338361e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 47 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 382194518518.76807
+Residual Analysis:
+  ||Ax-b||_2 = 7.328586e-01
+  ||Ax-b||_∞ = 2.920842e-01
+  ||Ax-b||_1 = 3.221404e+01
+  ||b||_2 = 9.378860e+01
+  Relative residual = 7.813941e-03
+Solve time: 0.350656s
+Matrix rank: 520
+---------------------------------------------
+  Training neural network (it=47, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.635088e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.635088e-05
+Final Adam Loss: 0.003432447548433985
+Using best model, loss value: 0.003432447548433985
+  Neural network training completed, loss: 9.06478827e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 48 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 382557222872.6547
+Residual Analysis:
+  ||Ax-b||_2 = 1.342344e+00
+  ||Ax-b||_∞ = 2.824756e-01
+  ||Ax-b||_1 = 5.917973e+01
+  ||b||_2 = 9.379085e+01
+  Relative residual = 1.431210e-02
+Solve time: 0.385617s
+Matrix rank: 521
+---------------------------------------------
+  Training neural network (it=48, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 8.522620e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 8.522620e-04
+Final Adam Loss: 2.092735716914625e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.092735716914625e-05
+  Neural network training completed, loss: 2.09177167e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 49 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 394365769122.3687
+Residual Analysis:
+  ||Ax-b||_2 = 6.318785e-01
+  ||Ax-b||_∞ = 2.461414e-01
+  ||Ax-b||_1 = 2.609607e+01
+  ||b||_2 = 9.162820e+01
+  Relative residual = 6.896114e-03
+Solve time: 4.027675s
+Matrix rank: 518
+---------------------------------------------
+  Training neural network (it=49, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.067011e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.067011e-05
+Final Adam Loss: 1.3729210490156609e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3729210490156609e-05
+  Neural network training completed, loss: 1.37222958e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 50 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 411913727564.25287
+Residual Analysis:
+  ||Ax-b||_2 = 6.396588e-01
+  ||Ax-b||_∞ = 2.589849e-01
+  ||Ax-b||_1 = 2.576694e+01
+  ||b||_2 = 9.204640e+01
+  Relative residual = 6.949308e-03
+Solve time: 19.575578s
+Matrix rank: 518
+---------------------------------------------
+Iter     50 | τ= 12.537436 | dt=5.572563e-02 | Residual=2.608448e-03 | ||U||=7.132911e+01 | Time=319.11s
+  Training neural network (it=50, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.773779e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.773779e-05
+Final Adam Loss: 1.630913821621209e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.630913821621209e-05
+  Neural network training completed, loss: 1.62100160e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 51 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 359913045510.9748
+Residual Analysis:
+  ||Ax-b||_2 = 6.924596e-01
+  ||Ax-b||_∞ = 2.597770e-01
+  ||Ax-b||_1 = 2.905029e+01
+  ||b||_2 = 9.256056e+01
+  Relative residual = 7.481152e-03
+Solve time: 2.579854s
+Matrix rank: 518
+---------------------------------------------
+  Training neural network (it=51, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.902068e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.902068e-05
+Final Adam Loss: 1.5325980968412674e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.5325980968412674e-05
+  Neural network training completed, loss: 1.53196237e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 52 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 360144536725.3519
+Residual Analysis:
+  ||Ax-b||_2 = 6.564691e-01
+  ||Ax-b||_∞ = 2.664081e-01
+  ||Ax-b||_1 = 2.710162e+01
+  ||b||_2 = 9.256134e+01
+  Relative residual = 7.092260e-03
+Solve time: 10.958956s
+Matrix rank: 516
+---------------------------------------------
+  Training neural network (it=52, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.760491e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.760491e-05
+Final Adam Loss: 4.713425309133028e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.713425309133028e-05
+  Neural network training completed, loss: 1.98242187e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 53 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 383036097990.1904
+Residual Analysis:
+  ||Ax-b||_2 = 7.214360e-01
+  ||Ax-b||_∞ = 2.432790e-01
+  ||Ax-b||_1 = 3.331609e+01
+  ||b||_2 = 9.256309e+01
+  Relative residual = 7.793992e-03
+Solve time: 7.138162s
+Matrix rank: 518
+---------------------------------------------
+  Training neural network (it=53, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.851698e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.851698e-04
+Final Adam Loss: 1.4082417700354443e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4082417700354443e-05
+  Neural network training completed, loss: 1.40764596e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 54 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 328118614020.31915
+Residual Analysis:
+  ||Ax-b||_2 = 6.664578e-01
+  ||Ax-b||_∞ = 2.802705e-01
+  ||Ax-b||_1 = 2.379228e+01
+  ||b||_2 = 9.104965e+01
+  Relative residual = 7.319718e-03
+Solve time: 0.648880s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=54, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.575253e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.575253e-05
+Final Adam Loss: 1.4146425996316537e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4146425996316537e-05
+  Neural network training completed, loss: 1.41412812e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 55 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 203450488446.91437
+Residual Analysis:
+  ||Ax-b||_2 = 6.594273e-01
+  ||Ax-b||_∞ = 2.866664e-01
+  ||Ax-b||_1 = 2.002341e+01
+  ||b||_2 = 9.134386e+01
+  Relative residual = 7.219176e-03
+Solve time: 0.403621s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=55, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.675099e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.675099e-05
+Final Adam Loss: 1.6918101878769563e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.6918101878769563e-05
+  Neural network training completed, loss: 1.69022915e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 56 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 382424894322.5604
+Residual Analysis:
+  ||Ax-b||_2 = 6.996128e-01
+  ||Ax-b||_∞ = 2.851969e-01
+  ||Ax-b||_1 = 2.429986e+01
+  ||b||_2 = 9.170006e+01
+  Relative residual = 7.629360e-03
+Solve time: 0.429143s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=56, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.834521e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.834521e-05
+Final Adam Loss: 1.899700615042143e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.899700615042143e-05
+  Neural network training completed, loss: 1.89882065e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 57 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 382331172433.7674
+Residual Analysis:
+  ||Ax-b||_2 = 7.059690e-01
+  ||Ax-b||_∞ = 2.926123e-01
+  ||Ax-b||_1 = 2.699261e+01
+  ||b||_2 = 9.169876e+01
+  Relative residual = 7.698784e-03
+Solve time: 0.434467s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=57, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.114808e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.114808e-05
+Final Adam Loss: 2.6944364031245945e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.6944364031245945e-05
+  Neural network training completed, loss: 2.38406240e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 58 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 195026044261.39926
+Residual Analysis:
+  ||Ax-b||_2 = 5.914578e-01
+  ||Ax-b||_∞ = 2.544214e-01
+  ||Ax-b||_1 = 1.992682e+01
+  ||b||_2 = 9.063733e+01
+  Relative residual = 6.525543e-03
+Solve time: 0.402647s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=58, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.478165e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.478165e-05
+Final Adam Loss: 1.7117193727352057e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.7117193727352057e-05
+  Neural network training completed, loss: 1.71126520e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 59 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 273419687801.01373
+Residual Analysis:
+  ||Ax-b||_2 = 5.831752e-01
+  ||Ax-b||_∞ = 2.558917e-01
+  ||Ax-b||_1 = 1.810500e+01
+  ||b||_2 = 9.063689e+01
+  Relative residual = 6.434193e-03
+Solve time: 0.451982s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=59, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.782999e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.782999e-05
+Final Adam Loss: 1.5488524707310646e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.5488524707310646e-05
+  Neural network training completed, loss: 1.54901755e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 60 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 237563770825.50647
+Residual Analysis:
+  ||Ax-b||_2 = 6.171634e-01
+  ||Ax-b||_∞ = 2.513967e-01
+  ||Ax-b||_1 = 2.009812e+01
+  ||b||_2 = 9.063636e+01
+  Relative residual = 6.809225e-03
+Solve time: 0.328543s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=60, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.588263e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.588263e-05
+Final Adam Loss: 1.5546821917430542e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.5546821917430542e-05
+  Neural network training completed, loss: 1.55416789e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 61 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 155074002436.29712
+Residual Analysis:
+  ||Ax-b||_2 = 6.475257e-01
+  ||Ax-b||_∞ = 2.757876e-01
+  ||Ax-b||_1 = 2.138959e+01
+  ||b||_2 = 9.063571e+01
+  Relative residual = 7.144267e-03
+Solve time: 0.309642s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=61, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.829339e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.829339e-05
+Final Adam Loss: 1.5811396474994008e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.5811396474994008e-05
+  Neural network training completed, loss: 1.58068555e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 62 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 155107043867.5528
+Residual Analysis:
+  ||Ax-b||_2 = 6.315304e-01
+  ||Ax-b||_∞ = 2.535934e-01
+  ||Ax-b||_1 = 2.093040e+01
+  ||b||_2 = 9.063631e+01
+  Relative residual = 6.967742e-03
+Solve time: 0.455843s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=62, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.569233e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.569233e-05
+Final Adam Loss: 1.4435190730035816e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4435190730035816e-05
+  Neural network training completed, loss: 1.45078155e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 63 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 155312868969.4615
+Residual Analysis:
+  ||Ax-b||_2 = 5.960748e-01
+  ||Ax-b||_∞ = 2.476540e-01
+  ||Ax-b||_1 = 1.994633e+01
+  ||b||_2 = 9.063805e+01
+  Relative residual = 6.576429e-03
+Solve time: 0.348118s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=63, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.757846e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.757846e-05
+Final Adam Loss: 1.755702272450101e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.755702272450101e-05
+  Neural network training completed, loss: 1.75275855e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 64 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 196036702966.3825
+Residual Analysis:
+  ||Ax-b||_2 = 5.473128e-01
+  ||Ax-b||_∞ = 2.034684e-01
+  ||Ax-b||_1 = 2.103965e+01
+  ||b||_2 = 9.064120e+01
+  Relative residual = 6.038234e-03
+Solve time: 0.416109s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=64, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.690407e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.690407e-05
+Final Adam Loss: 4.730517588262731e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 4.730517588262731e-05
+  Neural network training completed, loss: 3.52361952e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 65 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 207136081135.66653
+Residual Analysis:
+  ||Ax-b||_2 = 5.007352e-01
+  ||Ax-b||_∞ = 1.636978e-01
+  ||Ax-b||_1 = 1.867286e+01
+  ||b||_2 = 9.064358e+01
+  Relative residual = 5.524222e-03
+Solve time: 0.331621s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=65, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.480128e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.480128e-05
+Final Adam Loss: 1.4778007713636258e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4778007713636258e-05
+  Neural network training completed, loss: 1.47710303e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 66 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 315499896382.29834
+Residual Analysis:
+  ||Ax-b||_2 = 4.005584e-01
+  ||Ax-b||_∞ = 1.606646e-01
+  ||Ax-b||_1 = 1.757369e+01
+  ||b||_2 = 9.064430e+01
+  Relative residual = 4.419013e-03
+Solve time: 0.398149s
+Matrix rank: 509
+---------------------------------------------
+  Training neural network (it=66, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.698285e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.698285e-05
+Final Adam Loss: 1.1638396756971738e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1638396756971738e-05
+  Neural network training completed, loss: 1.16314735e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 67 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 154729490165.0419
+Residual Analysis:
+  ||Ax-b||_2 = 4.167162e-01
+  ||Ax-b||_∞ = 1.523324e-01
+  ||Ax-b||_1 = 1.582973e+01
+  ||b||_2 = 9.064260e+01
+  Relative residual = 4.597355e-03
+Solve time: 0.399606s
+Matrix rank: 509
+---------------------------------------------
+  Training neural network (it=67, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.469737e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.469737e-05
+Final Adam Loss: 9.99687772352156e-06
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 9.99687772352156e-06
+  Neural network training completed, loss: 9.99192486e-06
+自动选择method: parallel_svd
+=== Linear Solve Step 68 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 228863914641.82202
+Residual Analysis:
+  ||Ax-b||_2 = 4.089502e-01
+  ||Ax-b||_∞ = 1.562246e-01
+  ||Ax-b||_1 = 1.451091e+01
+  ||b||_2 = 9.063868e+01
+  Relative residual = 4.511873e-03
+Solve time: 0.387597s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=68, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.311884e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.311884e-05
+Final Adam Loss: 9.999440748353665e-06
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 9.999440748353665e-06
+  Neural network training completed, loss: 9.99506859e-06
+自动选择method: parallel_svd
+=== Linear Solve Step 69 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 292606448201.55695
+Residual Analysis:
+  ||Ax-b||_2 = 4.111504e-01
+  ||Ax-b||_∞ = 1.571516e-01
+  ||Ax-b||_1 = 1.386992e+01
+  ||b||_2 = 9.063394e+01
+  Relative residual = 4.536385e-03
+Solve time: 0.476713s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=69, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.270515e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.270515e-05
+Final Adam Loss: 9.997456098999151e-06
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 9.997456098999151e-06
+  Neural network training completed, loss: 9.99295982e-06
+自动选择method: parallel_svd
+=== Linear Solve Step 70 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 334524403565.8299
+Residual Analysis:
+  ||Ax-b||_2 = 4.876917e-01
+  ||Ax-b||_∞ = 1.936751e-01
+  ||Ax-b||_1 = 1.686347e+01
+  ||b||_2 = 9.062801e+01
+  Relative residual = 5.381246e-03
+Solve time: 0.469069s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=70, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.263433e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.263433e-05
+Final Adam Loss: 9.99578254100198e-06
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 9.99578254100198e-06
+  Neural network training completed, loss: 9.99077621e-06
+自动选择method: parallel_svd
+=== Linear Solve Step 71 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 280262092861.9984
+Residual Analysis:
+  ||Ax-b||_2 = 5.772838e-01
+  ||Ax-b||_∞ = 2.192540e-01
+  ||Ax-b||_1 = 2.162629e+01
+  ||b||_2 = 9.062132e+01
+  Relative residual = 6.370286e-03
+Solve time: 0.701853s
+Matrix rank: 514
+---------------------------------------------
+  Training neural network (it=71, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.292785e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.292785e-05
+Final Adam Loss: 1.0496999794737506e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.0496999794737506e-05
+  Neural network training completed, loss: 1.06040231e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 72 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 285372022669.52234
+Residual Analysis:
+  ||Ax-b||_2 = 6.074837e-01
+  ||Ax-b||_∞ = 2.445442e-01
+  ||Ax-b||_1 = 2.180103e+01
+  ||b||_2 = 9.061635e+01
+  Relative residual = 6.703908e-03
+Solve time: 0.379023s
+Matrix rank: 514
+---------------------------------------------
+  Training neural network (it=72, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.406881e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.406881e-05
+Final Adam Loss: 1.0899435288024757e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.0899435288024757e-05
+  Neural network training completed, loss: 1.08956147e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 73 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 403140032145.80615
+Residual Analysis:
+  ||Ax-b||_2 = 5.957610e-01
+  ||Ax-b||_∞ = 2.326491e-01
+  ||Ax-b||_1 = 2.213826e+01
+  ||b||_2 = 9.061380e+01
+  Relative residual = 6.574727e-03
+Solve time: 0.505869s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=73, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.525997e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.525997e-05
+Final Adam Loss: 1.3677368617818315e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3677368617818315e-05
+  Neural network training completed, loss: 1.37637139e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 74 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 203068021046.3206
+Residual Analysis:
+  ||Ax-b||_2 = 5.841428e-01
+  ||Ax-b||_∞ = 2.412778e-01
+  ||Ax-b||_1 = 2.040945e+01
+  ||b||_2 = 9.061242e+01
+  Relative residual = 6.446608e-03
+Solve time: 0.548343s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=74, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.549212e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.549212e-05
+Final Adam Loss: 1.1825297238789957e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1825297238789957e-05
+  Neural network training completed, loss: 1.18211566e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 75 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 393373933895.4712
+Residual Analysis:
+  ||Ax-b||_2 = 5.061471e-01
+  ||Ax-b||_∞ = 2.051431e-01
+  ||Ax-b||_1 = 1.636957e+01
+  ||b||_2 = 9.061153e+01
+  Relative residual = 5.585902e-03
+Solve time: 0.460885s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=75, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.380743e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.380743e-05
+Final Adam Loss: 1.4145438628310067e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4145438628310067e-05
+  Neural network training completed, loss: 1.57101810e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 76 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 154986750746.31284
+Residual Analysis:
+  ||Ax-b||_2 = 4.975634e-01
+  ||Ax-b||_∞ = 2.181731e-01
+  ||Ax-b||_1 = 1.642840e+01
+  ||b||_2 = 9.061139e+01
+  Relative residual = 5.491180e-03
+Solve time: 0.426421s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=76, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.667373e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.667373e-05
+Final Adam Loss: 1.1139111386323555e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1139111386323555e-05
+  Neural network training completed, loss: 1.11334198e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 77 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 264434620688.50052
+Residual Analysis:
+  ||Ax-b||_2 = 5.094791e-01
+  ||Ax-b||_∞ = 1.908051e-01
+  ||Ax-b||_1 = 2.053056e+01
+  ||b||_2 = 9.061177e+01
+  Relative residual = 5.622659e-03
+Solve time: 0.597214s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=77, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.368920e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.368920e-05
+Final Adam Loss: 1.1644145646152893e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1644145646152893e-05
+  Neural network training completed, loss: 1.16409343e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 78 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 210345835193.47754
+Residual Analysis:
+  ||Ax-b||_2 = 4.298611e-01
+  ||Ax-b||_∞ = 1.677952e-01
+  ||Ax-b||_1 = 1.456266e+01
+  ||b||_2 = 9.009954e+01
+  Relative residual = 4.770958e-03
+Solve time: 0.573149s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=78, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.302428e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.302428e-05
+Final Adam Loss: 1.1208335328779186e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1208335328779186e-05
+  Neural network training completed, loss: 1.12041019e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 79 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 229193102177.4627
+Residual Analysis:
+  ||Ax-b||_2 = 5.208281e-01
+  ||Ax-b||_∞ = 2.261239e-01
+  ||Ax-b||_1 = 1.893420e+01
+  ||b||_2 = 9.020193e+01
+  Relative residual = 5.774023e-03
+Solve time: 0.563746s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=79, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.334606e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.334606e-05
+Final Adam Loss: 1.193018964294313e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.193018964294313e-05
+  Neural network training completed, loss: 1.19272850e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 80 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 248136296531.71487
+Residual Analysis:
+  ||Ax-b||_2 = 4.467894e-01
+  ||Ax-b||_∞ = 1.885935e-01
+  ||Ax-b||_1 = 1.504943e+01
+  ||b||_2 = 8.989948e+01
+  Relative residual = 4.969877e-03
+Solve time: 0.826195s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=80, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.314979e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.314979e-05
+Final Adam Loss: 1.1842799059592608e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1842799059592608e-05
+  Neural network training completed, loss: 1.18403985e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 81 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 230895742632.21405
+Residual Analysis:
+  ||Ax-b||_2 = 4.366747e-01
+  ||Ax-b||_∞ = 1.699246e-01
+  ||Ax-b||_1 = 1.657420e+01
+  ||b||_2 = 8.996103e+01
+  Relative residual = 4.854042e-03
+Solve time: 0.817689s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=81, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.479671e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.479671e-05
+Final Adam Loss: 1.3441450038414325e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3441450038414325e-05
+  Neural network training completed, loss: 1.34391654e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 82 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 332672376675.5813
+Residual Analysis:
+  ||Ax-b||_2 = 4.190923e-01
+  ||Ax-b||_∞ = 1.665156e-01
+  ||Ax-b||_1 = 1.400963e+01
+  ||b||_2 = 8.996235e+01
+  Relative residual = 4.658530e-03
+Solve time: 0.643784s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=82, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.404173e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.404173e-05
+Final Adam Loss: 1.3343760285380663e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3343760285380663e-05
+  Neural network training completed, loss: 1.33414973e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 83 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 220072805571.8188
+Residual Analysis:
+  ||Ax-b||_2 = 6.068235e-01
+  ||Ax-b||_∞ = 2.381252e-01
+  ||Ax-b||_1 = 2.057838e+01
+  ||b||_2 = 9.003678e+01
+  Relative residual = 6.739730e-03
+Solve time: 0.733291s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=83, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.377320e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.377320e-05
+Final Adam Loss: 1.2712258287468534e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.2712258287468534e-05
+  Neural network training completed, loss: 1.27093524e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 84 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 252683117347.98773
+Residual Analysis:
+  ||Ax-b||_2 = 5.832489e-01
+  ||Ax-b||_∞ = 2.371341e-01
+  ||Ax-b||_1 = 1.757551e+01
+  ||b||_2 = 8.982044e+01
+  Relative residual = 6.493499e-03
+Solve time: 0.957844s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=84, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.428148e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.428148e-05
+Final Adam Loss: 1.3526795668107978e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3526795668107978e-05
+  Neural network training completed, loss: 1.35235050e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 85 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 265121295332.85425
+Residual Analysis:
+  ||Ax-b||_2 = 5.461898e-01
+  ||Ax-b||_∞ = 2.147839e-01
+  ||Ax-b||_1 = 1.644489e+01
+  ||b||_2 = 8.986490e+01
+  Relative residual = 6.077899e-03
+Solve time: 0.491771s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=85, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.421041e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.421041e-05
+Final Adam Loss: 1.2913221972084927e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.2913221972084927e-05
+  Neural network training completed, loss: 1.29107999e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 86 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 246158506279.9977
+Residual Analysis:
+  ||Ax-b||_2 = 5.999740e-01
+  ||Ax-b||_∞ = 2.459027e-01
+  ||Ax-b||_1 = 1.664301e+01
+  ||b||_2 = 8.986666e+01
+  Relative residual = 6.676270e-03
+Solve time: 0.553481s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=86, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.486427e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.486427e-05
+Final Adam Loss: 1.2903590465311338e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.2903590465311338e-05
+  Neural network training completed, loss: 1.29009235e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 87 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 264608688624.2089
+Residual Analysis:
+  ||Ax-b||_2 = 5.601495e-01
+  ||Ax-b||_∞ = 2.266994e-01
+  ||Ax-b||_1 = 1.572724e+01
+  ||b||_2 = 8.973822e+01
+  Relative residual = 6.242039e-03
+Solve time: 0.606696s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=87, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.566290e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.566290e-05
+Final Adam Loss: 1.3546931539544211e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.3546931539544211e-05
+  Neural network training completed, loss: 1.35442411e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 88 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 264613638165.42993
+Residual Analysis:
+  ||Ax-b||_2 = 6.527352e-01
+  ||Ax-b||_∞ = 2.987953e-01
+  ||Ax-b||_1 = 1.659915e+01
+  ||b||_2 = 8.973897e+01
+  Relative residual = 7.273710e-03
+Solve time: 0.581977s
+Matrix rank: 510
+---------------------------------------------
+  Training neural network (it=88, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.663169e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.663169e-05
+Final Adam Loss: 1.4746466914622665e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4746466914622665e-05
+  Neural network training completed, loss: 1.47434080e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 89 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 264607432283.74213
+Residual Analysis:
+  ||Ax-b||_2 = 6.336996e-01
+  ||Ax-b||_∞ = 2.805261e-01
+  ||Ax-b||_1 = 1.380844e+01
+  ||b||_2 = 8.973976e+01
+  Relative residual = 7.061525e-03
+Solve time: 0.660694s
+Matrix rank: 510
+---------------------------------------------
+  Training neural network (it=89, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.796149e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.796149e-05
+Final Adam Loss: 1.675171080543754e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.675171080543754e-05
+  Neural network training completed, loss: 1.67482059e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 90 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 395685772953.23096
+Residual Analysis:
+  ||Ax-b||_2 = 6.577419e-01
+  ||Ax-b||_∞ = 2.897171e-01
+  ||Ax-b||_1 = 1.461917e+01
+  ||b||_2 = 8.974081e+01
+  Relative residual = 7.329351e-03
+Solve time: 0.477645s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=90, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.655615e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.655615e-05
+Final Adam Loss: 1.4398234452939684e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4398234452939684e-05
+  Neural network training completed, loss: 1.43947988e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 91 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 272611275985.15582
+Residual Analysis:
+  ||Ax-b||_2 = 5.499994e-01
+  ||Ax-b||_∞ = 2.452787e-01
+  ||Ax-b||_1 = 1.681395e+01
+  ||b||_2 = 8.967694e+01
+  Relative residual = 6.133120e-03
+Solve time: 0.579155s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=91, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.412066e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.412066e-05
+Final Adam Loss: 1.1979688398154575e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.1979688398154575e-05
+  Neural network training completed, loss: 1.20311923e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 92 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 344214233065.9046
+Residual Analysis:
+  ||Ax-b||_2 = 5.686336e-01
+  ||Ax-b||_∞ = 2.531283e-01
+  ||Ax-b||_1 = 1.587407e+01
+  ||b||_2 = 8.967790e+01
+  Relative residual = 6.340844e-03
+Solve time: 1.325467s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=92, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.623336e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.623336e-05
+Final Adam Loss: 1.544998968532755e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.544998968532755e-05
+  Neural network training completed, loss: 1.54465632e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 93 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 317237890165.1791
+Residual Analysis:
+  ||Ax-b||_2 = 5.848374e-01
+  ||Ax-b||_∞ = 2.546080e-01
+  ||Ax-b||_1 = 1.467452e+01
+  ||b||_2 = 8.967866e+01
+  Relative residual = 6.521478e-03
+Solve time: 0.635338s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=93, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.575949e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.575949e-05
+Final Adam Loss: 1.4085791050789065e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4085791050789065e-05
+  Neural network training completed, loss: 1.40832997e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 94 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 368162767540.8351
+Residual Analysis:
+  ||Ax-b||_2 = 6.066996e-01
+  ||Ax-b||_∞ = 2.688328e-01
+  ||Ax-b||_1 = 1.353313e+01
+  ||b||_2 = 8.967933e+01
+  Relative residual = 6.765211e-03
+Solve time: 4.133324s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=94, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.525444e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.525444e-05
+Final Adam Loss: 1.4697279458531516e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.4697279458531516e-05
+  Neural network training completed, loss: 1.46949383e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 95 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 271908169216.55615
+Residual Analysis:
+  ||Ax-b||_2 = 6.408816e-01
+  ||Ax-b||_∞ = 2.856757e-01
+  ||Ax-b||_1 = 1.669387e+01
+  ||b||_2 = 8.969291e+01
+  Relative residual = 7.145287e-03
+Solve time: 1.571673s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=95, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.739748e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.739748e-05
+Final Adam Loss: 1.672757628425315e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.672757628425315e-05
+  Neural network training completed, loss: 1.67235327e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 96 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 275633424029.0684
+Residual Analysis:
+  ||Ax-b||_2 = 6.667656e-01
+  ||Ax-b||_∞ = 2.845674e-01
+  ||Ax-b||_1 = 1.746519e+01
+  ||b||_2 = 8.965405e+01
+  Relative residual = 7.437094e-03
+Solve time: 1.218615s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=96, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.097544e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.097544e-05
+Final Adam Loss: 0.0003632467515344249
+Using best model, loss value: 0.0003632467515344249
+  Neural network training completed, loss: 1.60764124e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 97 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 296697871651.319
+Residual Analysis:
+  ||Ax-b||_2 = 5.878097e-01
+  ||Ax-b||_∞ = 2.178943e-01
+  ||Ax-b||_1 = 2.560536e+01
+  ||b||_2 = 8.963436e+01
+  Relative residual = 6.557861e-03
+Solve time: 0.682008s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=97, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.528544e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.528544e-04
+Final Adam Loss: 1.7385791595172224e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.7385791595172224e-05
+  Neural network training completed, loss: 1.73815995e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 98 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278010739977.92664
+Residual Analysis:
+  ||Ax-b||_2 = 5.262118e-01
+  ||Ax-b||_∞ = 2.304939e-01
+  ||Ax-b||_1 = 1.734880e+01
+  ||b||_2 = 8.962469e+01
+  Relative residual = 5.871281e-03
+Solve time: 0.625609s
+Matrix rank: 510
+---------------------------------------------
+  Training neural network (it=98, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.073918e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.073918e-05
+Final Adam Loss: 1.653491972311323e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.653491972311323e-05
+  Neural network training completed, loss: 1.65322785e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 99 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 277829286262.3392
+Residual Analysis:
+  ||Ax-b||_2 = 5.316638e-01
+  ||Ax-b||_∞ = 2.374088e-01
+  ||Ax-b||_1 = 1.576298e+01
+  ||b||_2 = 8.962710e+01
+  Relative residual = 5.931954e-03
+Solve time: 0.690757s
+Matrix rank: 510
+---------------------------------------------
+  Training neural network (it=99, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.102360e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.102360e-05
+Final Adam Loss: 1.8722037339880328e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.8722037339880328e-05
+  Neural network training completed, loss: 1.87173259e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 100 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 277686990017.7828
+Residual Analysis:
+  ||Ax-b||_2 = 4.658214e-01
+  ||Ax-b||_∞ = 2.210277e-01
+  ||Ax-b||_1 = 1.340703e+01
+  ||b||_2 = 8.962753e+01
+  Relative residual = 5.197303e-03
+Solve time: 0.916525s
+Matrix rank: 510
+---------------------------------------------
+Iter    100 | τ= 13.491276 | dt=2.807930e-04 | Residual=1.917215e-03 | ||U||=7.131295e+01 | Time=663.06s
+  Training neural network (it=100, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.217619e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.217619e-05
+Final Adam Loss: 1.9766021901106532e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.9766021901106532e-05
+  Neural network training completed, loss: 1.97627759e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 101 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 390354982171.17706
+Residual Analysis:
+  ||Ax-b||_2 = 4.371907e-01
+  ||Ax-b||_∞ = 2.053668e-01
+  ||Ax-b||_1 = 1.531296e+01
+  ||b||_2 = 8.962827e+01
+  Relative residual = 4.877821e-03
+Solve time: 0.512844s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=101, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.358478e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.358478e-05
+Final Adam Loss: 2.0898311752283516e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.0898311752283516e-05
+  Neural network training completed, loss: 2.08944496e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 102 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 390298329162.9305
+Residual Analysis:
+  ||Ax-b||_2 = 4.313915e-01
+  ||Ax-b||_∞ = 1.983323e-01
+  ||Ax-b||_1 = 1.450897e+01
+  ||b||_2 = 8.962915e+01
+  Relative residual = 4.813071e-03
+Solve time: 0.517022s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=102, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.556853e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.556853e-05
+Final Adam Loss: 2.3375875898301943e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.3375875898301943e-05
+  Neural network training completed, loss: 2.33722162e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 103 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 402698877019.0191
+Residual Analysis:
+  ||Ax-b||_2 = 4.681428e-01
+  ||Ax-b||_∞ = 2.167191e-01
+  ||Ax-b||_1 = 1.572509e+01
+  ||b||_2 = 8.963014e+01
+  Relative residual = 5.223051e-03
+Solve time: 0.401534s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=103, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.423096e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.423096e-05
+Final Adam Loss: 2.104226305390366e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.104226305390366e-05
+  Neural network training completed, loss: 2.10387253e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 104 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 393573176321.3876
+Residual Analysis:
+  ||Ax-b||_2 = 4.744868e-01
+  ||Ax-b||_∞ = 1.974535e-01
+  ||Ax-b||_1 = 1.572570e+01
+  ||b||_2 = 8.963098e+01
+  Relative residual = 5.293781e-03
+Solve time: 0.527232s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=104, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.706306e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.706306e-05
+Final Adam Loss: 2.4250284136646936e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.4250284136646936e-05
+  Neural network training completed, loss: 2.43098444e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 105 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 374904719553.8914
+Residual Analysis:
+  ||Ax-b||_2 = 5.474303e-01
+  ||Ax-b||_∞ = 2.141038e-01
+  ||Ax-b||_1 = 1.799812e+01
+  ||b||_2 = 8.963144e+01
+  Relative residual = 6.107569e-03
+Solve time: 0.410781s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=105, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.896536e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.896536e-05
+Final Adam Loss: 2.6795713431207e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.6795713431207e-05
+  Neural network training completed, loss: 2.67925072e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 106 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 277818227446.536
+Residual Analysis:
+  ||Ax-b||_2 = 6.005239e-01
+  ||Ax-b||_∞ = 2.284447e-01
+  ||Ax-b||_1 = 1.964750e+01
+  ||b||_2 = 8.963136e+01
+  Relative residual = 6.699930e-03
+Solve time: 1.145037s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=106, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.148475e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.148475e-05
+Final Adam Loss: 2.8043285099728733e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.8043285099728733e-05
+  Neural network training completed, loss: 2.80398679e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 107 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 342699485780.44226
+Residual Analysis:
+  ||Ax-b||_2 = 6.077531e-01
+  ||Ax-b||_∞ = 2.548670e-01
+  ||Ax-b||_1 = 1.526575e+01
+  ||b||_2 = 8.963048e+01
+  Relative residual = 6.780652e-03
+Solve time: 0.331697s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=107, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.303942e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.303942e-05
+Final Adam Loss: 3.084035899982444e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.084035899982444e-05
+  Neural network training completed, loss: 3.08363864e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 108 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 361006117049.0044
+Residual Analysis:
+  ||Ax-b||_2 = 5.835138e-01
+  ||Ax-b||_∞ = 2.567818e-01
+  ||Ax-b||_1 = 1.322947e+01
+  ||b||_2 = 8.963235e+01
+  Relative residual = 6.510081e-03
+Solve time: 0.404200s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=108, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.479154e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.479154e-05
+Final Adam Loss: 3.25697055327093e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.25697055327093e-05
+  Neural network training completed, loss: 3.25660235e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 109 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 364833156789.52844
+Residual Analysis:
+  ||Ax-b||_2 = 5.636935e-01
+  ||Ax-b||_∞ = 2.452913e-01
+  ||Ax-b||_1 = 1.348775e+01
+  ||b||_2 = 8.963214e+01
+  Relative residual = 6.288966e-03
+Solve time: 0.295968s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=109, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.509534e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.509534e-05
+Final Adam Loss: 3.239445749439597e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.239445749439597e-05
+  Neural network training completed, loss: 3.23910389e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 110 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 385192626378.39215
+Residual Analysis:
+  ||Ax-b||_2 = 4.384560e-01
+  ||Ax-b||_∞ = 1.756492e-01
+  ||Ax-b||_1 = 1.962629e+01
+  ||b||_2 = 8.963196e+01
+  Relative residual = 4.891737e-03
+Solve time: 0.774580s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=110, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.945409e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.945409e-05
+Final Adam Loss: 2.7990666589188725e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.7990666589188725e-05
+  Neural network training completed, loss: 2.79863787e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 111 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278040180400.88434
+Residual Analysis:
+  ||Ax-b||_2 = 6.482150e-01
+  ||Ax-b||_∞ = 2.480336e-01
+  ||Ax-b||_1 = 1.755354e+01
+  ||b||_2 = 8.962482e+01
+  Relative residual = 7.232538e-03
+Solve time: 0.397032s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=111, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.203341e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.203341e-05
+Final Adam Loss: 0.00018001714450011693
+Using best model, loss value: 0.00018001714450011693
+  Neural network training completed, loss: 4.55265299e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 112 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278136729902.2583
+Residual Analysis:
+  ||Ax-b||_2 = 4.654690e-01
+  ||Ax-b||_∞ = 1.948201e-01
+  ||Ax-b||_1 = 1.862009e+01
+  ||b||_2 = 8.962381e+01
+  Relative residual = 5.193586e-03
+Solve time: 0.414576s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=112, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 4.229227e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 4.229227e-05
+Final Adam Loss: 3.365782447314742e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.365782447314742e-05
+  Neural network training completed, loss: 3.36386518e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 113 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278121755650.54974
+Residual Analysis:
+  ||Ax-b||_2 = 3.927206e-01
+  ||Ax-b||_∞ = 1.752134e-01
+  ||Ax-b||_1 = 1.698882e+01
+  ||b||_2 = 8.962341e+01
+  Relative residual = 4.381898e-03
+Solve time: 0.417670s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=113, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.954454e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.954454e-05
+Final Adam Loss: 2.4625325988895863e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.4625325988895863e-05
+  Neural network training completed, loss: 2.46180415e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 114 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278125366159.89374
+Residual Analysis:
+  ||Ax-b||_2 = 3.027326e-01
+  ||Ax-b||_∞ = 1.185972e-01
+  ||Ax-b||_1 = 1.218170e+01
+  ||b||_2 = 8.962308e+01
+  Relative residual = 3.377842e-03
+Solve time: 0.340599s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=114, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.342657e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.342657e-05
+Final Adam Loss: 2.2957395349681765e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.2957395349681765e-05
+  Neural network training completed, loss: 2.29518921e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 115 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278447645471.3413
+Residual Analysis:
+  ||Ax-b||_2 = 3.417148e-01
+  ||Ax-b||_∞ = 1.179877e-01
+  ||Ax-b||_1 = 1.238857e+01
+  ||b||_2 = 8.962467e+01
+  Relative residual = 3.812731e-03
+Solve time: 0.451423s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=115, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.242927e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.242927e-05
+Final Adam Loss: 2.012185111484381e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.012185111484381e-05
+  Neural network training completed, loss: 2.01175537e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 116 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 340389377606.70197
+Residual Analysis:
+  ||Ax-b||_2 = 3.881084e-01
+  ||Ax-b||_∞ = 1.410410e-01
+  ||Ax-b||_1 = 1.397082e+01
+  ||b||_2 = 8.962477e+01
+  Relative residual = 4.330370e-03
+Solve time: 0.375350s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=116, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.024061e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.024061e-05
+Final Adam Loss: 1.858498003820209e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.858498003820209e-05
+  Neural network training completed, loss: 1.85651395e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 117 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 317487796143.2319
+Residual Analysis:
+  ||Ax-b||_2 = 4.432011e-01
+  ||Ax-b||_∞ = 1.652625e-01
+  ||Ax-b||_1 = 1.645862e+01
+  ||b||_2 = 8.962469e+01
+  Relative residual = 4.945078e-03
+Solve time: 0.391589s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=117, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.152643e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.152643e-05
+Final Adam Loss: 0.0005621453199003481
+Using best model, loss value: 0.0005621453199003481
+  Neural network training completed, loss: 1.46389992e-03
+自动选择method: parallel_svd
+=== Linear Solve Step 118 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278762988998.8225
+Residual Analysis:
+  ||Ax-b||_2 = 9.829146e-01
+  ||Ax-b||_∞ = 2.818035e-01
+  ||Ax-b||_1 = 3.992351e+01
+  ||b||_2 = 8.962036e+01
+  Relative residual = 1.096754e-02
+Solve time: 0.315146s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=118, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.379876e-03, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.379876e-03
+Final Adam Loss: 2.882842313359297e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.882842313359297e-05
+  Neural network training completed, loss: 2.88208254e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 119 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278611166950.5079
+Residual Analysis:
+  ||Ax-b||_2 = 5.610515e-01
+  ||Ax-b||_∞ = 2.113190e-01
+  ||Ax-b||_1 = 2.482878e+01
+  ||b||_2 = 8.961326e+01
+  Relative residual = 6.260809e-03
+Solve time: 0.513889s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=119, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.365780e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.365780e-05
+Final Adam Loss: 3.135462102586361e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 3.135462102586361e-05
+  Neural network training completed, loss: 3.12964362e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 120 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 305517543486.9055
+Residual Analysis:
+  ||Ax-b||_2 = 4.214359e-01
+  ||Ax-b||_∞ = 1.836417e-01
+  ||Ax-b||_1 = 1.504530e+01
+  ||b||_2 = 8.961305e+01
+  Relative residual = 4.702841e-03
+Solve time: 0.990160s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=120, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 3.287601e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 3.287601e-05
+Final Adam Loss: 2.8686850563986928e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.8686850563986928e-05
+  Neural network training completed, loss: 2.86816864e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 121 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278451265741.3714
+Residual Analysis:
+  ||Ax-b||_2 = 4.110455e-01
+  ||Ax-b||_∞ = 1.657756e-01
+  ||Ax-b||_1 = 1.275833e+01
+  ||b||_2 = 8.961345e+01
+  Relative residual = 4.586872e-03
+Solve time: 0.376897s
+Matrix rank: 511
+---------------------------------------------
+  Training neural network (it=121, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.994785e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.994785e-05
+Final Adam Loss: 0.00013032715784814673
+Using best model, loss value: 0.00013032715784814673
+  Neural network training completed, loss: 1.46177805e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 122 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278346789634.4906
+Residual Analysis:
+  ||Ax-b||_2 = 4.487534e-01
+  ||Ax-b||_∞ = 1.607114e-01
+  ||Ax-b||_1 = 1.748006e+01
+  ||b||_2 = 8.961324e+01
+  Relative residual = 5.007668e-03
+Solve time: 0.421185s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=122, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.401084e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.401084e-04
+Final Adam Loss: 2.6942258348121315e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.6942258348121315e-05
+  Neural network training completed, loss: 2.69388465e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 123 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278383919641.7813
+Residual Analysis:
+  ||Ax-b||_2 = 3.867727e-01
+  ||Ax-b||_∞ = 1.667677e-01
+  ||Ax-b||_1 = 1.222635e+01
+  ||b||_2 = 8.961149e+01
+  Relative residual = 4.316106e-03
+Solve time: 0.307923s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=123, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.703882e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.703882e-05
+Final Adam Loss: 2.4034359192739107e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.4034359192739107e-05
+  Neural network training completed, loss: 2.40306060e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 124 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278309089697.51245
+Residual Analysis:
+  ||Ax-b||_2 = 4.116504e-01
+  ||Ax-b||_∞ = 1.597064e-01
+  ||Ax-b||_1 = 1.094495e+01
+  ||b||_2 = 8.961167e+01
+  Relative residual = 4.593714e-03
+Solve time: 0.492194s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=124, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.462357e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.462357e-05
+Final Adam Loss: 2.4712255437513216e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.4712255437513216e-05
+  Neural network training completed, loss: 2.47096393e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 125 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278313973822.4437
+Residual Analysis:
+  ||Ax-b||_2 = 5.292305e-01
+  ||Ax-b||_∞ = 1.834873e-01
+  ||Ax-b||_1 = 1.459366e+01
+  ||b||_2 = 8.961143e+01
+  Relative residual = 5.905837e-03
+Solve time: 0.328434s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=125, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.462692e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.462692e-05
+Final Adam Loss: 2.3846156103220226e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.3846156103220226e-05
+  Neural network training completed, loss: 2.38436939e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 126 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278351023016.36615
+Residual Analysis:
+  ||Ax-b||_2 = 5.861472e-01
+  ||Ax-b||_∞ = 2.144117e-01
+  ||Ax-b||_1 = 1.291158e+01
+  ||b||_2 = 8.960955e+01
+  Relative residual = 6.541124e-03
+Solve time: 0.323787s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=126, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.434371e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.434371e-05
+Final Adam Loss: 2.326353405094228e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.326353405094228e-05
+  Neural network training completed, loss: 2.32696260e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 127 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278324233595.48724
+Residual Analysis:
+  ||Ax-b||_2 = 5.819239e-01
+  ||Ax-b||_∞ = 2.206781e-01
+  ||Ax-b||_1 = 1.541096e+01
+  ||b||_2 = 8.960840e+01
+  Relative residual = 6.494078e-03
+Solve time: 0.340354s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=127, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.334036e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.334036e-05
+Final Adam Loss: 2.1344664454507824e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.1344664454507824e-05
+  Neural network training completed, loss: 2.13414700e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 128 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278379388434.52686
+Residual Analysis:
+  ||Ax-b||_2 = 5.800650e-01
+  ||Ax-b||_∞ = 2.364414e-01
+  ||Ax-b||_1 = 1.255921e+01
+  ||b||_2 = 8.960669e+01
+  Relative residual = 6.473457e-03
+Solve time: 0.326887s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=128, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.206020e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.206020e-05
+Final Adam Loss: 0.000171418434745374
+Using best model, loss value: 0.000171418434745374
+  Neural network training completed, loss: 1.53660557e-04
+自动选择method: parallel_svd
+=== Linear Solve Step 129 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278346337413.8243
+Residual Analysis:
+  ||Ax-b||_2 = 5.946830e-01
+  ||Ax-b||_∞ = 2.235711e-01
+  ||Ax-b||_1 = 1.886764e+01
+  ||b||_2 = 8.960564e+01
+  Relative residual = 6.636670e-03
+Solve time: 0.472934s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=129, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.442988e-04, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.442988e-04
+Final Adam Loss: 2.0715392347314215e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.0715392347314215e-05
+  Neural network training completed, loss: 2.07128207e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 130 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278418354916.8414
+Residual Analysis:
+  ||Ax-b||_2 = 6.656969e-01
+  ||Ax-b||_∞ = 2.796718e-01
+  ||Ax-b||_1 = 1.642078e+01
+  ||b||_2 = 8.960451e+01
+  Relative residual = 7.429279e-03
+Solve time: 0.328283s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=130, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.206691e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.206691e-05
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "/home/bfly/anaconda3/lib/python3.11/tkinter/__init__.py", line 1948, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/home/bfly/anaconda3/lib/python3.11/site-packages/matplotlib/backends/_backend_tk.py", line 552, in destroy
+    Gcf.destroy(self)
+  File "/home/bfly/anaconda3/lib/python3.11/site-packages/matplotlib/_pylab_helpers.py", line 66, in destroy
+    manager.destroy()
+  File "/home/bfly/anaconda3/lib/python3.11/site-packages/matplotlib/backends/_backend_tk.py", line 587, in destroy
+    delayed_destroy()
+  File "/home/bfly/anaconda3/lib/python3.11/site-packages/matplotlib/backends/_backend_tk.py", line 577, in delayed_destroy
+    self.window.destroy()
+  File "/home/bfly/anaconda3/lib/python3.11/tkinter/__init__.py", line 2368, in destroy
+    self.tk.call('destroy', self._w)
+_tkinter.TclError: can't invoke "destroy" command: application has been destroyed
+Final Adam Loss: 1.9955494269928535e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.9955494269928535e-05
+  Neural network training completed, loss: 1.99520503e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 131 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278416999547.54395
+Residual Analysis:
+  ||Ax-b||_2 = 7.468398e-01
+  ||Ax-b||_∞ = 2.785331e-01
+  ||Ax-b||_1 = 1.878304e+01
+  ||b||_2 = 8.960335e+01
+  Relative residual = 8.334954e-03
+Solve time: 0.388321s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=131, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.335463e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.335463e-05
+Final Adam Loss: 2.1450945118216897e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.1450945118216897e-05
+  Neural network training completed, loss: 2.14478505e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 132 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278372330924.0666
+Residual Analysis:
+  ||Ax-b||_2 = 7.322098e-01
+  ||Ax-b||_∞ = 2.838868e-01
+  ||Ax-b||_1 = 1.652456e+01
+  ||b||_2 = 8.960132e+01
+  Relative residual = 8.171864e-03
+Solve time: 0.320256s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=132, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.451337e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.451337e-05
+Final Adam Loss: 2.2798703040677145e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.2798703040677145e-05
+  Neural network training completed, loss: 2.27955736e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 133 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 372826194036.6291
+Residual Analysis:
+  ||Ax-b||_2 = 5.304735e-01
+  ||Ax-b||_∞ = 2.163381e-01
+  ||Ax-b||_1 = 1.450678e+01
+  ||b||_2 = 8.959947e+01
+  Relative residual = 5.920499e-03
+Solve time: 0.271457s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=133, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.102225e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.102225e-05
+Final Adam Loss: 1.928964692180775e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.928964692180775e-05
+  Neural network training completed, loss: 1.92873573e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 134 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278422674601.4816
+Residual Analysis:
+  ||Ax-b||_2 = 6.445687e-01
+  ||Ax-b||_∞ = 2.674721e-01
+  ||Ax-b||_1 = 1.440617e+01
+  ||b||_2 = 8.959874e+01
+  Relative residual = 7.193948e-03
+Solve time: 0.394372s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=134, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.144251e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.144251e-05
+Final Adam Loss: 2.0344199230192477e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.0344199230192477e-05
+  Neural network training completed, loss: 2.03403995e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 135 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278435342536.4468
+Residual Analysis:
+  ||Ax-b||_2 = 6.034066e-01
+  ||Ax-b||_∞ = 2.665142e-01
+  ||Ax-b||_1 = 1.427376e+01
+  ||b||_2 = 8.959747e+01
+  Relative residual = 6.734638e-03
+Solve time: 0.385601s
+Matrix rank: 512
+---------------------------------------------
+  Training neural network (it=135, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.093746e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.093746e-05
+Final Adam Loss: 1.9552914491796164e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.9552914491796164e-05
+  Neural network training completed, loss: 1.95501371e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 136 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 297909967966.5705
+Residual Analysis:
+  ||Ax-b||_2 = 5.984064e-01
+  ||Ax-b||_∞ = 2.496509e-01
+  ||Ax-b||_1 = 1.240665e+01
+  ||b||_2 = 8.959679e+01
+  Relative residual = 6.678882e-03
+Solve time: 0.319874s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=136, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.948051e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.948051e-05
+Final Adam Loss: 2.0306014798217517e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 2.0306014798217517e-05
+  Neural network training completed, loss: 2.10797132e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 137 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278449608665.97723
+Residual Analysis:
+  ||Ax-b||_2 = 5.040241e-01
+  ||Ax-b||_∞ = 2.437186e-01
+  ||Ax-b||_1 = 1.250289e+01
+  ||b||_2 = 8.959590e+01
+  Relative residual = 5.625527e-03
+Solve time: 0.365885s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=137, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.171235e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.171235e-05
+Final Adam Loss: 1.9150865630434704e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.9150865630434704e-05
+  Neural network training completed, loss: 1.91475954e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 138 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278492336829.7548
+Residual Analysis:
+  ||Ax-b||_2 = 5.233352e-01
+  ||Ax-b||_∞ = 2.443332e-01
+  ||Ax-b||_1 = 1.076959e+01
+  ||b||_2 = 8.959558e+01
+  Relative residual = 5.841083e-03
+Solve time: 0.495278s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=138, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 1.996334e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 1.996334e-05
+Final Adam Loss: 1.8751865574405957e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.8751865574405957e-05
+  Neural network training completed, loss: 1.87490470e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 139 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278487948876.5259
+Residual Analysis:
+  ||Ax-b||_2 = 5.485305e-01
+  ||Ax-b||_∞ = 2.519606e-01
+  ||Ax-b||_1 = 1.200798e+01
+  ||b||_2 = 8.959537e+01
+  Relative residual = 6.122309e-03
+Solve time: 0.358974s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=139, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.044439e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.044439e-05
+Final Adam Loss: 1.8705168766460108e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.8705168766460108e-05
+  Neural network training completed, loss: 1.87024605e-05
+自动选择method: parallel_svd
+=== Linear Solve Step 140 ===
+Method: parallel_svd
+Matrix size: 10897 x 531
+Condition number: 278508757900.44995
+Residual Analysis:
+  ||Ax-b||_2 = 5.578089e-01
+  ||Ax-b||_∞ = 2.648222e-01
+  ||Ax-b||_1 = 1.247660e+01
+  ||b||_2 = 8.959493e+01
+  Relative residual = 6.225898e-03
+Solve time: 0.329080s
+Matrix rank: 513
+---------------------------------------------
+  Training neural network (it=140, inheriting from previous parameters)...
+ Adam Epoch 0, Loss: 2.092959e-05, LR: 5.000000e-03
+   Learning rate adjusted to 5.000000e-03 at epoch 0, loss 2.092959e-05
+Final Adam Loss: 1.9305998073030685e-05
+Target accuracy 0.0001 achieved, stopping retries
+Using best model, loss value: 1.9305998073030685e-05
+  Neural network training completed, loss: 1.93029401e-05
+自动选择method: parallel_svd

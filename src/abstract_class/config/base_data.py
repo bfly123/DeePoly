@@ -5,7 +5,7 @@ import importlib.util
 import sys
 from typing import Dict, List, Tuple, Optional, Union
 from abc import ABC, abstractmethod
-from src.utils.shape import ensure_points_eqs
+from src.abstract_class.shape import ensure_points_eqs
 
 class BaseDataGenerator(ABC):
     """Base data generator class for handling data generation and processing

@@ -1,1 +1,2 @@
 - 对于 general_pde_equation t当成一个空间维度求解,类似于 AC方程 求解的是 (x,t)二维问题,而伪时间步迭代的是tau 不是t
+- 运行前先执行conda activate ML !!!!
