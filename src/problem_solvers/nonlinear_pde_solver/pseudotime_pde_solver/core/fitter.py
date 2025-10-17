@@ -48,11 +48,11 @@ class PseudoTimePDEFitter(BaseDeepPolyFitter):
     # Error handling
     MAX_CONSECUTIVE_FAILURES = 5          # Max consecutive failures before giving up
 
-    def __init__(self, config, data: Dict = None, time_scheme: str = "implicit_euler", visualizer=None):
-        # Initialize base class with time_scheme support (like TimePDEFitter)
-        super().__init__(config, dt=None, data=data, time_scheme=time_scheme)
+    def __init__(self, config, data: Dict = None, visualizer=None):
+        # Initialize base class (no time_scheme needed - we implement Euler directly)
+        super().__init__(config, data=data)
 
-        # Initialize solver (needed since we no longer inherit from TimePDEFitter)
+        # Initialize solver
         self.solver = LinearSolver(
             verbose=True, use_gpu=True, performance_tracking=True
         )
@@ -388,11 +388,148 @@ class PseudoTimePDEFitter(BaseDeepPolyFitter):
     def _build_segment_jacobian(
         self, segment_idx: int, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Build segment Jacobian matrix using the time scheme
+        """Build segment Jacobian matrix using implicit Euler time discretization
 
-        Delegates to the configured time integration scheme for time-specific handling.
-        This implements the abstract method from BaseDeepPolyFitter.
+        Pseudo-time stepping for steady-state: ∂U/∂τ + R(U) = 0
+        Implicit Euler: (U^{n+1} - U^n)/dt + R(U^{n+1}) = 0
+
+        Linearization: Fix F(U^n) and N(U^n), solve for U^{n+1}:
+            [V/dt + L1 + L2⊙F(U^n)] β^{n+1} = V/dt * U^n + S - N(U^n)
+
+        where:
+        - V is the mass matrix (DG identity operator)
+        - dt is the pseudo-time step
+        - R(U) = L1(U) + L2(U)·F(U) + N(U) - S is the residual
+
+        Args:
+            segment_idx: Segment index
+            **kwargs: Must contain 'U_n_seg' (current solution), 'dt' (time step)
+
+        Returns:
+            J: Jacobian matrix (ne*n_points, ne*dgN)
+            b: Right-hand side vector (ne*n_points,)
         """
-        if self.time_scheme is None:
-            raise RuntimeError("Time scheme not initialized")
-        return self.time_scheme.build_stage_jacobian(segment_idx, **kwargs)
+        # Extract current solution and time step from kwargs
+        U_n_seg_list = kwargs.get("U_n_seg")
+        dt = kwargs.get("dt")
+
+        if U_n_seg_list is None:
+            raise ValueError("U_n_seg must be provided in kwargs")
+        if dt is None:
+            raise ValueError("dt must be provided in kwargs for pseudo-time stepping")
+
+        U_seg = U_n_seg_list[segment_idx]
+
+        # Get dimensions
+        n_points = len(self.data["x_segments_norm"][segment_idx])
+        ne = self.config.n_eqs
+        dgN = self.dgN
+
+        # Get precompiled operators and features
+        L1_operators = self._linear_operators[segment_idx].get("L1", None)
+        L2_operators = self._linear_operators[segment_idx].get("L2", None)
+        features_list = self._features[segment_idx]
+        features = features_list[0]  # 0-th order derivative
+
+        # Compute fixed nonlinear terms F(U^n) and N(U^n)
+        F_n = self.F_func(features, U_seg)  # Shape: (n_points, ne)
+        N_n_list = self.N_func(features, U_seg)  # List of ne arrays
+
+        # Convert N from list to array format (n_points, ne)
+        N_n = np.zeros((n_points, ne))
+        for eq_idx, n_val in enumerate(N_n_list):
+            N_n[:, eq_idx] = np.array(n_val).flatten()[:n_points]
+
+        # Get source term
+        S = self._get_source_term(segment_idx)
+
+        # Build system matrix and RHS
+        L_final = np.zeros((ne * n_points, ne * dgN))
+        b_final = []
+
+        # Build Jacobian for each equation
+        for eq_idx in range(ne):
+            L1 = L1_operators[eq_idx]
+            L2 = L2_operators[eq_idx]
+
+            # Row index range
+            row_start = eq_idx * n_points
+            row_end = (eq_idx + 1) * n_points
+
+            # Column index range
+            col_start = eq_idx * dgN
+            col_end = (eq_idx + 1) * dgN
+
+            # Build Jacobian for this equation: (I/dt) * features + L1 + L2⊙F(U^n)
+            # In collocation form with features matrix acting as identity
+
+            # Check if steady_state_mode is enabled
+            steady_state_mode = getattr(self.config, 'steady_state_mode', False)
+
+            if steady_state_mode:
+                # Steady-state mode: no time derivative term
+                # Jacobian: J = L1 + L2⊙F(U^n)
+                J_eq = L1.copy()
+            else:
+                # Time-marching mode: include pseudo-time derivative
+                # Jacobian: J = I/dt + L1 + L2⊙F(U^n)
+                J_eq = features / dt + L1
+
+            # Add L2⊙F term: diag(F) @ L2 (common to both modes)
+            F_eq = F_n[:, eq_idx]
+            L2F_term = np.diag(F_eq) @ L2
+            J_eq += L2F_term
+
+            # Place in final matrix
+            L_final[row_start:row_end, col_start:col_end] = J_eq
+
+            # Build RHS for this equation
+            U_eq = U_seg[:, eq_idx]
+
+            if steady_state_mode:
+                # Steady-state mode: RHS = S - N(U^n)
+                rhs_eq = S[:, eq_idx] - N_n[:, eq_idx]
+            else:
+                # Time-marching mode: RHS = U_old/dt + S - N(U^n)
+                rhs_eq = U_eq / dt + S[:, eq_idx] - N_n[:, eq_idx]
+
+            b_final.append(rhs_eq)
+
+        # Flatten RHS vector
+        b_vector = np.concatenate(b_final)
+
+        return L_final, b_vector
+
+    def time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float,
+                  coeffs_n: np.ndarray = None, **kwargs) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
+        """Execute one pseudo-time step using implicit Euler
+
+        Override base class time_step to implement Euler directly without time_scheme object.
+
+        Args:
+            U_n: Current timestep global solution values
+            U_seg: Current timestep segment-level solution values
+            dt: Pseudo-time step size
+            coeffs_n: Current timestep coefficients (unused, recomputed)
+            **kwargs: Additional parameters (current_time, step, etc.)
+
+        Returns:
+            Tuple[np.ndarray, List[np.ndarray], np.ndarray]: (new global solution, new segment solutions, coefficients)
+        """
+        if not self._precompiled:
+            raise RuntimeError("Operators not precompiled. Call fitter_init() first.")
+
+        # Update current segment-level solution values
+        self.U_seg_current = U_seg
+
+        # Solve system with dt passed through kwargs
+        coeffs = self.fit(U_n_seg=U_seg, dt=dt, **kwargs)
+
+        # Reconstruct solution from coefficients
+        U_new, U_seg_new = self.construct(self.data, self._current_model, coeffs)
+
+        # Update maintained segment-level solution values
+        self.U_seg_prev = self.U_seg_current
+        self.U_seg_current = U_seg_new
+
+        return U_new, U_seg_new, coeffs

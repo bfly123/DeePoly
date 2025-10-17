@@ -1,57 +1,32 @@
-from typing import Dict, List, Optional
 import numpy as np
 import matplotlib.pyplot as plt
-
+from typing import Dict, Optional
 from src.abstract_class.config.base_visualize import BaseVisualizer
 
+
 class FuncFittingVisualizer(BaseVisualizer):
-    """functionFittingProblem的Visualization器"""
-    
-    def plot_solution(
-        self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None
-    ) -> None:
-        """绘制FittingResult
-        
-        Args:
-            data: IncludeInputData的Dictionary
-            prediction: PredictionResult
-            save_path: SavePath
-        """
-        # CreateGraph形
+
+    def plot_solution(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None) -> None:
         fig = self._create_figure(figsize=(12, 8))
-        
-        # GetData
         x_segments = data["x_segments"]
         y_segments = data["y_segments"]
-        
-        # 绘制Each段的Result
+
         start_idx = 0
         for i in range(self.Ns):
-            # GetCurrent段的Data
             segment_size = x_segments[i].shape[0]
             end_idx = start_idx + segment_size
-            
-            # GetPhysicalcoordinate
             x_phys = self._normalize_to_physical(x_segments[i], i)
-            
-            # 绘制True实value
+
             plt.plot(x_phys[:, 0], y_segments[i][:, 0], 'b.', label='True' if i == 0 else None)
-            
-            # 绘制Predictionvalue
             plt.plot(x_phys[:, 0], prediction[start_idx:end_idx, 0], 'r-', label='Prediction' if i == 0 else None)
-            
             start_idx = end_idx
-            
-        # SetupGraph形attribute
+
         plt.xlabel('x')
         plt.ylabel('y')
         plt.title('Function Fitting Results')
         plt.legend()
         plt.grid(True)
-        
-        # SaveGraph形
+
         if save_path:
             self._save_figure(fig, save_path)
-            
-        # CloseGraph形
-        self._close_figure(fig) 
+        self._close_figure(fig)

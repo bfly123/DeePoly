@@ -36,6 +36,9 @@ class PseudoTimePDEConfig(BasePDEConfig):
     max_residual: float = 1e10
     residual_stagnation_steps: int = 50
 
+    # Snipper solving mode control
+    steady_state_mode: bool = False  # False: time marching (default), True: steady-state solving
+
     # Training parameters (similar to TimePDE)
     epochs_adam: int = 5000
     epochs_lbfgs: int = 0
@@ -83,6 +86,9 @@ class PseudoTimePDEConfig(BasePDEConfig):
 
         # Load fitter training config
         self._load_fitter_training_config()
+
+        # Load visualization config
+        self._load_visualization_config()
 
         # Set results directory
         self.results_dir = self.get_results_dir()
@@ -230,30 +236,23 @@ class PseudoTimePDEConfig(BasePDEConfig):
             # Keep the time_scheme from top-level if it was set
             pass
 
+        # Extract steady_state_mode configuration
+        self.steady_state_mode = pts_params.get("steady_state_mode",
+                                               getattr(self, "steady_state_mode", self.steady_state_mode))
+
         print(f"✓ Pseudo-time stepping parameters (from {config_source}):")
         print(f"  time_scheme: {self.time_scheme}")
         print(f"  max_iterations: {self.max_iterations}")
         print(f"  residual_tol: {self.residual_tol:.2e}")
         print(f"  dt_init: {self.dt_init}, dt_range: [{self.dt_min}, {self.dt_max}]")
         print(f"  adaptive_dt: {self.adaptive_dt}")
+        print(f"  steady_state_mode: {self.steady_state_mode} {'(Snipper稳态求解)' if self.steady_state_mode else '(Snipper时间推进)'}")
 
     def _load_initial_condition_config(self):
         """Load initial condition configuration"""
-        # Default initial condition config
+        # Default initial condition config - use 'given' to load from Initial_conditions in config
         default_ic = {
-            "method": "spotter",  # or "given", "zero"
-            "use_periodic": False,
-            "spotter_config": {
-                "epochs": 10000,
-                "learning_rate": 0.01,
-                "n_pde_points": 5000,
-                "optimizer": "adam",
-                "target_residual": 0.01,
-                "print_interval": 200,
-                "early_stopping": True,
-                "patience": 500,
-                "max_retries": 1
-            }
+            "method": "given",  # Default: use Initial_conditions from config file
         }
 
         # Update from config file (already loaded as attribute)
@@ -265,14 +264,7 @@ class PseudoTimePDEConfig(BasePDEConfig):
                 if key not in self.initial_condition:
                     self.initial_condition[key] = value
 
-        # Ensure spotter_config exists
-        if "spotter_config" not in self.initial_condition:
-            self.initial_condition["spotter_config"] = default_ic["spotter_config"]
-
-        print(f"Initial condition method: {self.initial_condition.get('method', 'spotter')}")
-        spotter_cfg = self.initial_condition.get("spotter_config", {})
-        print(f"  Spotter epochs: {spotter_cfg.get('epochs', 'N/A')}")
-        print(f"  Spotter learning rate: {spotter_cfg.get('learning_rate', 'N/A')}")
+        print(f"Initial condition method: {self.initial_condition.get('method', 'given')}")
 
     def _load_fitter_training_config(self):
         """Load fitter training configuration for neural network updates during iteration
@@ -304,6 +296,43 @@ class PseudoTimePDEConfig(BasePDEConfig):
         print(f"  epochs_adam: {self.epochs_adam}")
         print(f"  epochs_lbfgs: {self.epochs_lbfgs}")
         print(f"  DNNtol: {self.DNNtol:.2e}")
+
+    def _load_visualization_config(self):
+        """Load visualization configuration with backward compatibility"""
+        from src.abstract_class.config.visualization_config import VisualizationConfig
+
+        vis_attr = getattr(self, 'visualization', {})
+
+        if isinstance(vis_attr, VisualizationConfig):
+            return
+
+        vis_dict = vis_attr if isinstance(vis_attr, dict) else {}
+
+        legacy_fields = {
+            'realtime_visualization': getattr(self, 'realtime_visualization', None),
+            'save_animation': getattr(self, 'save_animation', None),
+            'animation_skip': getattr(self, 'animation_skip', None),
+            'outputs': getattr(self, 'outputs', None),
+            'reference_policy': getattr(self, 'reference_policy', None),
+            'dataset_mode': getattr(self, 'dataset_mode', None),
+            'figure_dpi': getattr(self, 'figure_dpi', None),
+            'figure_format': getattr(self, 'figure_format', None),
+            'colormap': getattr(self, 'colormap', None),
+            'show_training_points': getattr(self, 'show_training_points', None),
+            'error_log_scale': getattr(self, 'error_log_scale', None)
+        }
+
+        for key, value in legacy_fields.items():
+            if value is not None and key not in vis_dict:
+                vis_dict[key] = value
+
+        self.visualization = VisualizationConfig.from_dict(vis_dict)
+
+        self.realtime_visualization = self.visualization.realtime_visualization
+        self.save_animation = self.visualization.save_animation
+        self.animation_skip = self.visualization.animation_skip
+
+        print(f"✓ Visualization config: mode={self.visualization.dataset_mode.value}, outputs={self.visualization.outputs}")
 
     def _auto_code(self):
         """Auto-code generation for general PDEs (same as TimePDE)"""

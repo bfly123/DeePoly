@@ -113,8 +113,9 @@ Examples:
         '--case_path',
         type=str,
         required=False,
-        default='cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1_2d',
-        help='Path to case directory containing config.json (default: cases/general_pde_cases/AC_equation)'
+        #default='cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1_2d',
+#        help='Path to case directory containing config.json (default: #cases/general_pde_cases/AC_equation)'
+default='cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D'
     )
 
     return parser.parse_args()

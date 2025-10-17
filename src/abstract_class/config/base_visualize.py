@@ -1258,3 +1258,165 @@ class BaseVisualizer:
 
         coord_grids, u_pred = self.reconstruct_grid_nd(data, preds, config)
         return coord_grids[0], coord_grids[1], u_pred
+
+    # ======================== Common Utilities ========================
+
+    def _to_numpy_cpu(self, data):
+        """Convert GPU tensor to CPU numpy array"""
+        if data is None:
+            return None
+        if isinstance(data, torch.Tensor):
+            return data.detach().cpu().numpy()
+        return np.asarray(data)
+
+    def _map_to_grid(self, x, y, u_vals, x_unique, y_unique):
+        """Map scattered 2D data to regular grid"""
+        from scipy.interpolate import griddata
+
+        x_indices = np.searchsorted(x_unique, x)
+        y_indices = np.searchsorted(y_unique, y)
+        U_grid = np.full((len(y_unique), len(x_unique)), np.nan)
+        U_grid[y_indices, x_indices] = u_vals
+
+        if np.any(np.isnan(U_grid)):
+            X_mesh, Y_mesh = np.meshgrid(x_unique, y_unique, indexing='xy')
+            x_coords = np.column_stack([x, y])
+            U_grid = griddata(x_coords, u_vals, (X_mesh, Y_mesh), method='linear')
+
+            if np.any(np.isnan(U_grid)):
+                nan_mask = np.isnan(U_grid)
+                X_flat = X_mesh.flatten()
+                Y_flat = Y_mesh.flatten()
+                nan_points = np.column_stack([X_flat[nan_mask.flatten()],
+                                             Y_flat[nan_mask.flatten()]])
+                U_grid_flat = U_grid.flatten()
+                U_grid_flat[nan_mask.flatten()] = griddata(x_coords, u_vals,
+                                                          nan_points, method='nearest')
+                U_grid = U_grid_flat.reshape(len(y_unique), len(x_unique))
+
+        return U_grid
+
+    def plot_reference_comparison(self, U_pred, data, ref_solution, save_dir, prefix=''):
+        """Plot comparison with reference solution (template method)"""
+        x = data['x']
+        U_flat = self._to_numpy_cpu(U_pred).flatten()
+
+        if self.n_dim == 1:
+            self._plot_reference_comparison_1d(x, U_flat, ref_solution, save_dir, prefix)
+        else:
+            self._plot_reference_comparison_2d(x, U_flat, ref_solution, save_dir, prefix)
+
+    def _plot_reference_comparison_1d(self, x_coords, U_flat, ref_solution, save_dir, prefix):
+        """1D reference solution comparison"""
+        from scipy.interpolate import interp1d
+
+        x_flat = x_coords[:, 0] if x_coords.ndim > 1 else x_coords
+        x_ref = ref_solution['x_ref']
+        u_ref = ref_solution['u_ref']
+
+        interp_func = interp1d(x_ref, u_ref, kind='cubic', bounds_error=False,
+                              fill_value='extrapolate')
+        u_ref_interp = interp_func(x_flat)
+        error = np.abs(U_flat - u_ref_interp)
+
+        fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+
+        axes[0].plot(x_ref, u_ref, 'b-', linewidth=2, label='Reference', alpha=0.8)
+        axes[0].scatter(x_flat, U_flat, c='red', s=30, label='Numerical', zorder=5)
+        axes[0].set_xlabel('x')
+        axes[0].set_ylabel('u')
+        axes[0].set_title('Solution Comparison')
+        axes[0].legend()
+        axes[0].grid(True, alpha=0.3)
+
+        axes[1].scatter(x_flat, error, c='red', s=25, alpha=0.8)
+        axes[1].set_xlabel('x')
+        axes[1].set_ylabel('|Error|')
+        axes[1].set_title('Pointwise Error')
+        axes[1].set_yscale('log')
+        axes[1].grid(True, alpha=0.3)
+
+        max_error = np.max(error)
+        l2_error = np.sqrt(np.mean(error**2))
+        axes[1].text(0.02, 0.98, f'Max: {max_error:.2e}\nL2: {l2_error:.2e}',
+                    transform=axes[1].transAxes, verticalalignment='top',
+                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+        plt.tight_layout()
+        prefix_str = f"{prefix}_" if prefix else ""
+        save_path = os.path.join(save_dir, f"{prefix_str}vs_reference.png")
+        self._save_figure(fig, save_path)
+        self._close_figure(fig)
+        print(f"  {prefix} vs reference: Max={max_error:.2e}, L2={l2_error:.2e}")
+
+    def _plot_reference_comparison_2d(self, x_coords, U_flat, ref_solution, save_dir, prefix):
+        """2D reference solution comparison (3-panel: numerical/reference/error)"""
+        from scipy.interpolate import griddata
+        from matplotlib.colors import LogNorm
+
+        x_test = x_coords[:, 0]
+        y_test = x_coords[:, 1]
+        x_ref = ref_solution['x_ref']
+        y_ref = ref_solution.get('y_ref')
+        u_ref = ref_solution['u_ref']
+
+        X_ref_grid, Y_ref_grid = np.meshgrid(x_ref, y_ref, indexing='xy')
+        points_ref = np.column_stack([X_ref_grid.flatten(), Y_ref_grid.flatten()])
+        points_test = np.column_stack([x_test, y_test])
+        u_ref_interp = griddata(points_ref, u_ref, points_test, method='linear')
+
+        nan_mask = np.isnan(u_ref_interp)
+        if np.any(nan_mask):
+            u_ref_interp[nan_mask] = griddata(points_ref, u_ref, points_test[nan_mask],
+                                             method='nearest')
+
+        error = np.abs(U_flat - u_ref_interp)
+
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+        x_unique = np.unique(x_test)
+        y_unique = np.unique(y_test)
+        X_mesh, Y_mesh = np.meshgrid(x_unique, y_unique, indexing='xy')
+        U_grid = self._map_to_grid(x_test, y_test, U_flat, x_unique, y_unique)
+
+        u_min = min(np.nanmin(U_flat), np.nanmin(u_ref))
+        u_max = max(np.nanmax(U_flat), np.nanmax(u_ref))
+
+        im1 = axes[0].pcolormesh(X_mesh, Y_mesh, U_grid, cmap='RdBu_r',
+                                 shading='gouraud', vmin=u_min, vmax=u_max)
+        axes[0].set_xlabel('x')
+        axes[0].set_ylabel('t')
+        axes[0].set_title('Numerical Solution')
+        axes[0].set_aspect('equal')
+        plt.colorbar(im1, ax=axes[0])
+
+        u_ref_grid = u_ref.reshape(len(y_ref), len(x_ref))
+        im2 = axes[1].pcolormesh(X_ref_grid, Y_ref_grid, u_ref_grid, cmap='RdBu_r',
+                                shading='gouraud', vmin=u_min, vmax=u_max)
+        axes[1].set_xlabel('x')
+        axes[1].set_ylabel('t')
+        axes[1].set_title('Reference Solution')
+        axes[1].set_aspect('equal')
+        plt.colorbar(im2, ax=axes[1])
+
+        Error_grid = self._map_to_grid(x_test, y_test, error, x_unique, y_unique)
+        im3 = axes[2].pcolormesh(X_mesh, Y_mesh, Error_grid, cmap='plasma',
+                                shading='gouraud', norm=LogNorm())
+        axes[2].set_xlabel('x')
+        axes[2].set_ylabel('t')
+        axes[2].set_title('Pointwise Error')
+        axes[2].set_aspect('equal')
+        plt.colorbar(im3, ax=axes[2])
+
+        max_error = np.nanmax(error)
+        l2_error = np.sqrt(np.nanmean(error**2))
+        axes[2].text(0.02, 0.98, f'Max: {max_error:.2e}\nL2: {l2_error:.2e}',
+                    transform=axes[2].transAxes, verticalalignment='top',
+                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+        plt.tight_layout()
+        prefix_str = f"{prefix}_" if prefix else ""
+        save_path = os.path.join(save_dir, f"{prefix_str}vs_reference.png")
+        self._save_figure(fig, save_path)
+        self._close_figure(fig)
+        print(f"  {prefix} vs reference: Max={max_error:.2e}, L2={l2_error:.2e}")

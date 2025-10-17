@@ -58,28 +58,9 @@ class FixIterationPDEFitter(BaseDeepPolyFitter):
                 "U_current must be provided in kwargs for fixed-point iteration"
             )
 
-        # ============= DIAGNOSTIC 0: Input U_current =============
-        if segment_idx == 0:  # Only print for first segment
-            print(f"\n{'='*70}")
-            print(f"🔍 DEBUG: _build_segment_jacobian (Segment {segment_idx})")
-            print(f"{'='*70}")
-            print(f"U_current shape: {U_current.shape}")
-            print(f"U_current range: [{np.min(U_current):.6f}, {np.max(U_current):.6f}]")
-            print(f"U_current mean: {np.mean(U_current):.6f}, std: {np.std(U_current):.6f}")
-
         # Convert to segment format
         U_seg_list = self.global_to_segments(U_current)
         U_seg = U_seg_list[segment_idx]
-
-        # ============= DIAGNOSTIC 1: Current solution values =============
-        if segment_idx == 0:  # Only print for first segment to reduce output
-            print(f"\nSegment info:")
-            n_points = len(self.data["x_segments_norm"][segment_idx])
-            ne = self.config.n_eqs
-            dgN = self.dgN
-            print(f"  n_points: {n_points}, n_eqs: {ne}, dgN: {dgN}")
-            print(f"  U_seg shape: {U_seg.shape}")
-            print(f"  U_seg range: [{np.min(U_seg):.6f}, {np.max(U_seg):.6f}]")
 
         # Get dimensions
         n_points = len(self.data["x_segments_norm"][segment_idx])

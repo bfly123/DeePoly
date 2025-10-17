@@ -800,3 +800,25 @@ class NonlinearPDESolver(ABC):
             "solver_type": self.__class__.__name__,
             "has_time_scheme": hasattr(self.fitter, 'time_scheme') and self.fitter.time_scheme is not None
         }
+
+    def _get_network_prediction(self) -> np.ndarray:
+        """从训练后的网络提取预测值 - 通用方法
+
+        用于混合网络方法（Spotter + Sniper）：
+        - Spotter（神经网络）提供初始猜测
+        - Sniper（多项式）基于这个猜测进行优化
+
+        Returns:
+            网络预测的解 (n_points, n_eqs)
+        """
+        self.model.eval()
+        with torch.no_grad():
+            x_train_tensor = torch.tensor(
+                self.data_train['x'],
+                dtype=torch.float64,
+                device=self.config.device
+            )
+            _, U_pred = self.model(x_train_tensor)
+            U_network = U_pred.cpu().numpy()
+
+        return U_network

@@ -34,13 +34,20 @@
     ],
     "boundary_conditions": [
         {
-            "type": "periodic",
-            "pairs": [
+            "type": "dirichlet",
+            "region": 
                 "left",
-                "right"
-            ],
             "points": 500,
-            "weight": 0.1
+            "weight": 10,
+            "value":-1
+        },
+                {
+            "type": "dirichlet",
+            "region": 
+                "right",
+            "points": 500,
+            "weight": 10,
+            "value":-1
         },
         {
             "type": "dirichlet",
@@ -54,18 +61,18 @@
         12,
         50,
         50,
-        40
+        50
     ],
     "epochs_adam": 10000,
     "epochs_lbfgs": 0,
-    "max_retries": 1,
-    "DNNtol": 0.01,
+    "max_retries": 0,
+    "DNNtol": 0.0001,
     "learning_rate": 0.01,
     "n_segments": [
-        5,
+        3,
         3
     ],
-    "points_domain": 5000,
+    "points_domain": 10000,
     "points_per_swap": 10,
     "points_domain_test": [
         100,
@@ -87,8 +94,8 @@
     ],
     "pseudo_time": {
         "time_scheme": "implicit_euler",
-        "max_iterations": 1000,
-        "residual_tol": 0.003,
+        "max_iterations": 10,
+        "residual_tol": 1e-5,
         "dt_init": 0.1,
         "dt_min": 1e-05,
         "dt_max": 0.11,
@@ -97,15 +104,21 @@
         "dt_decrease_factor": 0.5,
         "check_interval": 10,
         "print_interval": 1,
-        "save_interval": 100
-    },
-    "initial_condition": {
-        "method": "given"
+        "save_interval": 100,
+        "steady_state_mode": true
     },
     "spotter_skip": 1,
     "reference_solution": "reference_data/allen_cahn_highres.mat",
-    "realtime_visualization": false,
-    "animation_skip": 10,
+    "visualization": {
+        "dataset_mode": "test_mesh",
+        "outputs": ["spotter", "sniper"],
+        "reference_policy": "auto",
+        "realtime_visualization": false,
+        "save_animation": true,
+        "animation_skip": 10,
+        "figure_dpi": 100,
+        "colormap": "RdBu_r"
+    },
     "device": "cuda",
     "linear_device": "cuda",
     "seed": 42,
