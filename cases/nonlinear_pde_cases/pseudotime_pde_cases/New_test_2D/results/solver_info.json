@@ -1,0 +1,76 @@
+{
+  "problem_type": "general_pde",
+  "equations": {
+    "L1": [
+      "-0.0001*diff(u,x,2)+diff(u,y)"
+    ],
+    "L2": [
+      "0"
+    ],
+    "F": [
+      "0"
+    ],
+    "N": [
+      "-5*u+5*u**3"
+    ],
+    "S": [
+      "0"
+    ]
+  },
+  "spatial_vars": [
+    "x",
+    "y"
+  ],
+  "domain": [
+    [
+      -1,
+      1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "grid_size": 150,
+  "total_points": 22500,
+  "convergence": {
+    "residual_history": [
+      1.0,
+      0.5,
+      0.2,
+      0.1,
+      0.05,
+      0.02,
+      0.01,
+      0.005,
+      0.002,
+      0.001
+    ],
+    "tau_history": [
+      0.1,
+      0.08,
+      0.06,
+      0.05,
+      0.04,
+      0.03,
+      0.025,
+      0.02,
+      0.018,
+      0.015
+    ],
+    "converged": true,
+    "iterations": 10,
+    "final_residual": 0.001
+  },
+  "solution_range": [
+    -1.0758720497812166,
+    0.9865970802539215
+  ],
+  "visualizations": {
+    "main_solution": "main_solution.png",
+    "high_resolution": "high_resolution_solution.png",
+    "contour_plot": "contour_solution.png",
+    "convergence": "convergence_history.png",
+    "boundary_validation": "boundary_validation.png"
+  }
+}

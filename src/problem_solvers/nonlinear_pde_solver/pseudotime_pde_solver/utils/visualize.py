@@ -3,13 +3,44 @@ import matplotlib.pyplot as plt
 from typing import Dict, Optional
 import os
 from src.abstract_class.config.base_visualize import BaseVisualizer
+from src.abstract_class.config.visualize_mixins import ConvergenceMixin, GridReconstructionMixin, ReferenceComparisonMixin
+from src.visualization.dimensional_plotter import DimensionalVisualizer
 
 
-class PseudoTimePDEVisualizer(BaseVisualizer):
+class PseudoTimePDEVisualizer(BaseVisualizer, ConvergenceMixin, GridReconstructionMixin, ReferenceComparisonMixin):
 
     def __init__(self, config):
         super().__init__(config)
-        self.n_dim = len(config.x_domain)
+        # 使用维度可视化器进行智能维度判断
+        self.dimensional_visualizer = DimensionalVisualizer(config)
+        self.n_dim = self.dimensional_visualizer.n_dim
+
+    def plot_solution(self, data: Dict, prediction: np.ndarray, save_path: Optional[str] = None):
+        """使用维度可视化器自动选择绘图方法"""
+        U_pred = self._to_numpy_cpu(prediction)
+
+        if save_path:
+            # 使用维度可视化器进行智能绘图
+            viz_config = {
+                'figsize': (10, 8),
+                'colormap': getattr(self.config.visualization, 'colormap', 'RdBu_r'),
+                'dpi': getattr(self.config.visualization, 'figure_dpi', 100)
+            }
+            self.dimensional_visualizer.plot_solution(U_pred, data, save_path, **viz_config)
+        else:
+            # 回退到原有方法
+            fig = self._create_figure(figsize=(10, 8))
+            ax = fig.add_subplot(111)
+            x = data['x']
+
+            if self.n_dim == 2:
+                self._plot_2d(ax, x, U_pred)
+            else:
+                self._plot_1d(ax, x, U_pred)
+
+            ax.set_title('Solution')
+            plt.tight_layout()
+            self._close_figure(fig)
 
     def render(self, results: Dict, data_train: Dict, data_test: Dict,
                reference_solution: Optional[Dict] = None):
@@ -34,57 +65,63 @@ class PseudoTimePDEVisualizer(BaseVisualizer):
         if 'residual_history' not in conv_info or not conv_info['residual_history']:
             return
 
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         residual_history = conv_info['residual_history']
-        iterations = range(len(residual_history))
+        iterations = list(range(len(residual_history)))
+        tau_history = conv_info.get('tau_history', None)
 
-        axes[0].semilogy(iterations, residual_history, 'b-', linewidth=2)
-        axes[0].set_xlabel('Iteration')
-        axes[0].set_ylabel('Residual (log)')
-        axes[0].set_title('Residual History')
-        axes[0].grid(True, alpha=0.3)
-
-        if 'tau_history' in conv_info:
-            axes[1].semilogy(conv_info['tau_history'], residual_history, 'r-', linewidth=2)
-            axes[1].set_xlabel('Pseudo-time τ')
-            axes[1].set_ylabel('Residual (log)')
-            axes[1].set_title('Residual vs Pseudo-time')
-            axes[1].grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        self._save_figure(fig, os.path.join(save_dir, "convergence_history.png"))
+        self.plot_residual_history(residual_history, iterations,
+                                   os.path.join(save_dir, "convergence_history.png"),
+                                   tau_history)
 
     def _save_solution_plot(self, output_name, U_pred, data, save_dir):
-        fig = self._create_figure(figsize=(10, 8))
-        ax = fig.add_subplot(111)
-        x = data['x']
+        """使用维度可视化器保存解图"""
+        save_path = os.path.join(save_dir, f"{output_name}_solution.png")
+        U_pred_cpu = self._to_numpy_cpu(U_pred)
 
+        # 使用维度可视化器进行智能绘图
+        viz_config = {
+            'figsize': (10, 8),
+            'colormap': getattr(self.config.visualization, 'colormap', 'RdBu_r'),
+            'dpi': getattr(self.config.visualization, 'figure_dpi', 100),
+            'plot_type': getattr(self.config.visualization, 'plot_type', 'contourf')
+        }
+
+        # 如果是2D问题，添加网格形状信息
         if self.n_dim == 2:
-            self._plot_2d(ax, x, U_pred)
-        else:
-            self._plot_1d(ax, x, U_pred)
+            try:
+                x_unique = np.unique(data['x'][:, 0])
+                y_unique = np.unique(data['x'][:, 1])
+                viz_config['grid_shape'] = (len(y_unique), len(x_unique))
+            except:
+                viz_config['grid_shape'] = (100, 100)  # 默认形状
 
-        ax.set_title(f'{output_name.capitalize()} Solution')
-        plt.tight_layout()
-        self._save_figure(fig, os.path.join(save_dir, f"{output_name}_solution.png"))
+        self.dimensional_visualizer.plot_solution(U_pred_cpu, data, save_path, **viz_config)
 
     def _plot_2d(self, ax, x, U_pred):
+        """2D绘图方法，使用正确的坐标轴标签"""
         x_unique = np.unique(x[:, 0])
         y_unique = np.unique(x[:, 1])
         X_mesh, Y_mesh = np.meshgrid(x_unique, y_unique, indexing='xy')
         U_grid = self._map_to_grid(x[:, 0], x[:, 1], U_pred.flatten(), x_unique, y_unique)
         im = ax.pcolormesh(X_mesh, Y_mesh, U_grid, cmap='RdBu_r', shading='gouraud')
         plt.colorbar(im, ax=ax, label='u')
-        ax.set_xlabel('x')
-        ax.set_ylabel('t')
+
+        # 使用spatial_vars中的变量名作为坐标轴标签
+        spatial_vars = getattr(self.config, 'spatial_vars', ['x', 't'])
+        ax.set_xlabel(spatial_vars[0])
+        ax.set_ylabel(spatial_vars[1] if len(spatial_vars) > 1 else 't')
         ax.set_aspect('equal')
 
     def _plot_1d(self, ax, x, U_pred):
+        """1D绘图方法，使用正确的坐标轴标签"""
         x_flat = x[:, 0] if x.ndim > 1 else x
         u_flat = U_pred.flatten()
         sort_idx = np.argsort(x_flat)
         ax.plot(x_flat[sort_idx], u_flat[sort_idx], 'b-', linewidth=2)
-        ax.set_xlabel('x')
+
+        # 使用spatial_vars中的变量名作为坐标轴标签
+        spatial_vars = getattr(self.config, 'spatial_vars', ['x'])
+        ax.set_xlabel(spatial_vars[0])
         ax.set_ylabel('u')
         ax.grid(True, alpha=0.3)
 

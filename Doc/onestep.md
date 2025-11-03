@@ -4,6 +4,9 @@
 ## 原始方程
 $$u_t + L_1 + L_2 \cdot F + N = 0$$
 
+$$ ∂u/∂τ + u_t + L_1 + L_2 \cdot F + N  = 0
+
+$$u^{n+1} - u^n  + \delta \tau (u^{n+1}_t + L_1(u^{n+1}) + L_2(u^{n+1}) \cdot F(u^n) + N(u^n) ) = 0$$ 
 ## 预测步
 $$\frac{u^* - u^n}{\Delta t} + L_1(u^*) + L_2(u^*) \cdot F(u^n) + N(u^n) = 0$$
 
