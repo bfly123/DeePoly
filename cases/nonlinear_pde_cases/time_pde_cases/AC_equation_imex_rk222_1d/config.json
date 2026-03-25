@@ -52,6 +52,7 @@
         48
     ],
     "learning_rate": 0.01,
+    "linear_method": "gpu_svd",
     "n_segments": [
         4
     ],
@@ -70,7 +71,8 @@
     "points_domain_test": [
         1024
     ],
-    "points_per_swap": 10,
+    "points_per_swap": 20,
+    "swap_constraint_weight": 20,
     "T": 1.0,
     "dt": 0.0025,
     "time_scheme": "IMEX_RK_2_2_2",
