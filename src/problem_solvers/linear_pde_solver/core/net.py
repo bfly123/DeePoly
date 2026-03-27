@@ -36,4 +36,5 @@ class LinearPDENet(BoundaryConditionMixin, BaseNet):
         pde_loss = torch.mean(pde_residual**2)
 
         # Add boundary conditions using unified method
-        return self.compute_total_loss(pde_loss, data_GPU, boundary_weight=10.0)
+        boundary_weight = float(getattr(self.config, "boundary_constraint_weight", 10.0))
+        return self.compute_total_loss(pde_loss, data_GPU, boundary_weight=boundary_weight)

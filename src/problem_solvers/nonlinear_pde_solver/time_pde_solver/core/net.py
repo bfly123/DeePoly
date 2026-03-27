@@ -42,7 +42,8 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
             pde_loss += torch.mean(residual_i**2)
 
         # Add boundary conditions using unified method
-        return self.compute_total_loss(pde_loss, data_GPU, boundary_weight=10.0)
+        boundary_weight = float(getattr(self.config, "boundary_constraint_weight", 10.0))
+        return self.compute_total_loss(pde_loss, data_GPU, boundary_weight=boundary_weight)
 
     # prepare_gpu_data is now unified in BaseNet - no need to override
 

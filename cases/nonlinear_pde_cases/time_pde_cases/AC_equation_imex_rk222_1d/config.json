@@ -33,7 +33,7 @@
             "region": "left",
             "var": "u",
             "value": -1,
-            "points": 128,
+            "points": 1,
             "weight": 10
         },
         {
@@ -41,7 +41,7 @@
             "region": "right",
             "var": "u",
             "value": -1,
-            "points": 128,
+            "points": 1,
             "weight": 10
         }
     ],
@@ -71,8 +71,9 @@
     "points_domain_test": [
         1024
     ],
-    "points_per_swap": 20,
+    "points_per_swap": 1,
     "swap_constraint_weight": 20,
+    "boundary_constraint_weight": 10,
     "T": 1.0,
     "dt": 0.0025,
     "time_scheme": "IMEX_RK_2_2_2",
