@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 class TimeSolverPostprocessMixin:
     def _postprocess_results(self, U_final: np.ndarray, U_seg_final: list, model_final, coeffs_final):
         """BackwardProcessResult - 专注于trainData与Reference solution对比"""
-        self._final_model = model_final
+        self._final_model = self._get_spotter_feature_source() if hasattr(self, "_get_spotter_feature_source") else model_final
         self._final_coeffs = coeffs_final
         _ = (U_final, U_seg_final)
         print("=== Post-processing and Visualization ===")
@@ -87,44 +87,114 @@ class TimeSolverPostprocessMixin:
 
         x_flat = self._get_plot_x_coordinates()
         x_ref = self.reference_solution["x_ref"]
-        u_ref_interp = interp1d(x_ref, u_ref_final, kind="cubic", bounds_error=False, fill_value="extrapolate")(x_flat)
         U_flat = U_final.flatten()
+        if getattr(self.config, "n_dim", None) == 1:
+            x_train, u_train = self._get_final_training_plot_data()
+            if x_train is not None and u_train is not None:
+                x_flat = x_train
+                U_flat = u_train
+        u_ref_interp = interp1d(x_ref, u_ref_final, kind="cubic", bounds_error=False, fill_value="extrapolate")(x_flat)
         pointwise_error = np.abs(U_flat - u_ref_interp)
         max_error = np.max(pointwise_error)
         l2_error = np.sqrt(np.mean(pointwise_error**2))
         self._save_final_time_comparison_plot(T_final, x_ref, u_ref_final, x_flat, U_flat, pointwise_error)
         print(f"  Final time error - Max: {max_error:.2e}, L2: {l2_error:.2e}")
 
+    def _get_final_training_plot_data(self):
+        if not hasattr(self, "data_train") or self.data_train is None:
+            return None, None
+        if not hasattr(self, "_final_model") or self._final_model is None:
+            return None, None
+        if not hasattr(self, "_final_coeffs") or self._final_coeffs is None:
+            return None, None
+        try:
+            U_train, _ = self.fitter.construct(self.data_train, self._final_model, self._final_coeffs)
+            x_train = self.data_train.get("x")
+            if x_train is None:
+                return None, None
+            x_train_flat = x_train[:, 0] if x_train.ndim > 1 else x_train
+            return x_train_flat, U_train.flatten()
+        except Exception as exc:
+            print(f"  Warning: Failed to construct final training-point plot data: {exc}")
+            return None, None
+
     def _save_final_time_comparison_plot(self, T_final, x_ref, u_ref_final, x_flat, U_flat, pointwise_error) -> None:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-        ax1.plot(x_ref, u_ref_final, "b-", linewidth=2.5, alpha=0.8, label="Reference Solution", zorder=1)
-        ax1.plot(x_flat, U_flat, "r-", linewidth=2.0, alpha=0.95, label="Test Prediction", zorder=2)
-        ax1.set_xlabel("x", fontsize=12)
-        ax1.set_ylabel("u", fontsize=12)
-        ax1.set_title(f"Final Time Comparison (T = {T_final:.4f})", fontsize=14, fontweight="bold")
-        ax1.legend(fontsize=11, loc="best")
-        ax1.grid(True, alpha=0.3)
-        u_min_plot = min(np.min(U_flat), np.min(u_ref_final))
-        u_max_plot = max(np.max(U_flat), np.max(u_ref_final))
-        u_margin = (u_max_plot - u_min_plot) * 0.05
-        ax1.set_ylim([u_min_plot - u_margin, u_max_plot + u_margin])
+        if getattr(self.config, "n_dim", None) == 1:
+            fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+            ref_sort_idx = np.argsort(x_ref)
+            x_ref_sorted = np.asarray(x_ref).flatten()[ref_sort_idx]
+            u_ref_sorted = np.asarray(u_ref_final).flatten()[ref_sort_idx]
+            x_num = np.asarray(x_flat).flatten()
+            u_num = np.asarray(U_flat).flatten()
+            ax.plot(
+                x_ref_sorted,
+                u_ref_sorted,
+                "b-",
+                linewidth=2.5,
+                alpha=0.9,
+                label="Reference Solution",
+                zorder=1,
+            )
+            ax.scatter(
+                x_num,
+                u_num,
+                c="red",
+                s=36,
+                alpha=0.9,
+                label="Training Points",
+                zorder=2,
+            )
+            ax.set_xlabel("x", fontsize=12)
+            ax.set_ylabel("u", fontsize=12)
+            ax.set_title(f"Final Time Comparison (T = {T_final:.4f})", fontsize=14, fontweight="bold")
+            ax.legend(fontsize=11, loc="best")
+            ax.grid(True, alpha=0.3)
+            u_min_plot = min(np.min(u_num), np.min(u_ref_sorted))
+            u_max_plot = max(np.max(u_num), np.max(u_ref_sorted))
+            u_margin = (u_max_plot - u_min_plot) * 0.05
+            ax.set_ylim([u_min_plot - u_margin, u_max_plot + u_margin])
+            x_min_plot = min(np.min(x_num), np.min(x_ref_sorted))
+            x_max_plot = max(np.max(x_num), np.max(x_ref_sorted))
+            x_margin = (x_max_plot - x_min_plot) * 0.03
+            ax.set_xlim([x_min_plot - x_margin, x_max_plot + x_margin])
+            ax.text(
+                0.02,
+                0.98,
+                f"Max Error: {np.max(pointwise_error):.2e}\nL2 Error: {np.sqrt(np.mean(pointwise_error**2)):.2e}",
+                transform=ax.transAxes,
+                verticalalignment="top",
+                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+            )
+            plt.tight_layout()
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+            ax1.plot(x_ref, u_ref_final, "b-", linewidth=2.5, alpha=0.8, label="Reference Solution", zorder=1)
+            ax1.plot(x_flat, U_flat, "r-", linewidth=2.0, alpha=0.95, label="Test Prediction", zorder=2)
+            ax1.set_xlabel("x", fontsize=12)
+            ax1.set_ylabel("u", fontsize=12)
+            ax1.set_title(f"Final Time Comparison (T = {T_final:.4f})", fontsize=14, fontweight="bold")
+            ax1.legend(fontsize=11, loc="best")
+            ax1.grid(True, alpha=0.3)
+            u_min_plot = min(np.min(U_flat), np.min(u_ref_final))
+            u_max_plot = max(np.max(U_flat), np.max(u_ref_final))
+            u_margin = (u_max_plot - u_min_plot) * 0.05
+            ax1.set_ylim([u_min_plot - u_margin, u_max_plot + u_margin])
 
-        ax2.plot(x_flat, pointwise_error, "r-", linewidth=1.8)
-        ax2.set_xlabel("x", fontsize=12)
-        ax2.set_ylabel("|Error|", fontsize=12)
-        ax2.set_title("Pointwise Error at Final Time (Log Scale)", fontsize=14, fontweight="bold")
-        ax2.set_yscale("log")
-        ax2.grid(True, alpha=0.3)
-        ax2.text(
-            0.02,
-            0.98,
-            f"Max Error: {np.max(pointwise_error):.2e}\nL2 Error: {np.sqrt(np.mean(pointwise_error**2)):.2e}",
-            transform=ax2.transAxes,
-            verticalalignment="top",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        )
-
-        plt.tight_layout()
+            ax2.plot(x_flat, pointwise_error, "r-", linewidth=1.8)
+            ax2.set_xlabel("x", fontsize=12)
+            ax2.set_ylabel("|Error|", fontsize=12)
+            ax2.set_title("Pointwise Error at Final Time (Log Scale)", fontsize=14, fontweight="bold")
+            ax2.set_yscale("log")
+            ax2.grid(True, alpha=0.3)
+            ax2.text(
+                0.02,
+                0.98,
+                f"Max Error: {np.max(pointwise_error):.2e}\nL2 Error: {np.sqrt(np.mean(pointwise_error**2)):.2e}",
+                transform=ax2.transAxes,
+                verticalalignment="top",
+                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+            )
+            plt.tight_layout()
         final_comparison_path = os.path.join(self.config.results_dir, "final_time_comparison.png")
         plt.savefig(final_comparison_path, dpi=300, bbox_inches="tight")
         plt.close()
@@ -213,7 +283,7 @@ class TimeSolverPostprocessMixin:
         print(f"  Spacetime comparison saved to: {spacetime_path}")
 
     def _compute_overall_error_statistics(self, time_history, solution_history):
-        """3. Statistics sampled spacetime error on the test grid."""
+        """3. Statistics sampled spacetime error on the training grid."""
         if not self.reference_solution:
             print("  No reference solution available for error statistics")
             return
@@ -330,7 +400,7 @@ class TimeSolverPostprocessMixin:
         ax1.scatter(times, l2_errors, c="blue", s=40, alpha=0.8, edgecolors="navy", linewidths=0.5, label="L2 Error")
         ax1.set_xlabel("Time", fontsize=12)
         ax1.set_ylabel("L2 Error (log scale)", fontsize=12)
-        ax1.set_title("L2 Error Evolution (Test Grid)", fontsize=14, fontweight="bold")
+        ax1.set_title("L2 Error Evolution (Training Grid)", fontsize=14, fontweight="bold")
         ax1.set_yscale("log")
         ax1.grid(True, alpha=0.3)
         if len(l2_errors) > 2:
@@ -340,7 +410,7 @@ class TimeSolverPostprocessMixin:
         ax2.scatter(times, linf_errors, c="red", s=40, alpha=0.8, edgecolors="darkred", linewidths=0.5, label="L∞ Error")
         ax2.set_xlabel("Time", fontsize=12)
         ax2.set_ylabel("L∞ Error (log scale)", fontsize=12)
-        ax2.set_title("L∞ Error Evolution (Test Grid)", fontsize=14, fontweight="bold")
+        ax2.set_title("L∞ Error Evolution (Training Grid)", fontsize=14, fontweight="bold")
         ax2.set_yscale("log")
         ax2.grid(True, alpha=0.3)
         if len(linf_errors) > 2:
@@ -384,7 +454,7 @@ class TimeSolverPostprocessMixin:
             os.makedirs(ref_data_dir, exist_ok=True)
             matlab_data_path = os.path.join(ref_data_dir, "train_data.mat")
             scipy.io.savemat(matlab_data_path, export_data)
-            print(f"  Test-grid data exported to: {matlab_data_path}")
+            print(f"  Training-grid data exported to: {matlab_data_path}")
             print(f"  Data dimensions: {nt} time steps, {nx} spatial points")
             print(f"  Time range: [{time_history[0]:.6f}, {time_history[-1]:.6f}]")
             print(f"  Spatial range: [{x_flat.min():.6f}, {x_flat.max():.6f}]")
@@ -394,7 +464,9 @@ class TimeSolverPostprocessMixin:
             print(f"  Warning: Failed to export MATLAB data: {exc}")
 
     def _get_plot_data(self):
-        return self.data_test if getattr(self, "data_test", None) is not None else self.data_train
+        if getattr(self, "data_train", None) is not None:
+            return self.data_train
+        return self.data_test
 
     def _get_plot_x_coordinates(self) -> np.ndarray:
         x_coords = self._get_plot_data().get("x", self._get_plot_data().get("x_segments", []))

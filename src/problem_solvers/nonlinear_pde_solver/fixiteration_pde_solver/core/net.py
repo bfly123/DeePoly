@@ -31,7 +31,7 @@ class FixIterationPDENet(BoundaryConditionMixin, BaseNet):
         _, U = self(x_train)
 
         # Compute all PDE operators using unified method from BaseNet
-        ops = self.compute_pde_operators(U, x_train)
+        ops = self.pad_operator_outputs(self.compute_pde_operators(U, x_train))
         L1, L2, F, N, S = ops['L1'], ops['L2'], ops['F'], ops['N'], ops['S']
 
         # Fixed-point iteration: directly minimize PDE residual R(U) = 0

@@ -1,23 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, Tuple
+
 import numpy as np
-import torch
-from torch import nn
-from itertools import product
 
-from .operator_factory import create_operator_factory
-from src.abstract_class.shape import safe_segment_slice, concat_segments
+from .base_fitter_constraints_mixin import BaseFitterConstraintsMixin
+from .base_fitter_core_mixin import BaseFitterCoreMixin
+from .base_fitter_prediction_mixin import BaseFitterPredictionMixin
+from .spotter_feature_provider import resolve_spotter_feature_dim
 
 
-class BaseDeepPolyFitter(ABC):
-    """Abstract base class for DeePoly fitters
-
-    Provides common functionality for all fitters including:
-    - Time-stepping infrastructure (time_step, time_scheme)
-    - Operator compilation and caching
-    - Constraint handling
-    - Feature generation
-    """
+class BaseDeepPolyFitter(
+    BaseFitterPredictionMixin,
+    BaseFitterConstraintsMixin,
+    BaseFitterCoreMixin,
+    ABC,
+):
+    """Abstract base class for DeePoly fitters"""
 
     def __init__(self, config, dt: float = None, data: Dict = None, time_scheme: str = None):
         from src.abstract_class.features_generator import FeatureGenerator
@@ -25,811 +23,88 @@ class BaseDeepPolyFitter(ABC):
         self.config = config
         self.data = data
         self.dt = dt
-
-        # Time-stepping infrastructure (optional, used by time-dependent solvers)
         self.time_scheme = None
         self._time_scheme_name = time_scheme
         if time_scheme is not None:
             self._initialize_time_scheme(time_scheme)
 
-        # Maintain current segment-level solution values (used by time-stepping methods)
-        self.U_seg_current = None  # List[np.ndarray] - current timestep segment values
-        self.U_seg_prev = None  # List[np.ndarray] - previous timestep segment values
-
-        # Base dimensions - standardize to consistent format
+        self.U_seg_current = None
+        self.U_seg_prev = None
         self.n_dim = config.n_dim
         raw_segments = getattr(config, "n_segments", 10)
-        self.n_segments = (
-            raw_segments if isinstance(raw_segments, (list, tuple))
-            else [raw_segments] * self.n_dim
-        )
-
+        self.n_segments = raw_segments if isinstance(raw_segments, (list, tuple)) else [raw_segments] * self.n_dim
         self.ns = np.prod(self.n_segments)
 
-        # Pre-compilation cache system
-        self._features = {}  # Cache features: {segment_idx: features_list}
-        self._linear_operators = {}  # Cache linear operators: {segment_idx: {'L1': matrix, 'L2': matrix}}
-        self._nonlinear_functions = {}  # Pre-compiled coefficient functions: {segment_idx: {'N': func, 'F': func}}
-        self._precompiled = False  # Pre-compilation completion flag
-
+        self._features = {}
+        self._linear_operators = {}
+        self._nonlinear_functions = {}
+        self._precompiled = False
         self.feature_generator = FeatureGenerator(self.config.linear_device)
-        
-        # Standardized operator attribute access - eliminate branching
-        # Handle both dict and object operator_parse
-        operator_source = getattr(config, 'operator_parse', {})
+
+        operator_source = getattr(config, "operator_parse", {})
 
         def safe_get(source, key, default=None):
-            if hasattr(source, 'get'):
+            if hasattr(source, "get"):
                 return source.get(key, default)
-            elif hasattr(source, key):
+            if hasattr(source, key):
                 return getattr(source, key)
             return default
 
-        # Priority: operator_parse first, then config attributes, then defaults
-        self.max_derivatives = (safe_get(operator_source, "max_derivative_orders") or
-                               getattr(config, 'max_derivative_orders', []))
-        self.all_derivatives = (safe_get(operator_source, "all_derivatives") or
-                               getattr(config, 'all_derivatives', {}))
-        self.derivatives = (safe_get(operator_source, "derivatives") or
-                           getattr(config, 'derivatives', []))
-        self.operator_terms = (safe_get(operator_source, "operator_terms") or
-                              getattr(config, 'operator_terms', {}))
-
+        self.max_derivatives = safe_get(operator_source, "max_derivative_orders") or getattr(config, "max_derivative_orders", [])
+        self.all_derivatives = safe_get(operator_source, "all_derivatives") or getattr(config, "all_derivatives", {})
+        self.derivatives = safe_get(operator_source, "derivatives") or getattr(config, "derivatives", [])
+        self.operator_terms = safe_get(operator_source, "operator_terms") or getattr(config, "operator_terms", {})
         self.L1 = self.operator_terms.get("L1", None)
         self.L2 = self.operator_terms.get("L2", None)
         self.N = self.operator_terms.get("N", None)
         self.F = self.operator_terms.get("F", None)
-        
-        # Standardize degree calculations - eliminate method branching
+
         poly_degree = np.asarray(self.config.poly_degree)
         self.dg = np.int32(np.prod(poly_degree + 1))
-        dnn_contribution = getattr(self.config, 'DNN_degree', 0) if self.config.method == "hybrid" else 0
-        self.dgN = dnn_contribution + self.dg
+        self.nn_feature_dim = int(getattr(self.config, "DNN_degree", 0)) if self.config.method == "hybrid" else 0
+        self.dgN = int(self.dg) + int(self.nn_feature_dim)
         self.device = self.config.linear_device
         self.n_eqs = self.config.n_eqs
-
-        # Initialize constraint members
         self.A_constraints = None
         self.b_constraints = None
         self.A = None
         self.b = None
-
-        # Generate operator functions
         self._generate_operator_functions()
 
-    def _generate_operator_functions(self):
-        """Generate all operator functions once"""
-        constants = getattr(self.config, "constants", {})
+    def _update_feature_dimensions(self, feature_source) -> None:
+        if getattr(self.config, "method", "hybrid") != "hybrid":
+            self.nn_feature_dim = 0
+            self.dgN = int(self.dg)
+            return
 
-        self.operator_factory = create_operator_factory(
-            all_derivatives=self.all_derivatives,
-            constants=constants,
-            optimized=True,
-        )
+        sample_x_norm = None
+        x_min = None
+        x_max = None
+        x_segments_norm = self.data.get("x_segments_norm") if isinstance(self.data, dict) else None
+        if x_segments_norm:
+            for segment_idx, x_seg in enumerate(x_segments_norm):
+                if x_seg is None or len(x_seg) == 0:
+                    continue
+                sample_x_norm = np.asarray(x_seg[:1], dtype=np.float64)
+                x_min = np.asarray(self.config.x_min[segment_idx], dtype=np.float64)
+                x_max = np.asarray(self.config.x_max[segment_idx], dtype=np.float64)
+                break
 
-        operator_funcs = self.operator_factory.create_all_operators(self.operator_terms)
+        if sample_x_norm is None or x_min is None or x_max is None:
+            feature_dim = int(getattr(self.config, "DNN_degree", 0))
+        else:
+            feature_dim = resolve_spotter_feature_dim(
+                feature_source,
+                sample_x_norm=sample_x_norm,
+                x_min=x_min,
+                x_max=x_max,
+                device=getattr(self.config, "device", "cpu"),
+            )
 
-        self.L1_func = operator_funcs.get("L1_func", None)
-        self.L2_func = operator_funcs.get("L2_func", None)
-        self.N_func = operator_funcs.get("N_func", None)
-        self.F_func = operator_funcs.get("F_func", None)
+        self.nn_feature_dim = int(feature_dim)
+        self.dgN = int(self.dg) + int(self.nn_feature_dim)
 
     @abstractmethod
-    def _build_segment_jacobian(
-        self,
-        segment_idx: int,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _build_segment_jacobian(self, segment_idx: int) -> Tuple[np.ndarray, np.ndarray]:
         """Build Jacobian matrix for single segment"""
         pass
-
-    def fitter_init(self, model: nn.Module):
-        """Initialize and pre-compile operator matrices"""
-        # MaintainModelAt原EquipmentUp，不要MoveTolinear_device
-        self._current_model = model
-        self._precompile_all_operators(model)
-        return model
-
-    def _precompile_all_operators(self, model: nn.Module):
-        """Hierarchical pre-compilation of all operators"""
-        n_cols = self.config.n_eqs * self.dgN * self.ns
-
-        for segment_idx in range(self.ns):
-            # Level 1: Pre-compile and cache features
-            features = self._get_features(segment_idx, model)
-            self._features[segment_idx] = features
-
-            # Level 2: 强制预编译所有线性算子（移除条件检查）
-            linear_ops = {}
-            linear_ops["L1"] = self.L1_func(features)  # 强制编译，零算子返回零矩阵
-            linear_ops["L2"] = self.L2_func(features)  # 强制编译，零算子返回零矩阵
-            self._linear_operators[segment_idx] = linear_ops
-
-            # Level 3: 强制预编译所有非线性算子（移除条件检查）
-            nonlinear_funcs = {}
-            nonlinear_funcs["N"] = self._create_nonlinear_function(
-                features, self.N_func, "N"
-            )  # 强制编译，零算子返回零数组
-            nonlinear_funcs["F"] = self._create_nonlinear_function(
-                features, self.F_func, "F"
-            )  # 强制编译，单位算子返回单位数组
-            self._nonlinear_functions[segment_idx] = nonlinear_funcs
-
-        # Level 4: Pre-compile constraint conditions
-        if self.config.problem_type != "func_fitting":
-            self._add_constraints(model)
-
-        if self.A and self.b:
-            self.A_constraints = np.vstack(self.A)
-            self.b_constraints = np.vstack([b_i.reshape(-1, 1) for b_i in self.b])
-        else:
-            self.A_constraints = np.zeros((0, n_cols))
-            self.b_constraints = np.zeros((0, 1))
-
-        self._precompiled = True
-
-    def _create_nonlinear_function(self, features, operator_func, operator_name):
-        """Pre-compile nonlinear operators as coefficient-only dependent functions"""
-        def coeffs_function(coeffs_nonlinear):
-            """Pre-compiled coefficient function"""
-            result = operator_func(features, coeffs_nonlinear)
-            return result
-        return coeffs_function
-
-    def has_nonlinear_operators(self):
-        """检查非线性算子是否存在 - 简化逻辑（强制存在化后总是True）"""
-        return True  # 简化为总是存在，由具体算子内容决定是否为零
-
-    def fit(self, **kwargs) -> np.ndarray:
-        """Solve system using nonlinear solver"""
-        coeffs = self._solve_system(**kwargs)
-        return coeffs
-
-    def _solve_system(self, **kwargs) -> np.ndarray:
-        """Solve nonlinear system using trust region method"""
-        shape = (self.ns, self.config.n_eqs, self.dgN)
-        L, r = self._build_jacobian(**kwargs)
-        coeffs = self.solver.solve(L, r, method="auto")[0]
-        return coeffs.reshape(shape)
-
-    def _build_jacobian(self, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        """Build complete Jacobian matrix"""
-        ns = self.ns
-        ne = self.config.n_eqs
-        dgN = self.dgN
-
-        # Calculate total number of rows
-        total_rows = 0
-        rows_per_segment = []
-        for i in range(ns):
-            n_points = len(self.data["x_segments_norm"][i])
-            segment_rows = n_points * ne
-            rows_per_segment.append(segment_rows)
-            total_rows += segment_rows
-
-        n_cols = ne * dgN * ns
-
-        # Pre-allocate matrices
-        J1 = np.zeros((total_rows, n_cols), dtype=np.float64)
-        b1 = np.zeros((total_rows, 1), dtype=np.float64)
-
-        # Process each segment
-        row_start = 0
-        for i in range(ns):
-            row_end = row_start + rows_per_segment[i]
-            col_start = i * ne * dgN
-            col_end = (i + 1) * ne * dgN
-
-            L, r = self._build_segment_jacobian(i, **kwargs)
-
-            # Fill matrices
-            J1[row_start:row_end, col_start:col_end] = L
-            b1[row_start:row_end, 0] = r
-
-            row_start = row_end
-
-        # ============= DIAGNOSTIC 6: Separate PDE and boundary residuals =============
-        # print(f"\n[DIAGNOSTIC 6] System assembly:")
-        # print(f"  PDE system: J1 shape {J1.shape}, b1 norm {np.linalg.norm(b1):.6e}")
-        # print(f"  Constraints: A shape {self.A_constraints.shape}, b norm {np.linalg.norm(self.b_constraints):.6e}")
-        # print(f"  Total rows: PDE {J1.shape[0]} + BC {self.A_constraints.shape[0]} = {J1.shape[0] + self.A_constraints.shape[0]}")
-
-        # Assemble final results
-        J = np.vstack([J1, self.A_constraints])
-        r = np.vstack([b1, self.b_constraints])
-
-        # ============= DIAGNOSTIC 7: Final system properties =============
-        # print(f"\n[DIAGNOSTIC 7] Final assembled system:")
-        # print(f"  J shape: {J.shape}")
-        # print(f"  J norm: {np.linalg.norm(J, 'fro'):.6e}")
-        # print(f"  r norm: {np.linalg.norm(r):.6e}")
-        # print(f"  J nnz ratio: {np.count_nonzero(J)/J.size:.4f}")
-        # print(f"  Split index (PDE/BC boundary): {J1.shape[0]}")
-
-        return J, r
-
-    def _get_segment_features(
-        self,
-        x: np.ndarray,
-        x_min: np.ndarray,
-        x_max: np.ndarray,
-        model: nn.Module,
-        derivative: List[int] = None,
-    ) -> np.ndarray:
-        """Get segment features"""
-        n_dims = x.shape[1]
-        if derivative is None:
-            derivative = [0] * n_dims
-
-        X_poly = self.feature_generator.sniper_features(
-            x, self.config.poly_degree, derivative
-        )
-
-        scale_factor = 1.0
-        for dim, der in enumerate(derivative):
-            if der > 0 and (x_max[dim] - x_min[dim]) > 1e-9:
-                scale_factor /= (x_max[dim] - x_min[dim]) ** der
-            elif der > 0:
-                print(f"Warning: Zero range encountered for dimension {dim} during scaling.")
-                scale_factor = 0
-                break
-        X_poly *= scale_factor
-
-        if getattr(self.config, "method", "hybrid") == "hybrid":
-            X_nn = self.feature_generator.spotter_features(
-                x, x_min, x_max, model, derivative, self.config.device
-            )
-            X_poly = np.hstack([X_poly, X_nn])
-
-        return X_poly
-
-    def _get_features(self, segment_idx: int, model: nn.Module) -> List[np.ndarray]:
-        """Get features and derivatives"""
-        feature_list = self.derivatives
-        x = self.data["x_segments_norm"][segment_idx]
-        x_min = self.config.x_min[segment_idx]
-        x_max = self.config.x_max[segment_idx]
-
-        features = []
-        for derivative in feature_list:
-            features.append(
-                self._get_segment_features(x, x_min, x_max, model, derivative)
-            )
-        return features
-
-    def _add_constraints(self, model: nn.Module):
-        """Add constraint conditions"""
-        self.A, self.b = [], []
-        if self.config.problem_type != "func_fitting":
-            self._add_boundary_conditions(model)
-            self._add_periodic_constraints(model)  # 添加CycleBoundary conditionsConstraint
-            self._add_swap_conditions(model)
-
-    def _add_boundary_conditions(self, model: nn.Module):
-        """Add boundary conditions"""
-        ne = self.config.n_eqs
-
-        for i in range(self.ns):
-            if "boundary_segments_dict" not in self.data or i >= len(
-                self.data["boundary_segments_dict"]
-            ):
-                continue
-
-            segment_boundaries = self.data["boundary_segments_dict"][i]
-
-            for var_idx in range(len(self.config.vars_list)):
-                if var_idx not in segment_boundaries:
-                    continue
-
-                # Process Dirichlet boundary conditions
-                if (
-                    "dirichlet" in segment_boundaries[var_idx]
-                    and len(segment_boundaries[var_idx]["dirichlet"]["x"]) > 0
-                ):
-                    x_bd = segment_boundaries[var_idx]["dirichlet"]["x"]
-                    U_bd = segment_boundaries[var_idx]["dirichlet"]["values"]
-
-                    features = self._get_segment_features(
-                        x_bd,
-                        self.config.x_min[i],
-                        self.config.x_max[i],
-                        model,
-                        [0] * self.config.n_dim,
-                    )
-
-                    constraint = np.zeros((x_bd.shape[0], self.dgN * self.ns * ne))
-                    start_idx = i * self.dgN * ne + self.dgN * var_idx
-                    constraint[:, start_idx : start_idx + self.dgN] = features
-
-                    self.A.append(10 * constraint)
-                    self.b.append(10 * U_bd.flatten())
-
-                # Process Neumann boundary conditions
-                if (
-                    "neumann" in segment_boundaries[var_idx]
-                    and len(segment_boundaries[var_idx]["neumann"]["x"]) > 0
-                ):
-                    x_bd = segment_boundaries[var_idx]["neumann"]["x"]
-                    U_bd = segment_boundaries[var_idx]["neumann"]["values"]
-                    normals = segment_boundaries[var_idx]["neumann"]["normals"]
-
-                    for pt_idx in range(x_bd.shape[0]):
-                        point = x_bd[pt_idx : pt_idx + 1]
-                        normal = normals[pt_idx]
-
-                        for dim in range(self.config.n_dim):
-                            if abs(normal[dim]) < 1e-10:
-                                continue
-
-                            derivative = [0] * self.config.n_dim
-                            derivative[dim] = 1
-
-                            features = self._get_segment_features(
-                                point,
-                                self.config.x_min[i],
-                                self.config.x_max[i],
-                                model,
-                                derivative,
-                            )
-
-                            constraint = np.zeros((1, self.dgN * self.ns * ne))
-                            start_idx = i * self.dgN * ne + self.dgN * var_idx
-                            constraint[:, start_idx : start_idx + self.dgN] = (
-                                normal[dim] * features
-                            )
-
-                            self.A.append(10 * constraint)
-                            self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
-
-                # Process Robin boundary conditions
-                if (
-                    "robin" in segment_boundaries[var_idx]
-                    and len(segment_boundaries[var_idx]["robin"]["x"]) > 0
-                ):
-                    x_bd = segment_boundaries[var_idx]["robin"]["x"]
-                    U_bd = segment_boundaries[var_idx]["robin"]["values"]
-                    normals = segment_boundaries[var_idx]["robin"]["normals"]
-                    params = segment_boundaries[var_idx]["robin"]["params"]
-
-                    if not isinstance(params, list) or len(params) < 2:
-                        params = [1.0, 0.0]
-
-                    alpha, beta = params
-
-                    for pt_idx in range(x_bd.shape[0]):
-                        point = x_bd[pt_idx : pt_idx + 1]
-                        normal = normals[pt_idx]
-
-                        features_U = self._get_segment_features(
-                            point,
-                            self.config.x_min[i],
-                            self.config.x_max[i],
-                            model,
-                            [0] * self.config.n_dim,
-                        )
-
-                        features_dU_dn = np.zeros_like(features_U)
-
-                        for dim in range(self.config.n_dim):
-                            if abs(normal[dim]) < 1e-10:
-                                continue
-
-                            derivative = [0] * self.config.n_dim
-                            derivative[dim] = 1
-
-                            features_dim = self._get_segment_features(
-                                point,
-                                self.config.x_min[i],
-                                self.config.x_max[i],
-                                model,
-                                derivative,
-                            )
-
-                            features_dU_dn += normal[dim] * features_dim
-
-                        constraint = np.zeros((1, self.dgN * self.ns * ne))
-                        start_idx = i * self.dgN * ne + self.dgN * var_idx
-                        constraint[:, start_idx : start_idx + self.dgN] = (
-                            alpha * features_U + beta * features_dU_dn
-                        )
-
-                        self.A.append(10 * constraint)
-                        self.b.append(10 * np.array([U_bd[pt_idx, 0]]))
-
-    def _add_periodic_constraints(self, model: nn.Module):
-        """Add periodic boundary conditions - Process跨segment的全局Constraint"""
-        if "global_boundary_dict" not in self.data:
-            return
-            
-        global_boundary_data = self.data["global_boundary_dict"]
-        ne = self.config.n_eqs
-        
-        for var_idx in range(len(self.config.vars_list)):
-            if var_idx not in global_boundary_data:
-                continue
-                
-            if "periodic" not in global_boundary_data[var_idx]:
-                continue
-                
-            pairs = global_boundary_data[var_idx]["periodic"]["pairs"]
-            
-            for pair in pairs:
-                constraint_type = pair.get('constraint_type', 'dirichlet')
-                
-                # Get两GroupBoundarypoint和对应的segmentIndex
-                segment_1 = pair['segment_1']
-                segment_2 = pair['segment_2']
-                x_boundary_1_global = pair['x_1']  # 全局coordinate
-                x_boundary_2_global = pair['x_2']  # 全局coordinate
-
-                # Convert为局部Normalizedcoordinate（复用Data预Process的Normalizedmethod）
-                x_boundary_1_local = self._normalize_coords(x_boundary_1_global, segment_1)
-                x_boundary_2_local = self._normalize_coords(x_boundary_2_global, segment_2)
-
-                # 复用swap的Derivatives阶管理和ConstraintGenerate逻辑
-                self._add_periodic_constraints_for_pair(
-                    model, segment_1, segment_2,
-                    x_boundary_1_local, x_boundary_2_local
-                )
-
-    def _normalize_coords(self, x_global: np.ndarray, segment_idx: int) -> np.ndarray:
-        """将全局coordinateConvert为segment的局部Normalizedcoordinate，复用Data预Process的Normalizedmethod"""
-        x_min = self.config.x_min[segment_idx]
-        x_max = self.config.x_max[segment_idx]
-
-        # Using与base_data._normalize_dataSame的Normalizedmethod
-        x = np.asarray(x_global, dtype=np.float64)
-        x_min = np.asarray(x_min, dtype=np.float64)
-        x_max = np.asarray(x_max, dtype=np.float64)
-
-        normalized = np.zeros_like(x)
-        for i in range(x.shape[-1]):
-            if x_max[..., i] - x_min[..., i] > 1e-10:
-                normalized[..., i] = (x[..., i] - x_min[..., i]) / (
-                    x_max[..., i] - x_min[..., i]
-                )
-            else:
-                normalized[..., i] = x[..., i]
-        return normalized
-
-    def _add_periodic_constraints_for_pair(
-        self,
-        model: nn.Module,
-        segment_1: int,
-        segment_2: int,
-        x_boundary_1_local: np.ndarray,
-        x_boundary_2_local: np.ndarray
-    ):
-        """Add periodic boundary constraints for a pair using unified constraint builder"""
-        # Add constraints for all equations and derivatives using unified interface
-        for i in range(self.config.n_eqs):
-            for derivative in self._iter_equation_derivatives(i):
-                self._add_dual_boundary_constraint(
-                    model=model,
-                    seg1=segment_1,
-                    x1_local=x_boundary_1_local,
-                    seg2=segment_2,
-                    x2_local=x_boundary_2_local,
-                    eq_idx=i,
-                    derivative=derivative,
-                    weight=10.0  # Default periodic constraint weight
-                )
-
-
-    def _add_dual_boundary_constraint(
-        self,
-        model: nn.Module,
-        seg1: int,
-        x1_local: np.ndarray,
-        seg2: int,
-        x2_local: np.ndarray,
-        eq_idx: int,
-        derivative: List[int],
-        weight: float = 10.0
-    ):
-        """Unified function for adding dual boundary equality constraints
-
-        This function handles both swap and periodic boundary constraints by:
-        1. Extracting features from both boundary point sets
-        2. Constructing equality constraints: U1 - U2 = 0
-        3. Adding constraints to the global system
-
-        Args:
-            model: Neural network model
-            seg1: First segment index
-            x1_local: First boundary points (local coordinates)
-            seg2: Second segment index
-            x2_local: Second boundary points (local coordinates)
-            eq_idx: Equation index
-            derivative: Derivative orders for each dimension
-            weight: Constraint weight factor
-        """
-        # Ensure equal number of points for proper pairing
-        n1, n2 = x1_local.shape[0], x2_local.shape[0]
-        assert n1 == n2, f"Boundary points must match: seg{seg1} has {n1}, seg{seg2} has {n2}"
-        nw = n1
-
-        # Extract features for both boundaries
-        P1 = self._get_segment_features(
-            x1_local,
-            self.config.x_min[seg1],
-            self.config.x_max[seg1],
-            model,
-            derivative,
-        )
-
-        P2 = self._get_segment_features(
-            x2_local,
-            self.config.x_min[seg2],
-            self.config.x_max[seg2],
-            model,
-            derivative,
-        )
-
-        # Construct constraint matrix: U1 - U2 = 0
-        dgN = self.dgN
-        NS = self.ns
-        cont = np.zeros((nw, dgN * NS * self.config.n_eqs), dtype=np.float64)
-
-        # Add +P1 for first segment
-        ndisp = seg1 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = P1[:nw, :]
-
-        # Add -P2 for second segment
-        ndisp = seg2 * dgN * self.config.n_eqs + dgN * eq_idx
-        cont[:, ndisp : ndisp + dgN] = -P2[:nw, :]
-
-        # Add to global constraint system
-        self.A.append(weight * cont)
-        self.b.append(weight * np.zeros((nw, 1)))
-
-    def _iter_equation_derivatives(self, eq_idx: int):
-        """Generate derivative combinations for given equation
-
-        Args:
-            eq_idx: Equation index
-
-        Yields:
-            List[int]: Derivative orders for each dimension
-        """
-        max_orders = self.max_derivatives[eq_idx]
-        reduced_orders = [max(0, order - 1) for order in max_orders]
-        ranges = [range(reduced_order + 1) for reduced_order in reduced_orders]
-
-        for derivative_tuple in product(*ranges):
-            yield list(derivative_tuple)
-
-    def _add_swap_conditions(self, model: nn.Module):
-        """Add interface continuity conditions"""
-        n_dims = len(self.n_segments)
-
-        for dim in range(n_dims):
-            current_segments = list(self.n_segments)
-            current_segments[dim] -= 1
-
-            indices = np.array(
-                np.meshgrid(*[range(n) for n in current_segments])
-            ).T.reshape(-1, n_dims)
-
-            for idx in indices:
-                self._add_dimension_swap(idx, dim, model)
-
-    def _add_dimension_swap(self, idx: np.ndarray, dim: int, model: nn.Module):
-        """Add interface continuity conditions for specified dimension using unified constraint builder"""
-        idx1 = idx.copy()
-        idx2 = idx.copy()
-        idx2[dim] += 1
-
-        seg1 = np.ravel_multi_index(idx1, self.n_segments, order="F")
-        seg2 = np.ravel_multi_index(idx2, self.n_segments, order="F")
-
-        # Get swap boundary points (already normalized)
-        x1_local = self.data["x_swap_norm"][seg1, 2 * dim + 1, :, :]  # seg1 upper boundary
-        x2_local = self.data["x_swap_norm"][seg2, 2 * dim, :, :]      # seg2 lower boundary
-
-        # Add constraints for all equations and derivatives
-        for i in range(self.config.n_eqs):
-            for derivative in self._iter_equation_derivatives(i):
-                self._add_dual_boundary_constraint(
-                    model=model,
-                    seg1=seg1,
-                    x1_local=x1_local,
-                    seg2=seg2,
-                    x2_local=x2_local,
-                    eq_idx=i,
-                    derivative=derivative,
-                    weight=10.0  # Default swap constraint weight
-                )
-
-
-    def construct(
-        self,
-        data: Dict,
-        model: nn.Module,
-        coeffs: np.ndarray,
-        derivative: List[int] = None,
-    ) -> Tuple[np.ndarray, List[np.ndarray]]:
-        """Make predictions using coefficients"""
-        x_segments = data["x_segments_norm"]
-        x_min = self.config.x_min
-        x_max = self.config.x_max
-        ne = self.config.n_eqs
-        ns = self.ns
-
-        if derivative is None:
-            derivative = [0] * self.config.n_dim
-
-        total_size = sum(seg.shape[0] for seg in x_segments)
-        U_pred = np.zeros((total_size, ne))
-        U_segments = []
-
-        start_idx = 0
-        for i in range(ns):
-            segment_size = x_segments[i].shape[0]
-            end_idx = start_idx + segment_size
-
-            features = self._get_segment_features(
-                x_segments[i], x_min[i], x_max[i], model, derivative
-            )
-
-            segment_pred = np.zeros((segment_size, ne))
-            for j in range(ne):
-                segment_pred[:, j] = features @ coeffs[i, j, :]
-
-            U_pred[start_idx:end_idx, :] = segment_pred
-            U_segments.append(segment_pred)
-            start_idx = end_idx
-
-        return U_pred, U_segments
-
-    def global_to_segments(self, U_global: np.ndarray) -> List[np.ndarray]:
-        """将全局UArrayConvert为段级List
-        
-        Args:
-            U_global: 全局SolutionArray，Shape为 (total_points,) 或 (total_points, n_eqs)
-            
-        Returns:
-            List[np.ndarray]: 段级SolutionvalueList，Eachelement对应一个段的Solutionvalue
-        """
-        if U_global is None:
-            return [None] * self.ns
-            
-        U_segments = []
-        start_idx = 0
-        for seg_idx in range(self.ns):
-            n_points = len(self.data["x_segments_norm"][seg_idx])
-            end_idx = start_idx + n_points
-            
-            U_segment = safe_segment_slice(U_global, start_idx, end_idx, "U_global")
-            U_segments.append(U_segment)
-                
-            start_idx = end_idx
-            
-        return U_segments
-
-    def segments_to_global(self, U_segments: List[np.ndarray]) -> np.ndarray:
-        """将段级ListConvert为全局UArray
-        
-        Args:
-            U_segments: 段级SolutionvalueList
-            
-        Returns:
-            np.ndarray: 全局SolutionArray
-        """
-        if not U_segments or U_segments[0] is None:
-            total_points = sum(len(self.data["x_segments_norm"][i]) for i in range(self.ns))
-            return np.zeros((total_points, self.n_eqs))
-
-        return concat_segments(U_segments, "U_segments")
-
-    def has_operator(self, operator_name):
-        """算子存在性检查 - 统一化后总是返回True（强制存在化）"""
-        return True  # 所有算子都强制存在，零算子会返回零值
-
-    def get_operator_info(self, operator_name):
-        """Get operator information"""
-        func = getattr(self, f"{operator_name}_func", None)
-        if func:
-            return {
-                "exists": True,
-                "name": func.operator_name,
-                "num_terms": len(func.terms),
-                "terms": func.terms,
-                "is_nonlinear": getattr(func, "is_nonlinear", False),
-                "compiled": hasattr(func, "compiled_terms"),
-            }
-        return {"exists": False}
-
-    def get_system_info(self):
-        """Get system information"""
-        info = {
-            "linear_operators": [],
-            "nonlinear_operators": [],
-            "total_equations": self.config.n_eqs,
-            "total_segments": self.ns,
-            "degrees_of_freedom": self.dgN,
-        }
-
-        for op_name in ["L1", "L2", "N", "F"]:
-            # 移除条件检查，强制处理所有算子
-            op_info = self.get_operator_info(op_name)
-            if op_info.get("is_nonlinear", False):
-                info["nonlinear_operators"].append(op_name)
-            else:
-                info["linear_operators"].append(op_name)
-
-        return info
-
-    def print_system_summary(self):
-        """Print system summary information"""
-        info = self.get_system_info()
-        print("=== DeePoly System Summary ===")
-        print(f"Equations: {info['total_equations']}")
-        print(f"Segments: {info['total_segments']}")
-        print(f"Degrees of Freedom per segment: {info['degrees_of_freedom']}")
-        print(f"Linear Operators: {info['linear_operators']}")
-        print(f"Nonlinear Operators: {info['nonlinear_operators']}")
-
-        if info["nonlinear_operators"]:
-            print("\nNote: System contains nonlinear operators and will require iterative solving.")
-        else:
-            print("\nNote: System is linear and can be solved directly.")
-        print("=" * 30)
-
-    # ================== Time-Stepping Infrastructure (Optional) ==================
-    # These methods provide time-stepping functionality used by time-dependent solvers
-    # (TimePDEFitter, PseudoTimePDEFitter). Not all fitters need to use these.
-
-    def _initialize_time_scheme(self, scheme_name: str):
-        """Initialize time integration scheme (lazy import to avoid circular dependency)"""
-        from src.problem_solvers.nonlinear_pde_solver.time_schemes import create_time_scheme
-        self.time_scheme = create_time_scheme(scheme_name, self.config)
-        self.time_scheme.set_fitter(self)
-
-    def time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float,
-                  coeffs_n: np.ndarray = None, **kwargs) -> Tuple[np.ndarray, List[np.ndarray], np.ndarray]:
-        """Execute one time step using the configured time scheme
-
-        This is a common interface for time-dependent solvers. Requires time_scheme to be initialized.
-
-        Args:
-            U_n: Current timestep global solution values
-            U_seg: Current timestep segment-level solution values
-            dt: Time step size
-            coeffs_n: Current timestep coefficients
-            **kwargs: Additional parameters (current_time, step, etc.)
-
-        Returns:
-            Tuple[np.ndarray, List[np.ndarray], np.ndarray]: (new global solution, new segment solutions, coefficients)
-        """
-        if self.time_scheme is None:
-            raise RuntimeError("Time scheme not initialized. Pass time_scheme to __init__ or call _initialize_time_scheme()")
-
-        if not self._precompiled:
-            raise RuntimeError("Operators not precompiled. Call fitter_init() first.")
-
-        # Update current segment-level solution values
-        self.U_seg_current = U_seg
-
-        # Delegate to time scheme
-        U_new, U_seg_new, coeffs = self.time_scheme.time_step(U_n, U_seg, dt, coeffs_n, **kwargs)
-
-        # Update maintained segment-level solution values
-        self.U_seg_prev = self.U_seg_current
-        self.U_seg_current = U_seg_new
-
-        return U_new, U_seg_new, coeffs
-
-    def _get_source_term(self, segment_idx: int) -> np.ndarray:
-        """Get source term for segment (common utility for all fitters)
-
-        Args:
-            segment_idx: Segment index
-
-        Returns:
-            Source term array (n_points, n_eqs)
-        """
-        if "source_segments" in self.data:
-            return self.data["source_segments"][segment_idx]
-
-        n_points = len(self.data["x_segments"][segment_idx])
-        return np.zeros((n_points, self.config.n_eqs))

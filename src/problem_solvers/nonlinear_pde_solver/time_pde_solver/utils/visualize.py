@@ -1,5 +1,7 @@
-import matplotlib.pyplot as plt
+import math
 from collections import deque
+
+import matplotlib.pyplot as plt
 
 from src.abstract_class.config.base_visualize import BaseVisualizer
 
@@ -19,6 +21,23 @@ class TimePDEVisualizer(
     BaseVisualizer,
 ):
     """Visualizer for time-dependent PDE problems - supports independent 1D and 2D visualization"""
+
+    @staticmethod
+    def _default_max_frames(config) -> int:
+        configured = getattr(config, "max_visualization_frames", None)
+        if configured is not None:
+            return int(configured)
+
+        total_time = getattr(config, "T", None)
+        dt = getattr(config, "dt", None)
+        if total_time is None or dt in (None, 0):
+            return 200
+
+        estimated_steps = math.ceil(float(total_time) / float(dt))
+        if str(getattr(config, "time_scheme", "")).lower() == "onestep_predictor":
+            # The first predictor step uses a reduced dt, so one extra snapshot is expected.
+            estimated_steps += 1
+        return max(200, estimated_steps)
 
     def __init__(self, config):
         super().__init__(config)
@@ -45,7 +64,7 @@ class TimePDEVisualizer(
         self._scatter_numerical = None
         self._line_reference = None
         self._step_counter = 0
-        self._max_frames = getattr(config, "max_visualization_frames", 200)
+        self._max_frames = self._default_max_frames(config)
         self.time_history_viz = deque(maxlen=self._max_frames)
         self.solution_history_viz = deque(maxlen=self._max_frames)
         self.coeffs_history_viz = deque(maxlen=self._max_frames)

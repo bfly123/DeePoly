@@ -1,0 +1,51 @@
+{
+  "3x3": {
+    "label": "s3x3_p9x6_d10000_e2000_g100x100",
+    "n_segments": [
+      3,
+      3
+    ],
+    "poly_degree": [
+      9,
+      6
+    ],
+    "points_domain": 10000,
+    "epochs_adam": 2000,
+    "points_domain_test": [
+      100,
+      100
+    ],
+    "elapsed_seconds": 37.42250476499976,
+    "success": true,
+    "metrics": {
+      "evaluation_grid": {
+        "reference_x": 2048,
+        "reference_t": 1001,
+        "numerical_x": 100,
+        "numerical_t": 100,
+        "numerical_x_min": -0.99,
+        "numerical_x_max": 0.99,
+        "numerical_t_min": 0.01,
+        "numerical_t_max": 0.99
+      },
+      "spotter": {
+        "l1_mean_abs": 0.3145472810251892,
+        "rmse": 0.5817247229001635,
+        "linf_abs": 1.942707684423317,
+        "rel_l2": 0.8200251705602201,
+        "mean_prediction": -0.5160491101279666,
+        "min_prediction": -0.9909800175872061,
+        "max_prediction": -0.0009811649888692181
+      },
+      "sniper": {
+        "l1_mean_abs": 0.31181493468597815,
+        "rmse": 0.4470351848591289,
+        "linf_abs": 1.5175360748240867,
+        "rel_l2": 0.6301607775632387,
+        "mean_prediction": -0.4412502997510367,
+        "min_prediction": -2.51750336134536,
+        "max_prediction": 0.331339447321209
+      }
+    }
+  }
+}

@@ -1,23 +1,67 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Dict, Optional, Callable
+from scipy.interpolate import RegularGridInterpolator
 
 
 class ReferenceComparisonMixin:
 
+    def _resolve_reference_values(self, x: np.ndarray, reference_func):
+        if isinstance(reference_func, dict):
+            if 'u_ref' not in reference_func:
+                print("Warning: Reference solution dict missing 'u_ref' key, skipping comparison")
+                return None
+            u_ref = np.asarray(reference_func['u_ref'])
+            y_ref = reference_func.get('y_ref')
+            x_ref = reference_func.get('x_ref')
+
+            if (
+                y_ref is not None
+                and x_ref is not None
+                and x.ndim == 2
+                and x.shape[1] >= 2
+            ):
+                x_ref = np.asarray(x_ref).reshape(-1)
+                y_ref = np.asarray(y_ref).reshape(-1)
+                if u_ref.ndim == 1 and u_ref.size == x_ref.size * y_ref.size:
+                    u_ref = u_ref.reshape(len(y_ref), len(x_ref))
+                elif u_ref.shape == (len(x_ref), len(y_ref)):
+                    u_ref = u_ref.T
+                elif u_ref.shape != (len(y_ref), len(x_ref)):
+                    raise ValueError(
+                        f"Unsupported 2D reference shape {u_ref.shape}; "
+                        f"expected {(len(y_ref), len(x_ref))}"
+                    )
+
+                interpolator = RegularGridInterpolator(
+                    (y_ref, x_ref),
+                    u_ref,
+                    bounds_error=False,
+                    fill_value=None,
+                )
+                query = np.column_stack([x[:, 1], x[:, 0]])
+                resolved = interpolator(query)
+                return resolved.reshape(-1, 1)
+
+            if u_ref.ndim == 1:
+                return u_ref.reshape(-1, 1)
+            return u_ref
+
+        u_ref = reference_func(x)
+        u_ref = np.asarray(u_ref)
+        if u_ref.ndim == 1:
+            return u_ref.reshape(-1, 1)
+        return u_ref
+
     def plot_reference_comparison(self, x: np.ndarray, u_pred: np.ndarray,
                                   reference_func, save_path: Optional[str] = None,
                                   title: str = "Reference Comparison"):
-        # 处理参考解可能是字典或函数的情况
-        if isinstance(reference_func, dict):
-            if 'u_ref' in reference_func:
-                u_ref = reference_func['u_ref']
-            else:
-                # 如果是字典但没有u_ref，跳过比较
-                print("Warning: Reference solution dict missing 'u_ref' key, skipping comparison")
-                return
-        else:
-            u_ref = reference_func(x)
+        u_ref = self._resolve_reference_values(x, reference_func)
+        if u_ref is None:
+            return
+        u_pred = np.asarray(u_pred)
+        if u_pred.ndim == 1:
+            u_pred = u_pred.reshape(-1, 1)
         abs_error = np.abs(u_pred - u_ref)
         rel_error = abs_error / (np.abs(u_ref) + 1e-10)
 
@@ -49,6 +93,31 @@ class ReferenceComparisonMixin:
             ax3.set_xlabel('x')
             ax3.set_ylabel('Relative Error')
             ax3.grid(True)
+        elif x.shape[1] == 2:
+            pred_plot = u_pred[:, 0]
+            ref_plot = u_ref[:, 0]
+            err_plot = abs_error[:, 0]
+
+            scat1 = ax1.scatter(x[:, 0], x[:, 1], c=ref_plot, s=10, cmap='viridis')
+            ax1.set_title('Reference')
+            ax1.set_xlabel('x')
+            ax1.set_ylabel('y')
+            ax1.grid(True, alpha=0.3)
+            fig.colorbar(scat1, ax=ax1)
+
+            scat2 = ax2.scatter(x[:, 0], x[:, 1], c=pred_plot, s=10, cmap='viridis')
+            ax2.set_title('Prediction')
+            ax2.set_xlabel('x')
+            ax2.set_ylabel('y')
+            ax2.grid(True, alpha=0.3)
+            fig.colorbar(scat2, ax=ax2)
+
+            scat3 = ax3.scatter(x[:, 0], x[:, 1], c=err_plot, s=10, cmap='magma')
+            ax3.set_title('Absolute Error')
+            ax3.set_xlabel('x')
+            ax3.set_ylabel('y')
+            ax3.grid(True, alpha=0.3)
+            fig.colorbar(scat3, ax=ax3)
 
         plt.suptitle(title, fontsize=14)
         plt.tight_layout(rect=[0, 0, 1, 0.96])

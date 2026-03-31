@@ -2,40 +2,17 @@
 COMPREHENSIVE ERROR ANALYSIS REPORT
 ================================================================================
 
-CONFIGURATION PARAMETERS:
-----------------------------------------
-Problem Type: func_fitting
-Method: hybrid
-Dimensionality: 1D
-Segments: [32]
-Polynomial Degree: [3]
-Hidden Dimensions: [16, 32, 16]
-Domain: [[-1  1]]
-Test Grid: [300]
-
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 2.7873 seconds
-Neural Network Training Time (Scoper): 2.5585 seconds
-Equation Fitting Time (Sniper): 0.2287 seconds
-Scoper Time Percentage: 91.8%
-Sniper Time Percentage: 8.2%
+Total Solution Time: 5.4796 seconds
+Neural Network Training Time (Scoper): 4.7653 seconds
+Equation Fitting Time (Sniper): 0.7143 seconds
 
 ERROR METRICS:
 ----------------------------------------
-Method          Dataset  MSE          MAE          Max Error    Rel Error   
---------------------------------------------------------------------------------
-PINNs           Train    6.59e-06     2.25e-03     8.35e-03     1.03e-02    
-DeePoly         Train    6.79e-24     1.31e-12     1.76e-11     4.21e-12    
-PINNs           Test     6.42e-06     2.23e-03     5.79e-03     1.16e-02    
-DeePoly         Test     1.79e-22     2.78e-12     1.49e-10     6.38e-12    
-
-================================================================================
-PERFORMANCE COMPARISON:
-----------------------------------------
-Training MSE Improvement: +100.00%
-Test MSE Improvement: +100.00%
-Training Performance: DeePoly performs better
-Test Performance: DeePoly performs better
-
-================================================================================
+Method            MSE           MAE           Max Error     Rel Error     
+--------------------------------------------------------------------------
+PINNs Train       6.789530e-06  2.278086e-03  8.707550e-03  3.612911e-03  
+PINNs Test        6.576013e-06  2.255276e-03  6.073123e-03  3.623131e-03  
+DeePoly Train     2.164656e-29  3.313860e-15  2.520206e-14  6.451072e-15  
+DeePoly Test      5.226454e-28  5.794023e-15  3.125278e-13  3.230028e-14  

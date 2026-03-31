@@ -1,0 +1,89 @@
+Using case directory: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/generated_cases/s3x3_p9x6_d80x80_e10000_g200x200
+Problem type: general_pde
+Successfully loaded configuration from /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/generated_cases/s3x3_p9x6_d80x80_e10000_g200x200/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from nested 'pseudo_time'):
+  integrator: implicit_euler (fixed backend)
+  max_iterations: 1
+  residual_tol: 1.00e-05
+  dt_init: 0.1, dt_range: [1e-05, 0.11]
+  adaptive_dt: True
+  convergence: var[0]<=1.00e-04 and rel<=1.00e-05
+  plateau control: steps=10, tol=1.00e-02, rollback=True
+  reference_stable_single_retrain: True
+  reference_stable_retrain_stop_tol: 0.00e+00
+  reference_stable_adaptive_tail: False
+  solver_mode: True (Snipper稳态求解)
+  pseudo_time_formulation: default
+  frozen_nonlinear_jacobian: none
+Initial condition method: given
+Spotter training parameters (from main config -> spotter):
+  train_every: 1
+  epochs_adam: 10000
+  epochs_lbfgs: 0
+  max_retries: 0
+  tol: 1.00e-04
+✓ Visualization config: mode=both, outputs=['spotter', 'sniper']
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+ComputeBackwardEnd: GPU (CuPy)
+GPUMemory usageRatioSetup为: 0.90
+AvailableGPUInner存: 10.40 GB
+Loading reference solution: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/generated_cases/s3x3_p9x6_d80x80_e10000_g200x200/reference_data/allen_cahn_highres.mat
+Initializing solution using method: 'given'
+  Using given initial conditions from config...
+  Initialized u with: x**2*cos(pi*x)
+    ||u|| = 3.138256e+01, max|u| = 1.000000e+00
+  Training Neural Network...
+ Adam Epoch 0, Loss: 5.252253e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 7.986846e-03, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 2.154117e-03, LR: 1.000000e-02
+ Adam Epoch 3000, Loss: 1.593903e-03, LR: 1.000000e-02
+ Adam Epoch 4000, Loss: 1.444207e-03, LR: 1.000000e-02
+ Adam Epoch 5000, Loss: 1.890571e-02, LR: 1.000000e-02
+ Adam Epoch 6000, Loss: 1.591497e-03, LR: 1.000000e-02
+ Adam Epoch 7000, Loss: 1.417105e-03, LR: 1.000000e-02
+ Adam Epoch 8000, Loss: 1.407700e-03, LR: 1.000000e-02
+ Adam Epoch 9000, Loss: 5.425929e-03, LR: 1.000000e-02
+Final Adam Loss: 0.0013591539077660595
+Using best model, loss value: 0.0011811903235245042
+  ✓ Training Completed - Final Loss: 1.181190e-03
+自动选择method: gpu_svd
+=== Linear Solve Step 1 ===
+Method: gpu_svd
+Matrix size: 8140 x 1080
+Condition number: 531233436365.7819
+Residual Analysis:
+  ||Ax-b||_2 = 1.904867e-02
+  ||Ax-b||_inf = 2.406348e-03
+  ||Ax-b||_1 = 9.059728e-01
+  ||b||_2 = 3.353381e+02
+  Relative residual = 5.680437e-05
+Solve time: 0.284427s
+Matrix rank: 1028
+---------------------------------------------
+  Interpolated from 6400 training points to 40000 test points
+Iter     1 | tau=  0.1000 | d_tau=1.00e-01↑ | Res=6.22e-01(x1.00) | dU_var_max=1.92e+00 | dU_max=1.92e+00 | 59.3s
+  Interpolated from 6400 training points to 40000 test points
+  Interpolated from 6400 training points to 40000 test points
+  Animation saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/runs/s3x3_p9x6_d80x80_e10000_g200x200/test_solution_evolution.gif
+  Data saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/runs/s3x3_p9x6_d80x80_e10000_g200x200/solution_data.npz
+  Convergence info saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/runs/s3x3_p9x6_d80x80_e10000_g200x200/convergence_info.json
+
+✓ All visualizations saved to: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/runs/s3x3_p9x6_d80x80_e10000_g200x200
+  Spotter model saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/segment_grid_round1/runs/s3x3_p9x6_d80x80_e10000_g200x200/spotter_model.pth
+Solving completed successfully!

@@ -3,7 +3,16 @@ import matplotlib.pyplot as plt
 from typing import Dict, Optional
 from abc import ABC, abstractmethod
 import os
-import torch
+
+from src.abstract_class.config.visualization_config import VisualizationConfig
+
+
+def _import_torch():
+    try:
+        import torch
+    except ImportError:
+        return None
+    return torch
 
 plt.rcParams.update({
     'font.size': 12,
@@ -26,6 +35,8 @@ class BaseVisualizer(ABC):
     def __init__(self, config=None):
         self.config = config
         if config:
+            if hasattr(config, "visualization") and isinstance(config.visualization, dict):
+                config.visualization = VisualizationConfig.from_dict(config.visualization)
             # 优先使用spatial_vars判断维度，其次使用n_dim
             spatial_vars = getattr(config, 'spatial_vars', None)
             if spatial_vars is not None:
@@ -51,7 +62,8 @@ class BaseVisualizer(ABC):
     def _to_numpy_cpu(self, data):
         if data is None:
             return None
-        if isinstance(data, torch.Tensor):
+        torch = _import_torch()
+        if torch is not None and isinstance(data, torch.Tensor):
             return data.detach().cpu().numpy()
         return np.asarray(data)
 

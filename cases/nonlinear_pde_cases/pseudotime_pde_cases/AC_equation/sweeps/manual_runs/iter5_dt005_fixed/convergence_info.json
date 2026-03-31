@@ -1,0 +1,67 @@
+{
+  "converged": false,
+  "iterations": 5,
+  "final_residual": 1.0,
+  "elapsed_time": 360.1142919063568,
+  "best_primary_update": 1.9093271646300227,
+  "best_iteration": 1,
+  "restart_count": 0,
+  "final_primary_update": 2.8323786079123144e+27,
+  "final_primary_relative_update": 1.0,
+  "final_max_abs_update": 2.8323786079123144e+27,
+  "reason": "max_iterations",
+  "residual_history": [
+    0.6276631974068415,
+    1.2352947738252154,
+    1.0118246305708511,
+    1.0000002210052454,
+    1.0
+  ],
+  "dt_history": [
+    0.05,
+    0.05,
+    0.05,
+    0.05,
+    0.05
+  ],
+  "solution_norm_history": [
+    84.10921318843917,
+    229.1750081159194,
+    14334.33218008867,
+    16069242289.862696,
+    1.2268767391036482e+28
+  ],
+  "primary_update_history": [
+    1.9093271646300227,
+    20.653152424003565,
+    2390.6450289189816,
+    1710894660.6174164,
+    2.8323786079123144e+27
+  ],
+  "primary_relative_update_history": [
+    0.6276631974068415,
+    1.2352947738252154,
+    1.0118246305708511,
+    1.0000002210052454,
+    1.0
+  ],
+  "max_abs_update_history": [
+    1.9093271646300227,
+    20.653152424003565,
+    2390.6450289189816,
+    1710894660.6174164,
+    2.8323786079123144e+27
+  ],
+  "restart_history": [],
+  "tau_history": [
+    0.0,
+    0.05,
+    0.1,
+    0.15000000000000002,
+    0.2
+  ],
+  "final_tau": 0.25,
+  "returned_tau": 0.05,
+  "returned_best_state": true,
+  "no_improvement_count": 4
+}

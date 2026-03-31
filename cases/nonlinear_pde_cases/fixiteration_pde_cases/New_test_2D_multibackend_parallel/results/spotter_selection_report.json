@@ -1,0 +1,67 @@
+{
+  "mode": "parallel_select",
+  "selected_name": "paddlesci_worker",
+  "selected_backend": "paddle",
+  "metric": "composite",
+  "candidates": [
+    {
+      "name": "torch_local",
+      "backend": "torch",
+      "runtime": "inprocess",
+      "score": 2.3272122873301613,
+      "metric_used": "composite",
+      "metrics": {
+        "dirichlet_var_0_mae": 0.5618376331491836,
+        "periodic_var_0_mae": 0.06714510771764128,
+        "boundary_residual": 0.5168655853826797,
+        "relative_l2": 1.293481116564802,
+        "absolute_l2": 41.53624983493005,
+        "priority": 0.0,
+        "composite_score": 2.3272122873301613,
+        "weights": {
+          "relative_l2": 1.0,
+          "boundary_residual": 2.0,
+          "priority": 0.05
+        }
+      },
+      "selected": false,
+      "status": "ok",
+      "error": null
+    },
+    {
+      "name": "jaxpi_worker",
+      "backend": "jax",
+      "runtime": "subprocess",
+      "score": Infinity,
+      "metric_used": "error",
+      "metrics": {},
+      "selected": false,
+      "status": "error",
+      "error": "RuntimeError: ImportError: The active environment is missing JAX-PI runtime dependencies. Activate the JAX environment before using tools/jaxpi_feature_factory.py."
+    },
+    {
+      "name": "paddlesci_worker",
+      "backend": "paddle",
+      "runtime": "subprocess",
+      "score": 0.10001189246436348,
+      "metric_used": "composite",
+      "metrics": {
+        "dirichlet_var_0_mae": 6.737623129063139e-07,
+        "periodic_var_0_mae": 1.7197988403753564e-10,
+        "boundary_residual": 6.12526828086107e-07,
+        "relative_l2": 1.0667410707300878e-05,
+        "absolute_l2": 0.00034255176249266804,
+        "priority": 2.0,
+        "composite_score": 0.10001189246436348,
+        "weights": {
+          "relative_l2": 1.0,
+          "boundary_residual": 2.0,
+          "priority": 0.05
+        }
+      },
+      "selected": true,
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

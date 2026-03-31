@@ -9,8 +9,7 @@ import time
 import sys
 
 from .core import LinearPDENet, LinearPDEFitter
-from .utils import LinearPDEConfig, LinearPDEDataGenerator
-from src.abstract_class.config.base_visualize import BaseVisualizer
+from .utils import LinearPDEConfig, LinearPDEDataGenerator, LinearPDEVisualizer
 
 class LinearPDESolver:
 
@@ -22,7 +21,7 @@ class LinearPDESolver:
         self.datagen = LinearPDEDataGenerator(self.config)
         self.data_train = self.datagen.generate_data("train")
         self.data_test = self.datagen.generate_data("test")
-        self.visualizer = BaseVisualizer(self.config)
+        self.visualizer = LinearPDEVisualizer(self.config)
 
         # Initialize the model
         self.model = LinearPDENet(self.config).to(self.config.device)

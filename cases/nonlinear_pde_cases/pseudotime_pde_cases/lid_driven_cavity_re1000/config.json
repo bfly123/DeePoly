@@ -1,0 +1,200 @@
+{
+    "problem_type": "general_pde",
+    "method": "hybrid",
+    "eq": {
+        "L1": [
+            "diff(u,x) + diff(v,y)",
+            "diff(p,x) - nu*diff(u,x,2) - nu*diff(u,y,2)",
+            "diff(p,y) - nu*diff(v,x,2) - nu*diff(v,y,2)"
+        ],
+        "L2": [
+            "0",
+            "0",
+            "0"
+        ],
+        "F": [
+            "0",
+            "0",
+            "0"
+        ],
+        "N": [
+            "0",
+            "u*diff(u,x) + v*diff(u,y)",
+            "u*diff(v,x) + v*diff(v,y)"
+        ],
+        "S": [
+            "0",
+            "0",
+            "0"
+        ]
+    },
+    "vars_list": [
+        "u",
+        "v",
+        "p"
+    ],
+    "spatial_vars": [
+        "x",
+        "y"
+    ],
+    "const_list": [
+        {
+            "Re": 1000,
+            "nu": 0.001
+        }
+    ],
+    "initial_condition": {
+        "method": "transfer",
+        "transfer": {
+            "results_dir": "./results",
+            "solution_key": "sniper_train",
+            "load_coefficients": true,
+            "skip_initial_training": true
+        }
+    },
+    "boundary_conditions": [
+        {
+            "type": "dirichlet",
+            "region": "left",
+            "var": "u",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "left",
+            "var": "v",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "right",
+            "var": "u",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "right",
+            "var": "v",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "bottom",
+            "var": "u",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "bottom",
+            "var": "v",
+            "value": 0.0,
+            "points": 180
+        },
+        {
+            "type": "dirichlet",
+            "region": "top",
+            "var": "u",
+            "value": 1.0,
+            "points": 140
+        },
+        {
+            "type": "dirichlet",
+            "region": "top",
+            "var": "v",
+            "value": 0.0,
+            "points": 140
+        }
+    ],
+    "hidden_dims": [
+        16,
+        32,
+        64,
+        32,
+        8
+    ],
+    "learning_rate": 0.0002,
+    "n_segments": [
+        6,
+        6
+    ],
+    "points_domain": 6000,
+    "points_per_swap": 10,
+    "points_domain_test": [
+        400,
+        400
+    ],
+    "boundary_constraint_weight": 10.0,
+    "swap_constraint_weight": 5.0,
+    "poly_degree": [
+        4,
+        4
+    ],
+    "x_domain": [
+        [
+            0.0,
+            1.0
+        ],
+        [
+            0.0,
+            1.0
+        ]
+    ],
+    "pseudo_time": {
+        "max_iterations": 120,
+        "residual_tol": 1e-06,
+        "dt_init": 0.1,
+        "dt_min": 0.1,
+        "dt_max": 0.1,
+        "adaptive_dt": false,
+        "check_interval": 1,
+        "print_interval": 1,
+        "convergence_primary_var": 0,
+        "convergence_primary_tol": 0.0001,
+        "pseudo_time_formulation": "reference_stable",
+        "reference_stable_single_retrain": false,
+        "reference_stable_retrain_stop_tol": 1.0,
+        "mass_eq_mask": [
+            1,
+            2
+        ],
+        "mass_var_map": [
+            -1,
+            0,
+            1
+        ],
+        "frozen_nonlinear_jacobian": "transport"
+    },
+    "spotter": {
+        "train_every": 10,
+        "epochs_adam": 1,
+        "epochs_lbfgs": 0,
+        "max_retries": 0,
+        "tol": 0.04
+    },
+    "visualization": {
+        "dataset_mode": "test_mesh",
+        "outputs": [
+            "sniper"
+        ],
+        "reference_policy": "skip",
+        "realtime_visualization": true,
+        "save_animation": true,
+        "animation_skip": 5,
+        "figure_dpi": 180,
+        "colormap": "viridis",
+        "plot_mode_test": "grid",
+        "grid_kwargs": {
+            "shading": "gouraud"
+        }
+    },
+    "device": "cpu",
+    "linear_device": "cuda",
+    "adaptive_learning_rate": true,
+    "seed": 42,
+    "auto_code": false
+}

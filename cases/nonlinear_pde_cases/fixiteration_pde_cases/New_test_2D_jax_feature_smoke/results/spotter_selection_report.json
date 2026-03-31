@@ -1,0 +1,24 @@
+{
+  "mode": "single",
+  "selected_name": "jax_default",
+  "selected_backend": "jax",
+  "metric": "priority",
+  "candidates": [
+    {
+      "name": "jax_default",
+      "backend": "jax",
+      "runtime": "subprocess",
+      "score": 0.0,
+      "metric_used": "priority",
+      "metrics": {
+        "priority": 0.0,
+        "dirichlet_var_0_mae": 3.8692239155123835e-17,
+        "periodic_var_0_mae": 0.04820137900379084,
+        "boundary_residual": 0.004381943545799202
+      },
+      "selected": true,
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

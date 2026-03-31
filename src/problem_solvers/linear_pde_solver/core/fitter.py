@@ -15,7 +15,12 @@ class LinearPDEFitter(BaseDeepPolyFitter):
         super().__init__(config, data)
         self.data = data
         # initialize the solver
-        self.solver = LinearSolver(verbose=True, use_gpu=True, performance_tracking=True)
+        self.solver = LinearSolver(
+            verbose=True,
+            use_gpu=True,
+            performance_tracking=True,
+            config=config,
+        )
 
 #    def get_segment_data(self, segment_idx: int) -> Dict:
 #        """get the data for each segment"""

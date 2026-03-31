@@ -1,0 +1,218 @@
+{
+  "case": "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation",
+  "results_root": "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/structured_grid_round1",
+  "total_runs": 3,
+  "successful_runs": 3,
+  "runs": [
+    {
+      "label": "s3x3_p9x6_d80x80_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": [
+        80,
+        80
+      ],
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 63.88528879200021,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.31626178074861133,
+          "rmse": 0.5874171171263768,
+          "linf_abs": 1.9467334653295898,
+          "rel_l2": 0.8280494238925792,
+          "mean_prediction": -0.5216928780369046,
+          "min_prediction": -1.0010479801373666,
+          "max_prediction": -0.0017262991911297853
+        },
+        "sniper": {
+          "l1_mean_abs": 0.3117926792411274,
+          "rmse": 0.4471627804910016,
+          "linf_abs": 1.5179722229998043,
+          "rel_l2": 0.6303406420690278,
+          "mean_prediction": -0.44121671655626266,
+          "min_prediction": -2.5179399381670935,
+          "max_prediction": 0.3317921565007751
+        }
+      }
+    },
+    {
+      "label": "s3x3_p9x6_d100x100_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": [
+        100,
+        100
+      ],
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 80.84229397300078,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.3171160469205162,
+          "rmse": 0.5886197758791176,
+          "linf_abs": 1.9469468348763463,
+          "rel_l2": 0.8297447454252856,
+          "mean_prediction": -0.5227979772439304,
+          "min_prediction": -1.0012426505061027,
+          "max_prediction": -0.002565739530148866
+        },
+        "sniper": {
+          "l1_mean_abs": 0.31206763929120446,
+          "rmse": 0.44757652505299883,
+          "linf_abs": 1.519673010269645,
+          "rel_l2": 0.6309238748966234,
+          "mean_prediction": -0.44138767998105105,
+          "min_prediction": -2.5196362064071045,
+          "max_prediction": 0.3313537228650151
+        }
+      }
+    },
+    {
+      "label": "s3x3_p9x6_d120x120_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": [
+        120,
+        120
+      ],
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 98.16733424500126,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.31907250671091325,
+          "rmse": 0.591719127989317,
+          "linf_abs": 1.947716646398445,
+          "rel_l2": 0.8341137306905532,
+          "mean_prediction": -0.5247192335356246,
+          "min_prediction": -1.0012076138465682,
+          "max_prediction": -0.00250805607835848
+        },
+        "sniper": {
+          "l1_mean_abs": 0.3122259993411133,
+          "rmse": 0.44779358182929657,
+          "linf_abs": 1.5200019316864317,
+          "rel_l2": 0.6312298478302107,
+          "mean_prediction": -0.4414665172667693,
+          "min_prediction": -2.519969646853721,
+          "max_prediction": 0.33193926157464126
+        }
+      }
+    }
+  ],
+  "best_by_grid": {
+    "3x3": {
+      "label": "s3x3_p9x6_d80x80_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": [
+        80,
+        80
+      ],
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 63.88528879200021,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.31626178074861133,
+          "rmse": 0.5874171171263768,
+          "linf_abs": 1.9467334653295898,
+          "rel_l2": 0.8280494238925792,
+          "mean_prediction": -0.5216928780369046,
+          "min_prediction": -1.0010479801373666,
+          "max_prediction": -0.0017262991911297853
+        },
+        "sniper": {
+          "l1_mean_abs": 0.3117926792411274,
+          "rmse": 0.4471627804910016,
+          "linf_abs": 1.5179722229998043,
+          "rel_l2": 0.6303406420690278,
+          "mean_prediction": -0.44121671655626266,
+          "min_prediction": -2.5179399381670935,
+          "max_prediction": 0.3317921565007751
+        }
+      }
+    }
+  }
+}

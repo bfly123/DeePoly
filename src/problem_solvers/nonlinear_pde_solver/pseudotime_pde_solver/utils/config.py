@@ -1,17 +1,21 @@
-"""Configuration for general PDE solver with pseudo-time stepping"""
+"""Configuration for general PDE solver with pseudo-time stepping."""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
-import numpy as np
-import os
-import json
-from src.meta_coding import parse_operators
-from src.meta_coding.auto_spotter import update_physics_loss_from_config
+from typing import Dict, List
+
 from src.abstract_class.config.base_pde_config import BasePDEConfig
+from .pseudotime_config_loading_mixin import PseudotimeConfigLoadingMixin
+from .pseudotime_config_misc_mixin import PseudotimeConfigMiscMixin
+from .pseudotime_config_operator_mixin import PseudotimeConfigOperatorMixin
 
 
 @dataclass
-class PseudoTimePDEConfig(BasePDEConfig):
+class PseudoTimePDEConfig(
+    PseudotimeConfigMiscMixin,
+    PseudotimeConfigLoadingMixin,
+    PseudotimeConfigOperatorMixin,
+    BasePDEConfig,
+):
     """Configuration class for general PDE problems with pseudo-time stepping
 
     Extends BasePDEConfig with general PDE specific features:
@@ -35,24 +39,46 @@ class PseudoTimePDEConfig(BasePDEConfig):
     save_interval: int = 100
     max_residual: float = 1e10
     residual_stagnation_steps: int = 50
+    convergence_primary_var: int = 0
+    convergence_primary_tol: float = 1e-4
+    convergence_improvement_factor: float = 0.999
+    convergence_plateau_steps: int = 10
+    convergence_plateau_tol: float = 1e-2
+    convergence_dt_growth_tol: float = 1e-3
+    rollback_on_plateau: bool = True
+    rollback_dt_min: float = 1e-2
+    force_retrain_on_plateau: bool = True
+    return_best_on_exit: bool = True
+    reference_stable_single_retrain: bool = True
+    reference_stable_retrain_stop_tol: float = 0.0
+    reference_stable_adaptive_tail: bool = False
 
     # Snipper solving mode control
-    steady_state_mode: bool = False  # False: time marching (default), True: steady-state solving
+    steady_state_mode: bool = True  # Pseudo-time solver defaults to steady-state mode
+    pseudo_time_formulation: str = "default"  # default | reference_stable
+    pseudo_time_direction: float = -1.0
+    nonlinear_linearization: str = "picard"  # picard | newton
+    mass_eq_mask: List[int] = field(default_factory=list)
+    mass_var_map: List[int] = field(default_factory=list)
+    frozen_nonlinear_jacobian: str = "none"  # none | transport
 
-    # Training parameters (similar to TimePDE)
+    # Legacy training parameter aliases kept for runtime compatibility.
     epochs_adam: int = 5000
     epochs_lbfgs: int = 0
     max_retries: int = 1
     DNNtol: float = 1e-4
     spotter_skip: int = 1  # Neural network training frequency (1 = every iteration)
 
+    # Preferred pseudo-time network-training configuration.
+    spotter: Dict = field(default_factory=dict)
+
     # Initial condition configuration (Spotter or given)
     initial_condition: Dict = field(default_factory=dict)
 
-    # Fitter training parameters (for neural network training during iteration)
+    # Legacy fitter-training block. Pseudo-time cases should prefer `spotter`.
     fitter_training: Dict = field(default_factory=dict)
 
-    # Time integration scheme (default to implicit Euler for steady-state)
+    # Internal implementation details kept for backward compatibility.
     time_scheme: str = "implicit_euler"
     time_scheme_params: Dict = field(default_factory=dict)
 
@@ -84,8 +110,8 @@ class PseudoTimePDEConfig(BasePDEConfig):
         # Load initial condition config
         self._load_initial_condition_config()
 
-        # Load fitter training config
-        self._load_fitter_training_config()
+        # Load pseudo-time network-training config
+        self._load_spotter_config()
 
         # Load visualization config
         self._load_visualization_config()
@@ -106,356 +132,3 @@ class PseudoTimePDEConfig(BasePDEConfig):
         L1, L2, F, N are different operator terms of the same PDE.
         """
         return len(self.vars_list)
-
-    def _normalize_operator_splitting(self):
-        """Normalize equation format and ensure all operators exist (forced existence)
-
-        Identical to TimePDEConfig implementation
-        """
-        if isinstance(self.eq, dict):
-            # Extract operators from dictionary format, supplement missing ones with zero operators
-            self.eq_L1 = self.eq.get("L1", ["0"])  # Default zero operator
-            self.eq_L2 = self.eq.get("L2", ["0"])  # Default zero operator
-            self.eq_F = self.eq.get("F", ["1"])    # Default unit operator
-            self.eq_N = self.eq.get("N", ["0"])    # Default zero operator
-
-            print(f"Extracted operator splitting from config (with forced existence):")
-            print(f"  L1 (Primary linear operators): {self.eq_L1}")
-            print(f"  L2 (Semi-implicit linear operators): {self.eq_L2}")
-            print(f"  F (Nonlinear functions): {self.eq_F}")
-            print(f"  N (Fully nonlinear terms): {self.eq_N}")
-
-        elif isinstance(self.eq, list):
-            # Legacy list format compatibility, treat as L1 operators, supplement others with zeros
-            self.eq_L1 = self.eq if self.eq else ["0"]
-            self.eq_L2 = ["0"]  # Default zero operator
-            self.eq_F = ["1"]   # Default unit operator
-            self.eq_N = ["0"]   # Default zero operator
-            print(f"Using legacy list format as L1 operators: {self.eq_L1}")
-
-            # For legacy format, maintain backward compatible aliases
-            self.f_L2 = self.eq_F
-            self.N = self.eq_N
-            print(f"Legacy format preserved L1 operators: {self.eq_L1}")
-            return  # Early return, skip variable count adjustment
-
-        else:
-            raise ValueError(f"Invalid eq format: {type(self.eq)}. Must be list or dict.")
-
-        # Ensure all operator lists have consistent length with variable count
-        n_vars = len(self.vars_list)
-        if n_vars > 0:  # Only adjust when variable list is known
-            self.eq_L1 = self._pad_operator_list(self.eq_L1, n_vars, "0")
-            self.eq_L2 = self._pad_operator_list(self.eq_L2, n_vars, "0")
-            self.eq_F = self._pad_operator_list(self.eq_F, n_vars, "1")
-            self.eq_N = self._pad_operator_list(self.eq_N, n_vars, "0")
-
-        # Maintain backward compatible aliases
-        self.f_L2 = self.eq_F  # Keep f_L2 alias for backward compatibility
-        self.N = self.eq_N     # Keep N alias for backward compatibility
-
-        print(f"Normalized operators to {n_vars} variables:")
-        print(f"  L1: {self.eq_L1}")
-        print(f"  L2: {self.eq_L2}")
-        print(f"  F: {self.eq_F}")
-        print(f"  N: {self.eq_N}")
-
-    def _pad_operator_list(self, op_list: List[str], target_length: int, default_op: str) -> List[str]:
-        """Pad operator list to target length, ensuring dimensional consistency"""
-        if len(op_list) == target_length:
-            return op_list
-        elif len(op_list) == 1:
-            # Single operator extends to all variables
-            return op_list * target_length
-        elif len(op_list) == 0:
-            # Empty list filled with default operator
-            return [default_op] * target_length
-        else:
-            # Insufficient ones padded with default operator, excess ones truncated
-            if len(op_list) < target_length:
-                return op_list + [default_op] * (target_length - len(op_list))
-            else:
-                return op_list[:target_length]
-
-    def _load_pseudo_time_config(self):
-        """Load pseudo-time stepping parameters from config
-
-        Priority:
-        1. Nested "pseudo_time" block (recommended, user's design)
-        2. Nested "pseudo_time_stepping" block (legacy, backward compatible)
-        3. Top-level fields (lowest priority, fallback)
-        """
-        # Try to load from attributes set by load_config_from_json_relaxed
-        # Priority 1: Check for nested "pseudo_time" block (user's design)
-        pts_params = getattr(self, 'pseudo_time', {})
-        config_source = "nested 'pseudo_time'"
-
-        # Priority 2: Fall back to "pseudo_time_stepping" block (legacy)
-        if not pts_params:
-            pts_params = getattr(self, 'pseudo_time_stepping', {})
-            config_source = "'pseudo_time_stepping' (legacy)" if pts_params else "default values"
-
-        # Warn if T/dt found in config (common mistake)
-        if hasattr(self, 'T') or hasattr(self, 'dt'):
-            print("⚠ Warning: Found 'T' or 'dt' in general_pde config (will be ignored)")
-            print("  For general_pde, use 'pseudo_time' block instead:")
-            print("  \"pseudo_time\": {\"max_iterations\": ..., \"dt_init\": ..., ...}")
-
-        # Update from nested config or fall back to top-level or defaults
-        self.max_iterations = pts_params.get("max_iterations",
-                                            getattr(self, "max_iterations", self.max_iterations))
-        self.residual_tol = pts_params.get("residual_tol",
-                                          getattr(self, "residual_tol", self.residual_tol))
-        self.dt_init = pts_params.get("dt_init",
-                                     getattr(self, "dt_init", self.dt_init))
-        self.dt_min = pts_params.get("dt_min",
-                                    getattr(self, "dt_min", self.dt_min))
-        self.dt_max = pts_params.get("dt_max",
-                                    getattr(self, "dt_max", self.dt_max))
-        self.adaptive_dt = pts_params.get("adaptive_dt",
-                                         getattr(self, "adaptive_dt", self.adaptive_dt))
-        self.dt_increase_factor = pts_params.get("dt_increase_factor",
-                                                 getattr(self, "dt_increase_factor", self.dt_increase_factor))
-        self.dt_decrease_factor = pts_params.get("dt_decrease_factor",
-                                                 getattr(self, "dt_decrease_factor", self.dt_decrease_factor))
-        self.check_interval = pts_params.get("check_interval",
-                                            getattr(self, "check_interval", self.check_interval))
-        self.print_interval = pts_params.get("print_interval",
-                                            getattr(self, "print_interval", self.print_interval))
-        self.save_interval = pts_params.get("save_interval",
-                                           getattr(self, "save_interval", self.save_interval))
-        self.max_residual = pts_params.get("max_residual",
-                                          getattr(self, "max_residual", self.max_residual))
-        self.residual_stagnation_steps = pts_params.get("residual_stagnation_steps",
-                                                        getattr(self, "residual_stagnation_steps", self.residual_stagnation_steps))
-
-        # Also read time_scheme from nested block if present
-        if "time_scheme" in pts_params:
-            self.time_scheme = pts_params["time_scheme"]
-        elif hasattr(self, "time_scheme") and self.time_scheme != "implicit_euler":
-            # Keep the time_scheme from top-level if it was set
-            pass
-
-        # Extract steady_state_mode configuration
-        self.steady_state_mode = pts_params.get("steady_state_mode",
-                                               getattr(self, "steady_state_mode", self.steady_state_mode))
-
-        print(f"✓ Pseudo-time stepping parameters (from {config_source}):")
-        print(f"  time_scheme: {self.time_scheme}")
-        print(f"  max_iterations: {self.max_iterations}")
-        print(f"  residual_tol: {self.residual_tol:.2e}")
-        print(f"  dt_init: {self.dt_init}, dt_range: [{self.dt_min}, {self.dt_max}]")
-        print(f"  adaptive_dt: {self.adaptive_dt}")
-        print(f"  steady_state_mode: {self.steady_state_mode} {'(Snipper稳态求解)' if self.steady_state_mode else '(Snipper时间推进)'}")
-
-    def _load_initial_condition_config(self):
-        """Load initial condition configuration"""
-        # Default initial condition config - use 'given' to load from Initial_conditions in config
-        default_ic = {
-            "method": "given",  # Default: use Initial_conditions from config file
-        }
-
-        # Update from config file (already loaded as attribute)
-        if not hasattr(self, 'initial_condition') or not self.initial_condition:
-            self.initial_condition = default_ic
-        elif isinstance(self.initial_condition, dict):
-            # Merge with defaults
-            for key, value in default_ic.items():
-                if key not in self.initial_condition:
-                    self.initial_condition[key] = value
-
-        print(f"Initial condition method: {self.initial_condition.get('method', 'given')}")
-
-    def _load_fitter_training_config(self):
-        """Load fitter training configuration for neural network updates during iteration
-
-        Note: This is only for backward compatibility. New configs should use main-level
-        epochs_adam, DNNtol, etc. directly.
-        """
-        # Check if user provided a fitter_training block
-        has_fitter_block = hasattr(self, 'fitter_training') and self.fitter_training
-
-        if not has_fitter_block:
-            # No fitter_training block - use main config values (don't override!)
-            self.fitter_training = {}
-        elif isinstance(self.fitter_training, dict):
-            # User provided fitter_training block - merge with main config
-            # Priority: fitter_training block > main config > class defaults
-
-            # Only override main config if fitter_training block has explicit values
-            if "epochs" in self.fitter_training:
-                self.epochs_adam = self.fitter_training["epochs"]
-
-            if "epochs_lbfgs" in self.fitter_training:
-                self.epochs_lbfgs = self.fitter_training["epochs_lbfgs"]
-
-            if "DNNtol" in self.fitter_training:
-                self.DNNtol = self.fitter_training["DNNtol"]
-
-        print(f"Fitter training parameters (from {'fitter_training block' if has_fitter_block else 'main config'}):")
-        print(f"  epochs_adam: {self.epochs_adam}")
-        print(f"  epochs_lbfgs: {self.epochs_lbfgs}")
-        print(f"  DNNtol: {self.DNNtol:.2e}")
-
-    def _load_visualization_config(self):
-        """Load visualization configuration with backward compatibility"""
-        from src.abstract_class.config.visualization_config import VisualizationConfig
-
-        vis_attr = getattr(self, 'visualization', {})
-
-        if isinstance(vis_attr, VisualizationConfig):
-            return
-
-        vis_dict = vis_attr if isinstance(vis_attr, dict) else {}
-
-        legacy_fields = {
-            'realtime_visualization': getattr(self, 'realtime_visualization', None),
-            'save_animation': getattr(self, 'save_animation', None),
-            'animation_skip': getattr(self, 'animation_skip', None),
-            'outputs': getattr(self, 'outputs', None),
-            'reference_policy': getattr(self, 'reference_policy', None),
-            'dataset_mode': getattr(self, 'dataset_mode', None),
-            'figure_dpi': getattr(self, 'figure_dpi', None),
-            'figure_format': getattr(self, 'figure_format', None),
-            'colormap': getattr(self, 'colormap', None),
-            'show_training_points': getattr(self, 'show_training_points', None),
-            'error_log_scale': getattr(self, 'error_log_scale', None)
-        }
-
-        for key, value in legacy_fields.items():
-            if value is not None and key not in vis_dict:
-                vis_dict[key] = value
-
-        self.visualization = VisualizationConfig.from_dict(vis_dict)
-
-        self.realtime_visualization = self.visualization.realtime_visualization
-        self.save_animation = self.visualization.save_animation
-        self.animation_skip = self.visualization.animation_skip
-
-        print(f"✓ Visualization config: mode={self.visualization.dataset_mode.value}, outputs={self.visualization.outputs}")
-
-    def _auto_code(self):
-        """Auto-code generation for general PDEs (same as TimePDE)"""
-        if hasattr(self, "auto_code") and self.auto_code:
-            try:
-                # Use the new unified entrypoint that reads config.json
-                config_path = os.path.join(self.case_dir, "config.json")
-                update_physics_loss_from_config(config_path)
-
-                # Disable auto_code in config
-                self._disable_auto_code(config_path)
-
-                print("Auto code completed, please check the generated files and restart the program")
-
-                # Exit program
-                import sys
-                sys.exit(0)
-
-            except Exception as e:
-                print(f"Auto-code generation failed: {e}")
-
-    def _disable_auto_code(self, config_path: str):
-        """Set auto_code to false in configuration file"""
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-            config['auto_code'] = False
-
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
-
-            print(f"Auto set auto_code to false in file: {config_path}")
-
-        except Exception as e:
-            print(f"Cannot update configuration file: {e}")
-
-    def _parse_operator_splitting(self):
-        """Parse equations with operator splitting (same as TimePDE)"""
-        print("Parsing operator splitting with forced existence...")
-        print(f"L1 operators: {self.eq_L1}")
-        print(f"L2 operators: {self.eq_L2}")
-        print(f"F functions: {self.eq_F}")
-        print(f"N operators: {self.eq_N}")
-
-        # Generate semi-implicit terms L2*F
-        l2f_terms = []
-        for i, (l2, f) in enumerate(zip(self.eq_L2, self.eq_F)):
-            if l2 != "0" and f != "1":
-                l2f_terms.append(f"{l2}*({f})")
-            elif l2 != "0" and f == "1":
-                l2f_terms.append(l2)
-            elif l2 == "0":
-                l2f_terms.append("0")
-            else:
-                l2f_terms.append(f"0*({f})")
-            print(f"Generated semi-implicit term {i+1}: {l2f_terms[-1]}")
-
-        # Build unified equation dictionary for operator parsing
-        unified_eq = {
-            "L1": self.eq_L1,
-            "L2": self.eq_L2,
-            "F": self.eq_F,
-            "N": self.eq_N,
-            "L2F": l2f_terms  # Semi-implicit combination
-        }
-
-        try:
-            self.operator_parse = parse_operators(
-                unified_eq,
-                self.vars_list,
-                self.spatial_vars,
-                self.const_list
-            )
-            print("Successfully parsed equations for general PDE solver")
-        except Exception as e:
-            print(f"Warning: Failed to parse operator splitting: {e}")
-            self.operator_parse = {}
-
-    def _int_list_fields(self):
-        """Additional integer list fields specific to general PDE"""
-        base_fields = super()._int_list_fields()
-        return base_fields + [
-            "max_iterations", "check_interval", "print_interval", "save_interval",
-            "residual_stagnation_steps", "epochs_adam", "epochs_lbfgs",
-            "max_retries", "spotter_skip"
-        ]
-
-    def validate(self) -> bool:
-        """Validate configuration parameters"""
-        # Check pseudo-time stepping parameters
-        if self.max_iterations <= 0:
-            print(f"Error: max_iterations must be positive, got {self.max_iterations}")
-            return False
-
-        if self.residual_tol <= 0:
-            print(f"Error: residual_tol must be positive, got {self.residual_tol}")
-            return False
-
-        if self.dt_min <= 0:
-            print(f"Error: dt_min must be positive, got {self.dt_min}")
-            return False
-
-        if not (self.dt_min <= self.dt_init <= self.dt_max):
-            print(f"Error: dt_init must satisfy dt_min <= dt_init <= dt_max")
-            print(f"  Got: dt_min={self.dt_min}, dt_init={self.dt_init}, dt_max={self.dt_max}")
-            return False
-
-        return True
-
-    def get_summary(self) -> Dict:
-        """Get configuration summary"""
-        summary = super().get_summary()
-        summary.update({
-            "pseudo_time_stepping": {
-                "max_iterations": self.max_iterations,
-                "residual_tol": self.residual_tol,
-                "dt_init": self.dt_init,
-                "dt_range": [self.dt_min, self.dt_max],
-                "adaptive_dt": self.adaptive_dt,
-                "time_scheme": self.time_scheme
-            },
-            "initial_condition": self.initial_condition,
-            "fitter_training": self.fitter_training
-        })
-        return summary

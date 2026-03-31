@@ -39,6 +39,9 @@ class BasePDEConfig(
     device: str = "cuda"
     linear_device: str = "cpu"
     learning_rate: float = 0.001
+    spotter_feature_backend: str = "torch"
+    spotter_feature: Dict = field(default_factory=dict)
+    spotter: Dict = field(default_factory=dict)
 
     points_domain: int = 1000
     points_domain_test: int = 200

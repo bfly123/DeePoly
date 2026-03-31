@@ -1,0 +1,108 @@
+{
+  "case": "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation",
+  "results_root": "/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation/sweeps/smoke_after_bc_fix",
+  "total_runs": 1,
+  "successful_runs": 1,
+  "runs": [
+    {
+      "label": "s3x3_p9x6_d10000_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": 10000,
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 78.74475221800094,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.3162243092978849,
+          "rmse": 0.5869927685506313,
+          "linf_abs": 1.945999250137059,
+          "rel_l2": 0.827451243173235,
+          "mean_prediction": -0.5214966116957549,
+          "min_prediction": -1.0015409479623576,
+          "max_prediction": -0.0022063423790263503
+        },
+        "sniper": {
+          "l1_mean_abs": 0.31215198571275077,
+          "rmse": 0.4475620753296324,
+          "linf_abs": 1.526007702775303,
+          "rel_l2": 0.6309035059207135,
+          "mean_prediction": -0.44143535477124873,
+          "min_prediction": -2.5259708989127625,
+          "max_prediction": 0.3318277626592703
+        }
+      }
+    }
+  ],
+  "best_by_grid": {
+    "3x3": {
+      "label": "s3x3_p9x6_d10000_e10000_g200x200",
+      "n_segments": [
+        3,
+        3
+      ],
+      "poly_degree": [
+        9,
+        6
+      ],
+      "points_domain": 10000,
+      "epochs_adam": 10000,
+      "points_domain_test": [
+        200,
+        200
+      ],
+      "elapsed_seconds": 78.74475221800094,
+      "success": true,
+      "metrics": {
+        "evaluation_grid": {
+          "reference_x": 2048,
+          "reference_t": 1001,
+          "numerical_x": 200,
+          "numerical_t": 200,
+          "numerical_x_min": -0.99,
+          "numerical_x_max": 0.99,
+          "numerical_t_min": 0.01,
+          "numerical_t_max": 0.99
+        },
+        "spotter": {
+          "l1_mean_abs": 0.3162243092978849,
+          "rmse": 0.5869927685506313,
+          "linf_abs": 1.945999250137059,
+          "rel_l2": 0.827451243173235,
+          "mean_prediction": -0.5214966116957549,
+          "min_prediction": -1.0015409479623576,
+          "max_prediction": -0.0022063423790263503
+        },
+        "sniper": {
+          "l1_mean_abs": 0.31215198571275077,
+          "rmse": 0.4475620753296324,
+          "linf_abs": 1.526007702775303,
+          "rel_l2": 0.6309035059207135,
+          "mean_prediction": -0.44143535477124873,
+          "min_prediction": -2.5259708989127625,
+          "max_prediction": 0.3318277626592703
+        }
+      }
+    }
+  }
+}

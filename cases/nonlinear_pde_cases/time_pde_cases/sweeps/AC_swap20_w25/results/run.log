@@ -1,0 +1,3237 @@
+Using case directory: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/time_pde_cases/sweeps/AC_swap20_w25
+✓ config与net.py代yard一致
+Problem type: time_pde
+Successfully loaded configuration from /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/time_pde_cases/sweeps/AC_swap20_w25/config.json
+Extracted operator splitting from config (with forced existence):
+  L1: ['-0.0001*diff(u,x,2)']
+  L2: ['0']
+  F: ['1']
+  N: ['-5*u+5*u**3']
+Time scheme: IMEX_RK_2_2_2
+Time scheme parameters: {'gamma': 0.29289321881345254, 'max_time_steps': 1000, 'time_output_interval': 5, 'adaptive_dt': False, 'cfl_number': 0.5, 'stability_check': True, 'max_eigenvalue_estimate': 100.0}
+Parsing operator splitting with forced existence...
+Current operators (with forced existence):
+  L1: ['-0.0001*diff(u,x,2)']
+  L2: ['0']
+  F: ['1']
+  N: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for time PDE solver
+Initial field generated for u: 'x**2*cos(pi*x)'
+  Range: [-1.000000e+00, 5.567698e-02]
+  Mean: -2.066459e-01, Std: 3.233841e-01
+Initial field generated for u: 'x**2*cos(pi*x)'
+  Range: [-9.796164e-01, 5.570275e-02]
+  Mean: -1.954577e-01, Std: 3.116260e-01
+Loading reference solution: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/time_pde_cases/sweeps/AC_swap20_w25/../../../pseudotime_pde_cases/AC_equation/reference_data/allen_cahn_highres.mat
+  Time points: 1001
+  Spatial points: 2048
+  Time range: [0.000000, 1.000000]
+  Spatial range: [-1.000000, 1.000000]
+animationData已Reset
+=== Starting Time PDE Solving ===
+Initialized at T = 0.000000, ready for time stepping
+
+======================================================================
+Time Step 0: T = 0.000000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.032470e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 7.364702e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 1.110136e-03, LR: 1.000000e-02
+Final Adam Loss: 0.0018221370306004412
+Retry 1/2, changing random seed to 43
+ Adam Epoch 0, Loss: 2.322252e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 4.859284e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 3.788036e-04, LR: 1.000000e-02
+Final Adam Loss: 0.001937555703473882
+Retry 2/2, changing random seed to 44
+ Adam Epoch 0, Loss: 2.539216e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 5.235535e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 6.508410e-04, LR: 1.000000e-02
+Final Adam Loss: 0.0004333029150856839
+Using best model, loss value: 0.0002724482188532303
+  ✓ Training Completed - Final Loss: 2.724482e-04
+
+----------------------------------------------------------------------
+Time Step 0 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 2.724482e-04
+    - Initial training (baseline loss: 2.724482e-04)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0614s
+    - Max Residual (L2): 1.970454e-06
+    - Max Relative Residual: 1.300253e-07
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 5.453281e+00
+    - max|U|: 9.999980e-01
+    - mean(U): -2.078349e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 1: T = 0.002500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=1)
+
+----------------------------------------------------------------------
+Time Step 1 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0415s
+    - Max Residual (L2): 4.768236e-06
+    - Max Relative Residual: 3.144503e-07
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 5.479209e+00
+    - max|U|: 9.999961e-01
+    - mean(U): -2.090226e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 2: T = 0.005000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=2)
+
+----------------------------------------------------------------------
+Time Step 2 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0404s
+    - Max Residual (L2): 7.542248e-06
+    - Max Relative Residual: 4.970805e-07
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 5.505119e+00
+    - max|U|: 9.999941e-01
+    - mean(U): -2.102089e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 3: T = 0.007500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=3)
+
+----------------------------------------------------------------------
+Time Step 3 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0405s
+    - Max Residual (L2): 1.028751e-05
+    - Max Relative Residual: 6.775905e-07
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 5.531009e+00
+    - max|U|: 9.999922e-01
+    - mean(U): -2.113937e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 4: T = 0.010000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 5.521344e-01, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 1.731195e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 1.595877e-04, LR: 1.000000e-02
+Final Adam Loss: 0.0006010224327312301
+Retry 1/2, changing random seed to 43
+ Adam Epoch 0, Loss: 2.322699e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 4.900787e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 3.901832e-04, LR: 1.000000e-02
+Final Adam Loss: 0.00046229603546539696
+Retry 2/2, changing random seed to 44
+ Adam Epoch 0, Loss: 2.539615e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 5.402824e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 4.123188e-04, LR: 1.000000e-02
+Final Adam Loss: 0.0005123743477185285
+Using best model, loss value: 0.0001164794281320994
+  ✓ Training Completed - Final Loss: 1.164794e-04
+
+----------------------------------------------------------------------
+Time Step 4 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 1.164794e-04
+    - Loss Reduction: 2.34x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0391s
+    - Max Residual (L2): 1.301785e-05
+    - Max Relative Residual: 8.568928e-07
+    - Methods: gpu_svd
+    - Max Condition Number: 9.59e+12
+  Solution Statistics:
+    - ||U||_2: 5.556877e+00
+    - max|U|: 9.999903e-01
+    - mean(U): -2.125769e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.012500, 总帧数 = 1
+
+======================================================================
+Time Step 5: T = 0.012500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=5)
+
+----------------------------------------------------------------------
+Time Step 5 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0391s
+    - Max Residual (L2): 1.570190e-05
+    - Max Relative Residual: 1.032926e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.59e+12
+  Solution Statistics:
+    - ||U||_2: 5.582722e+00
+    - max|U|: 9.999884e-01
+    - mean(U): -2.137583e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 6: T = 0.015000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=6)
+
+----------------------------------------------------------------------
+Time Step 6 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0392s
+    - Max Residual (L2): 1.834595e-05
+    - Max Relative Residual: 1.206107e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.59e+12
+  Solution Statistics:
+    - ||U||_2: 5.608543e+00
+    - max|U|: 9.999866e-01
+    - mean(U): -2.149378e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 7: T = 0.017500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=7)
+
+----------------------------------------------------------------------
+Time Step 7 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0391s
+    - Max Residual (L2): 2.094665e-05
+    - Max Relative Residual: 1.376222e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.59e+12
+  Solution Statistics:
+    - ||U||_2: 5.634338e+00
+    - max|U|: 9.999848e-01
+    - mean(U): -2.161154e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 8: T = 0.020000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 4.495406e-01, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 1.649929e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 1.309416e-04, LR: 1.000000e-02
+Final Adam Loss: 0.00023583702389543462
+Retry 1/2, changing random seed to 43
+ Adam Epoch 0, Loss: 2.323263e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 5.127442e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 4.382078e-04, LR: 1.000000e-02
+Final Adam Loss: 0.00044536820866060623
+Retry 2/2, changing random seed to 44
+ Adam Epoch 0, Loss: 2.540130e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 6.193366e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 4.959140e-04, LR: 1.000000e-02
+Final Adam Loss: 0.001746585559249432
+Using best model, loss value: 0.00011663566710720641
+  ✓ Training Completed - Final Loss: 1.166357e-04
+
+----------------------------------------------------------------------
+Time Step 8 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 1.166357e-04
+    - Loss Reduction: 1.00x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0378s
+    - Max Residual (L2): 2.342837e-05
+    - Max Relative Residual: 1.538310e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 3.54e+12
+  Solution Statistics:
+    - ||U||_2: 5.660107e+00
+    - max|U|: 9.999830e-01
+    - mean(U): -2.172909e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 9: T = 0.022500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=9)
+
+----------------------------------------------------------------------
+Time Step 9 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0386s
+    - Max Residual (L2): 2.590059e-05
+    - Max Relative Residual: 1.699567e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 3.54e+12
+  Solution Statistics:
+    - ||U||_2: 5.685848e+00
+    - max|U|: 9.999813e-01
+    - mean(U): -2.184641e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.025000, 总帧数 = 2
+
+======================================================================
+Time Step 10: T = 0.025000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=10)
+
+----------------------------------------------------------------------
+Time Step 10 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0377s
+    - Max Residual (L2): 2.831959e-05
+    - Max Relative Residual: 1.857129e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 3.54e+12
+  Solution Statistics:
+    - ||U||_2: 5.711559e+00
+    - max|U|: 9.999796e-01
+    - mean(U): -2.196351e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 11: T = 0.027500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=11)
+
+----------------------------------------------------------------------
+Time Step 11 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0384s
+    - Max Residual (L2): 3.068344e-05
+    - Max Relative Residual: 2.010875e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 3.54e+12
+  Solution Statistics:
+    - ||U||_2: 5.737240e+00
+    - max|U|: 9.999780e-01
+    - mean(U): -2.208036e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 12: T = 0.030000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.170702e-01, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 1.075043e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 1.021620e-04, LR: 1.000000e-02
+Final Adam Loss: 7.998365691760188e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.998365691760188e-05
+  ✓ Training Completed - Final Loss: 7.998366e-05
+
+----------------------------------------------------------------------
+Time Step 12 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.998366e-05
+    - Loss Reduction: 1.46x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0388s
+    - Max Residual (L2): 3.304184e-05
+    - Max Relative Residual: 2.164066e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.20e+12
+  Solution Statistics:
+    - ||U||_2: 5.762888e+00
+    - max|U|: 9.999764e-01
+    - mean(U): -2.219695e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 13: T = 0.032500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=13)
+
+----------------------------------------------------------------------
+Time Step 13 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0388s
+    - Max Residual (L2): 3.530776e-05
+    - Max Relative Residual: 2.311007e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.20e+12
+  Solution Statistics:
+    - ||U||_2: 5.788504e+00
+    - max|U|: 9.999748e-01
+    - mean(U): -2.231327e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 14: T = 0.035000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=14)
+
+----------------------------------------------------------------------
+Time Step 14 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0388s
+    - Max Residual (L2): 3.751492e-05
+    - Max Relative Residual: 2.453915e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.20e+12
+  Solution Statistics:
+    - ||U||_2: 5.814086e+00
+    - max|U|: 9.999733e-01
+    - mean(U): -2.242932e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.037500, 总帧数 = 3
+
+======================================================================
+Time Step 15: T = 0.037500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=15)
+
+----------------------------------------------------------------------
+Time Step 15 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0388s
+    - Max Residual (L2): 3.966234e-05
+    - Max Relative Residual: 2.592732e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.20e+12
+  Solution Statistics:
+    - ||U||_2: 5.839631e+00
+    - max|U|: 9.999719e-01
+    - mean(U): -2.254507e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 16: T = 0.040000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 3.538011e-01, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 9.798398e-05, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 2.699044e-04, LR: 1.000000e-02
+Final Adam Loss: 7.532229572183898e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.532229572183898e-05
+  ✓ Training Completed - Final Loss: 7.532230e-05
+
+----------------------------------------------------------------------
+Time Step 16 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.532230e-05
+    - Loss Reduction: 1.06x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0369s
+    - Max Residual (L2): 4.155499e-05
+    - Max Relative Residual: 2.714725e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 5.865141e+00
+    - max|U|: 9.999704e-01
+    - mean(U): -2.266052e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 17: T = 0.042500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=17)
+
+----------------------------------------------------------------------
+Time Step 17 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0369s
+    - Max Residual (L2): 4.345195e-05
+    - Max Relative Residual: 2.836840e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 5.890612e+00
+    - max|U|: 9.999691e-01
+    - mean(U): -2.277566e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 18: T = 0.045000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=18)
+
+----------------------------------------------------------------------
+Time Step 18 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0369s
+    - Max Residual (L2): 4.528505e-05
+    - Max Relative Residual: 2.954629e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 5.916045e+00
+    - max|U|: 9.999678e-01
+    - mean(U): -2.289046e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 19: T = 0.047500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=19)
+
+----------------------------------------------------------------------
+Time Step 19 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0369s
+    - Max Residual (L2): 4.705425e-05
+    - Max Relative Residual: 3.068096e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 5.941437e+00
+    - max|U|: 9.999666e-01
+    - mean(U): -2.300493e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.050000, 总帧数 = 4
+
+======================================================================
+Time Step 20: T = 0.050000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.431162e+00, LR: 1.000000e-02
+Final Adam Loss: 7.346918277111412e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.346918277111412e-05
+  ✓ Training Completed - Final Loss: 7.346918e-05
+
+----------------------------------------------------------------------
+Time Step 20 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.346918e-05
+    - Loss Reduction: 1.03x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0368s
+    - Max Residual (L2): 4.897328e-05
+    - Max Relative Residual: 3.191178e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 7.01e+12
+  Solution Statistics:
+    - ||U||_2: 5.966788e+00
+    - max|U|: 9.999654e-01
+    - mean(U): -2.311905e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 21: T = 0.052500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=21)
+
+----------------------------------------------------------------------
+Time Step 21 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0381s
+    - Max Residual (L2): 5.072513e-05
+    - Max Relative Residual: 3.303211e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 7.01e+12
+  Solution Statistics:
+    - ||U||_2: 5.992097e+00
+    - max|U|: 9.999643e-01
+    - mean(U): -2.323281e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 22: T = 0.055000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=22)
+
+----------------------------------------------------------------------
+Time Step 22 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0367s
+    - Max Residual (L2): 5.241494e-05
+    - Max Relative Residual: 3.411059e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 7.01e+12
+  Solution Statistics:
+    - ||U||_2: 6.017363e+00
+    - max|U|: 9.999632e-01
+    - mean(U): -2.334619e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 23: T = 0.057500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=23)
+
+----------------------------------------------------------------------
+Time Step 23 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0367s
+    - Max Residual (L2): 5.404297e-05
+    - Max Relative Residual: 3.514746e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 7.01e+12
+  Solution Statistics:
+    - ||U||_2: 6.042584e+00
+    - max|U|: 9.999621e-01
+    - mean(U): -2.345919e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 24: T = 0.060000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.912294e+00, LR: 1.000000e-02
+Final Adam Loss: 7.938720353676644e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.938720353676644e-05
+  ✓ Training Completed - Final Loss: 7.938720e-05
+
+----------------------------------------------------------------------
+Time Step 24 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.938720e-05
+    - Loss Reduction: 0.93x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0364s
+    - Max Residual (L2): 5.532381e-05
+    - Max Relative Residual: 3.595731e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.07e+13
+  Solution Statistics:
+    - ||U||_2: 6.067759e+00
+    - max|U|: 9.999612e-01
+    - mean(U): -2.357178e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.062500, 总帧数 = 5
+
+======================================================================
+Time Step 25: T = 0.062500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=25)
+
+----------------------------------------------------------------------
+Time Step 25 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0363s
+    - Max Residual (L2): 5.667528e-05
+    - Max Relative Residual: 3.681195e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.07e+13
+  Solution Statistics:
+    - ||U||_2: 6.092888e+00
+    - max|U|: 9.999602e-01
+    - mean(U): -2.368397e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 26: T = 0.065000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=26)
+
+----------------------------------------------------------------------
+Time Step 26 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0382s
+    - Max Residual (L2): 5.796607e-05
+    - Max Relative Residual: 3.762607e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.07e+13
+  Solution Statistics:
+    - ||U||_2: 6.117970e+00
+    - max|U|: 9.999594e-01
+    - mean(U): -2.379574e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 27: T = 0.067500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=27)
+
+----------------------------------------------------------------------
+Time Step 27 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0364s
+    - Max Residual (L2): 5.919700e-05
+    - Max Relative Residual: 3.840027e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.07e+13
+  Solution Statistics:
+    - ||U||_2: 6.143003e+00
+    - max|U|: 9.999585e-01
+    - mean(U): -2.390707e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 28: T = 0.070000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.010740e+00, LR: 1.000000e-02
+Final Adam Loss: 7.960080809403544e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.960080809403544e-05
+  ✓ Training Completed - Final Loss: 7.960081e-05
+
+----------------------------------------------------------------------
+Time Step 28 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.960081e-05
+    - Loss Reduction: 1.00x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 6.027650e-05
+    - Max Relative Residual: 3.907526e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.30e+13
+  Solution Statistics:
+    - ||U||_2: 6.167986e+00
+    - max|U|: 9.999578e-01
+    - mean(U): -2.401796e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 29: T = 0.072500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=29)
+
+----------------------------------------------------------------------
+Time Step 29 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 6.127704e-05
+    - Max Relative Residual: 3.969819e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.30e+13
+  Solution Statistics:
+    - ||U||_2: 6.192920e+00
+    - max|U|: 9.999570e-01
+    - mean(U): -2.412839e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.075000, 总帧数 = 6
+
+======================================================================
+Time Step 30: T = 0.075000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=30)
+
+----------------------------------------------------------------------
+Time Step 30 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 6.222232e-05
+    - Max Relative Residual: 4.028451e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.30e+13
+  Solution Statistics:
+    - ||U||_2: 6.217802e+00
+    - max|U|: 9.999564e-01
+    - mean(U): -2.423835e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 31: T = 0.077500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=31)
+
+----------------------------------------------------------------------
+Time Step 31 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 6.311341e-05
+    - Max Relative Residual: 4.083496e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.30e+13
+  Solution Statistics:
+    - ||U||_2: 6.242631e+00
+    - max|U|: 9.999557e-01
+    - mean(U): -2.434783e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 32: T = 0.080000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.821018e+00, LR: 1.000000e-02
+Final Adam Loss: 7.966167360039169e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.966167360039169e-05
+  ✓ Training Completed - Final Loss: 7.966167e-05
+
+----------------------------------------------------------------------
+Time Step 32 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.966167e-05
+    - Loss Reduction: 1.00x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 6.415442e-05
+    - Max Relative Residual: 4.148162e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.22e+13
+  Solution Statistics:
+    - ||U||_2: 6.267408e+00
+    - max|U|: 9.999549e-01
+    - mean(U): -2.445681e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 33: T = 0.082500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=33)
+
+----------------------------------------------------------------------
+Time Step 33 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 6.516372e-05
+    - Max Relative Residual: 4.210692e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.22e+13
+  Solution Statistics:
+    - ||U||_2: 6.292130e+00
+    - max|U|: 9.999542e-01
+    - mean(U): -2.456529e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 34: T = 0.085000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=34)
+
+----------------------------------------------------------------------
+Time Step 34 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 6.611949e-05
+    - Max Relative Residual: 4.269681e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.22e+13
+  Solution Statistics:
+    - ||U||_2: 6.316798e+00
+    - max|U|: 9.999534e-01
+    - mean(U): -2.467326e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.087500, 总帧数 = 7
+
+======================================================================
+Time Step 35: T = 0.087500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=35)
+
+----------------------------------------------------------------------
+Time Step 35 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 6.702277e-05
+    - Max Relative Residual: 4.325203e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.22e+13
+  Solution Statistics:
+    - ||U||_2: 6.341410e+00
+    - max|U|: 9.999528e-01
+    - mean(U): -2.478070e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 36: T = 0.090000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.280578e+00, LR: 1.000000e-02
+Final Adam Loss: 7.523165807101527e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.523165807101527e-05
+  ✓ Training Completed - Final Loss: 7.523166e-05
+
+----------------------------------------------------------------------
+Time Step 36 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.523166e-05
+    - Loss Reduction: 1.06x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 6.764860e-05
+    - Max Relative Residual: 4.362758e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 6.365965e+00
+    - max|U|: 9.999526e-01
+    - mean(U): -2.488759e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 37: T = 0.092500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=37)
+
+----------------------------------------------------------------------
+Time Step 37 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 6.816456e-05
+    - Max Relative Residual: 4.393180e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 6.390464e+00
+    - max|U|: 9.999525e-01
+    - mean(U): -2.499394e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 38: T = 0.095000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=38)
+
+----------------------------------------------------------------------
+Time Step 38 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 6.863795e-05
+    - Max Relative Residual: 4.420818e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 6.414904e+00
+    - max|U|: 9.999524e-01
+    - mean(U): -2.509972e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 39: T = 0.097500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=39)
+
+----------------------------------------------------------------------
+Time Step 39 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 6.906987e-05
+    - Max Relative Residual: 4.445749e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 6.439286e+00
+    - max|U|: 9.999523e-01
+    - mean(U): -2.520493e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.100000, 总帧数 = 8
+
+======================================================================
+Time Step 40: T = 0.100000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.305360e+00, LR: 1.000000e-02
+Final Adam Loss: 7.78602067385642e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.78602067385642e-05
+  ✓ Training Completed - Final Loss: 7.786021e-05
+
+----------------------------------------------------------------------
+Time Step 40 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.786021e-05
+    - Loss Reduction: 0.97x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 6.956671e-05
+    - Max Relative Residual: 4.474822e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.32e+13
+  Solution Statistics:
+    - ||U||_2: 6.463608e+00
+    - max|U|: 9.999518e-01
+    - mean(U): -2.530955e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 41: T = 0.102500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=41)
+
+----------------------------------------------------------------------
+Time Step 41 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.002614e-05
+    - Max Relative Residual: 4.501450e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.32e+13
+  Solution Statistics:
+    - ||U||_2: 6.487870e+00
+    - max|U|: 9.999513e-01
+    - mean(U): -2.541357e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 42: T = 0.105000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=42)
+
+----------------------------------------------------------------------
+Time Step 42 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.044565e-05
+    - Max Relative Residual: 4.525477e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.32e+13
+  Solution Statistics:
+    - ||U||_2: 6.512071e+00
+    - max|U|: 9.999509e-01
+    - mean(U): -2.551698e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 43: T = 0.107500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=43)
+
+----------------------------------------------------------------------
+Time Step 43 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.082626e-05
+    - Max Relative Residual: 4.546975e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.32e+13
+  Solution Statistics:
+    - ||U||_2: 6.536211e+00
+    - max|U|: 9.999505e-01
+    - mean(U): -2.561977e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 44: T = 0.110000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.062600e+00, LR: 1.000000e-02
+Final Adam Loss: 7.782487514660421e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.782487514660421e-05
+  ✓ Training Completed - Final Loss: 7.782488e-05
+
+----------------------------------------------------------------------
+Time Step 44 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.782488e-05
+    - Loss Reduction: 1.00x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.141382e-05
+    - Max Relative Residual: 4.581720e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 6.560289e+00
+    - max|U|: 9.999501e-01
+    - mean(U): -2.572193e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.112500, 总帧数 = 9
+
+======================================================================
+Time Step 45: T = 0.112500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=45)
+
+----------------------------------------------------------------------
+Time Step 45 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.199443e-05
+    - Max Relative Residual: 4.615973e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 6.584304e+00
+    - max|U|: 9.999497e-01
+    - mean(U): -2.582344e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 46: T = 0.115000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=46)
+
+----------------------------------------------------------------------
+Time Step 46 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.253286e-05
+    - Max Relative Residual: 4.647479e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 6.608256e+00
+    - max|U|: 9.999493e-01
+    - mean(U): -2.592430e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 47: T = 0.117500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=47)
+
+----------------------------------------------------------------------
+Time Step 47 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.303022e-05
+    - Max Relative Residual: 4.676312e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.08e+13
+  Solution Statistics:
+    - ||U||_2: 6.632144e+00
+    - max|U|: 9.999490e-01
+    - mean(U): -2.602448e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 48: T = 0.120000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.008829e+00, LR: 1.000000e-02
+Final Adam Loss: 7.94799657140318e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.94799657140318e-05
+  ✓ Training Completed - Final Loss: 7.947997e-05
+
+----------------------------------------------------------------------
+Time Step 48 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.947997e-05
+    - Loss Reduction: 0.98x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.345978e-05
+    - Max Relative Residual: 4.700769e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.18e+13
+  Solution Statistics:
+    - ||U||_2: 6.655968e+00
+    - max|U|: 9.999486e-01
+    - mean(U): -2.612399e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 49: T = 0.122500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=49)
+
+----------------------------------------------------------------------
+Time Step 49 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.381736e-05
+    - Max Relative Residual: 4.720591e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.18e+13
+  Solution Statistics:
+    - ||U||_2: 6.679727e+00
+    - max|U|: 9.999483e-01
+    - mean(U): -2.622280e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.125000, 总帧数 = 10
+
+======================================================================
+Time Step 50: T = 0.125000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=50)
+
+----------------------------------------------------------------------
+Time Step 50 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.413874e-05
+    - Max Relative Residual: 4.738072e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.18e+13
+  Solution Statistics:
+    - ||U||_2: 6.703420e+00
+    - max|U|: 9.999480e-01
+    - mean(U): -2.632092e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 51: T = 0.127500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=51)
+
+----------------------------------------------------------------------
+Time Step 51 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.442497e-05
+    - Max Relative Residual: 4.753286e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.18e+13
+  Solution Statistics:
+    - ||U||_2: 6.727049e+00
+    - max|U|: 9.999477e-01
+    - mean(U): -2.641832e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 52: T = 0.130000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 9.638160e-01, LR: 1.000000e-02
+Final Adam Loss: 7.883631265614517e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.883631265614517e-05
+  ✓ Training Completed - Final Loss: 7.883631e-05
+
+----------------------------------------------------------------------
+Time Step 52 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.883631e-05
+    - Loss Reduction: 1.01x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.499350e-05
+    - Max Relative Residual: 4.786498e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.94e+12
+  Solution Statistics:
+    - ||U||_2: 6.750610e+00
+    - max|U|: 9.999475e-01
+    - mean(U): -2.651499e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 53: T = 0.132500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=53)
+
+----------------------------------------------------------------------
+Time Step 53 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.535212e-05
+    - Max Relative Residual: 4.806278e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.94e+12
+  Solution Statistics:
+    - ||U||_2: 6.774106e+00
+    - max|U|: 9.999472e-01
+    - mean(U): -2.661093e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 54: T = 0.135000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=54)
+
+----------------------------------------------------------------------
+Time Step 54 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.567507e-05
+    - Max Relative Residual: 4.823759e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.94e+12
+  Solution Statistics:
+    - ||U||_2: 6.797534e+00
+    - max|U|: 9.999470e-01
+    - mean(U): -2.670612e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.137500, 总帧数 = 11
+
+======================================================================
+Time Step 55: T = 0.137500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=55)
+
+----------------------------------------------------------------------
+Time Step 55 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.596333e-05
+    - Max Relative Residual: 4.839007e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 9.94e+12
+  Solution Statistics:
+    - ||U||_2: 6.820895e+00
+    - max|U|: 9.999469e-01
+    - mean(U): -2.680054e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 56: T = 0.140000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.196242e+00, LR: 1.000000e-02
+Final Adam Loss: 7.81757912414596e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.81757912414596e-05
+  ✓ Training Completed - Final Loss: 7.817579e-05
+
+----------------------------------------------------------------------
+Time Step 56 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.817579e-05
+    - Loss Reduction: 1.01x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.590081e-05
+    - Max Relative Residual: 4.831905e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.26e+13
+  Solution Statistics:
+    - ||U||_2: 6.844189e+00
+    - max|U|: 9.999467e-01
+    - mean(U): -2.689420e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 57: T = 0.142500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=57)
+
+----------------------------------------------------------------------
+Time Step 57 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.600357e-05
+    - Max Relative Residual: 4.835328e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.26e+13
+  Solution Statistics:
+    - ||U||_2: 6.867414e+00
+    - max|U|: 9.999467e-01
+    - mean(U): -2.698708e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 58: T = 0.145000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=58)
+
+----------------------------------------------------------------------
+Time Step 58 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.607742e-05
+    - Max Relative Residual: 4.836909e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.26e+13
+  Solution Statistics:
+    - ||U||_2: 6.890572e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.707916e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 59: T = 0.147500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=59)
+
+----------------------------------------------------------------------
+Time Step 59 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0354s
+    - Max Residual (L2): 7.612331e-05
+    - Max Relative Residual: 4.836712e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.26e+13
+  Solution Statistics:
+    - ||U||_2: 6.913661e+00
+    - max|U|: 9.999465e-01
+    - mean(U): -2.717044e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.150000, 总帧数 = 12
+
+======================================================================
+Time Step 60: T = 0.150000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 7.900597e-01, LR: 1.000000e-02
+Final Adam Loss: 6.861231172687494e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 6.861231172687494e-05
+  ✓ Training Completed - Final Loss: 6.861231e-05
+
+----------------------------------------------------------------------
+Time Step 60 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 6.861231e-05
+    - Loss Reduction: 1.14x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.638532e-05
+    - Max Relative Residual: 4.850240e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 6.936681e+00
+    - max|U|: 9.999465e-01
+    - mean(U): -2.726090e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 61: T = 0.152500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=61)
+
+----------------------------------------------------------------------
+Time Step 61 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.643030e-05
+    - Max Relative Residual: 4.849979e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 6.959632e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.735054e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 62: T = 0.155000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=62)
+
+----------------------------------------------------------------------
+Time Step 62 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.644851e-05
+    - Max Relative Residual: 4.848021e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 6.982515e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.743934e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 63: T = 0.157500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=63)
+
+----------------------------------------------------------------------
+Time Step 63 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.644084e-05
+    - Max Relative Residual: 4.844428e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 7.005328e+00
+    - max|U|: 9.999467e-01
+    - mean(U): -2.752729e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 64: T = 0.160000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 9.002370e-01, LR: 1.000000e-02
+Final Adam Loss: 7.963446397807227e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.963446397807227e-05
+  ✓ Training Completed - Final Loss: 7.963446e-05
+
+----------------------------------------------------------------------
+Time Step 64 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.963446e-05
+    - Loss Reduction: 0.86x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.680829e-05
+    - Max Relative Residual: 4.864598e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.39e+13
+  Solution Statistics:
+    - ||U||_2: 7.028072e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.761438e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.162500, 总帧数 = 13
+
+======================================================================
+Time Step 65: T = 0.162500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=65)
+
+----------------------------------------------------------------------
+Time Step 65 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.687443e-05
+    - Max Relative Residual: 4.865673e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.39e+13
+  Solution Statistics:
+    - ||U||_2: 7.050746e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.770060e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 66: T = 0.165000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=66)
+
+----------------------------------------------------------------------
+Time Step 66 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.691517e-05
+    - Max Relative Residual: 4.865141e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.39e+13
+  Solution Statistics:
+    - ||U||_2: 7.073351e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.778593e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 67: T = 0.167500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=67)
+
+----------------------------------------------------------------------
+Time Step 67 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.693135e-05
+    - Max Relative Residual: 4.863060e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.39e+13
+  Solution Statistics:
+    - ||U||_2: 7.095886e+00
+    - max|U|: 9.999466e-01
+    - mean(U): -2.787038e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 68: T = 0.170000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 9.233631e-01, LR: 1.000000e-02
+Final Adam Loss: 7.725231182347653e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.725231182347653e-05
+  ✓ Training Completed - Final Loss: 7.725231e-05
+
+----------------------------------------------------------------------
+Time Step 68 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.725231e-05
+    - Loss Reduction: 1.03x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.632259e-05
+    - Max Relative Residual: 4.821503e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 6.80e+12
+  Solution Statistics:
+    - ||U||_2: 7.118352e+00
+    - max|U|: 9.999467e-01
+    - mean(U): -2.795392e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 69: T = 0.172500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=69)
+
+----------------------------------------------------------------------
+Time Step 69 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.616900e-05
+    - Max Relative Residual: 4.808737e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 6.80e+12
+  Solution Statistics:
+    - ||U||_2: 7.140749e+00
+    - max|U|: 9.999468e-01
+    - mean(U): -2.803655e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.175000, 总帧数 = 14
+
+======================================================================
+Time Step 70: T = 0.175000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=70)
+
+----------------------------------------------------------------------
+Time Step 70 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.599694e-05
+    - Max Relative Residual: 4.794824e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 6.80e+12
+  Solution Statistics:
+    - ||U||_2: 7.163076e+00
+    - max|U|: 9.999470e-01
+    - mean(U): -2.811825e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 71: T = 0.177500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=71)
+
+----------------------------------------------------------------------
+Time Step 71 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0355s
+    - Max Residual (L2): 7.580718e-05
+    - Max Relative Residual: 4.779814e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 6.80e+12
+  Solution Statistics:
+    - ||U||_2: 7.185333e+00
+    - max|U|: 9.999471e-01
+    - mean(U): -2.819902e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 72: T = 0.180000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.026023e+00, LR: 1.000000e-02
+Final Adam Loss: 7.368739925689224e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.368739925689224e-05
+  ✓ Training Completed - Final Loss: 7.368740e-05
+
+----------------------------------------------------------------------
+Time Step 72 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.368740e-05
+    - Loss Reduction: 1.05x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 7.626234e-05
+    - Max Relative Residual: 4.805464e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.04e+13
+  Solution Statistics:
+    - ||U||_2: 7.207521e+00
+    - max|U|: 9.999471e-01
+    - mean(U): -2.827883e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 73: T = 0.182500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=73)
+
+----------------------------------------------------------------------
+Time Step 73 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.623367e-05
+    - Max Relative Residual: 4.800614e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.04e+13
+  Solution Statistics:
+    - ||U||_2: 7.229640e+00
+    - max|U|: 9.999472e-01
+    - mean(U): -2.835770e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 74: T = 0.185000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=74)
+
+----------------------------------------------------------------------
+Time Step 74 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.620404e-05
+    - Max Relative Residual: 4.795713e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.04e+13
+  Solution Statistics:
+    - ||U||_2: 7.251690e+00
+    - max|U|: 9.999472e-01
+    - mean(U): -2.843559e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.187500, 总帧数 = 15
+
+======================================================================
+Time Step 75: T = 0.187500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=75)
+
+----------------------------------------------------------------------
+Time Step 75 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 7.617551e-05
+    - Max Relative Residual: 4.790890e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.04e+13
+  Solution Statistics:
+    - ||U||_2: 7.273671e+00
+    - max|U|: 9.999472e-01
+    - mean(U): -2.851251e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 76: T = 0.190000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 4.797311e-01, LR: 1.000000e-02
+Final Adam Loss: 7.232215284957115e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.232215284957115e-05
+  ✓ Training Completed - Final Loss: 7.232215e-05
+
+----------------------------------------------------------------------
+Time Step 76 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.232215e-05
+    - Loss Reduction: 1.02x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 7.676134e-05
+    - Max Relative Residual: 4.824689e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.295583e+00
+    - max|U|: 9.999475e-01
+    - mean(U): -2.858843e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 77: T = 0.192500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=77)
+
+----------------------------------------------------------------------
+Time Step 77 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.649370e-05
+    - Max Relative Residual: 4.804838e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.317426e+00
+    - max|U|: 9.999478e-01
+    - mean(U): -2.866336e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 78: T = 0.195000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=78)
+
+----------------------------------------------------------------------
+Time Step 78 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.621699e-05
+    - Max Relative Residual: 4.784445e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.339202e+00
+    - max|U|: 9.999481e-01
+    - mean(U): -2.873728e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 79: T = 0.197500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=79)
+
+----------------------------------------------------------------------
+Time Step 79 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.593316e-05
+    - Max Relative Residual: 4.763634e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.360910e+00
+    - max|U|: 9.999484e-01
+    - mean(U): -2.881017e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.200000, 总帧数 = 16
+
+======================================================================
+Time Step 80: T = 0.200000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.187865e+00, LR: 1.000000e-02
+Final Adam Loss: 7.648396761785932e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.648396761785932e-05
+  ✓ Training Completed - Final Loss: 7.648397e-05
+
+----------------------------------------------------------------------
+Time Step 80 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.648397e-05
+    - Loss Reduction: 0.95x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 7.499135e-05
+    - Max Relative Residual: 4.701599e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.54e+12
+  Solution Statistics:
+    - ||U||_2: 7.382550e+00
+    - max|U|: 9.999486e-01
+    - mean(U): -2.888204e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 81: T = 0.202500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=81)
+
+----------------------------------------------------------------------
+Time Step 81 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.475096e-05
+    - Max Relative Residual: 4.683592e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.54e+12
+  Solution Statistics:
+    - ||U||_2: 7.404122e+00
+    - max|U|: 9.999488e-01
+    - mean(U): -2.895287e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 82: T = 0.205000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=82)
+
+----------------------------------------------------------------------
+Time Step 82 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0357s
+    - Max Residual (L2): 7.449307e-05
+    - Max Relative Residual: 4.664515e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.54e+12
+  Solution Statistics:
+    - ||U||_2: 7.425628e+00
+    - max|U|: 9.999489e-01
+    - mean(U): -2.902264e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 83: T = 0.207500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=83)
+
+----------------------------------------------------------------------
+Time Step 83 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0363s
+    - Max Residual (L2): 7.421859e-05
+    - Max Relative Residual: 4.644425e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 8.54e+12
+  Solution Statistics:
+    - ||U||_2: 7.447067e+00
+    - max|U|: 9.999491e-01
+    - mean(U): -2.909136e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 84: T = 0.210000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.230793e+00, LR: 1.000000e-02
+Final Adam Loss: 7.447251234179963e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.447251234179963e-05
+  ✓ Training Completed - Final Loss: 7.447251e-05
+
+----------------------------------------------------------------------
+Time Step 84 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.447251e-05
+    - Loss Reduction: 1.03x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.804929e-05
+    - Max Relative Residual: 4.881095e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.05e+13
+  Solution Statistics:
+    - ||U||_2: 7.468440e+00
+    - max|U|: 9.999491e-01
+    - mean(U): -2.915900e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.212500, 总帧数 = 17
+
+======================================================================
+Time Step 85: T = 0.212500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=85)
+
+----------------------------------------------------------------------
+Time Step 85 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.848189e-05
+    - Max Relative Residual: 4.905093e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.05e+13
+  Solution Statistics:
+    - ||U||_2: 7.489748e+00
+    - max|U|: 9.999491e-01
+    - mean(U): -2.922555e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 86: T = 0.215000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=86)
+
+----------------------------------------------------------------------
+Time Step 86 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.895865e-05
+    - Max Relative Residual: 4.931822e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.05e+13
+  Solution Statistics:
+    - ||U||_2: 7.510990e+00
+    - max|U|: 9.999491e-01
+    - mean(U): -2.929102e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 87: T = 0.217500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=87)
+
+----------------------------------------------------------------------
+Time Step 87 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0356s
+    - Max Residual (L2): 7.948264e-05
+    - Max Relative Residual: 4.961468e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.05e+13
+  Solution Statistics:
+    - ||U||_2: 7.532168e+00
+    - max|U|: 9.999493e-01
+    - mean(U): -2.935538e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 88: T = 0.220000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.067216e+00, LR: 1.000000e-02
+Final Adam Loss: 7.554461593205221e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.554461593205221e-05
+  ✓ Training Completed - Final Loss: 7.554462e-05
+
+----------------------------------------------------------------------
+Time Step 88 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.554462e-05
+    - Loss Reduction: 0.99x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0365s
+    - Max Residual (L2): 8.400117e-05
+    - Max Relative Residual: 5.240273e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.27e+13
+  Solution Statistics:
+    - ||U||_2: 7.553281e+00
+    - max|U|: 9.999497e-01
+    - mean(U): -2.941863e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 89: T = 0.222500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=89)
+
+----------------------------------------------------------------------
+Time Step 89 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 8.500733e-05
+    - Max Relative Residual: 5.299757e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.27e+13
+  Solution Statistics:
+    - ||U||_2: 7.574330e+00
+    - max|U|: 9.999501e-01
+    - mean(U): -2.948075e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.225000, 总帧数 = 18
+
+======================================================================
+Time Step 90: T = 0.225000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=90)
+
+----------------------------------------------------------------------
+Time Step 90 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 8.611266e-05
+    - Max Relative Residual: 5.365350e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.27e+13
+  Solution Statistics:
+    - ||U||_2: 7.595317e+00
+    - max|U|: 9.999506e-01
+    - mean(U): -2.954175e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 91: T = 0.227500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=91)
+
+----------------------------------------------------------------------
+Time Step 91 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0374s
+    - Max Residual (L2): 8.731529e-05
+    - Max Relative Residual: 5.436923e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.27e+13
+  Solution Statistics:
+    - ||U||_2: 7.616241e+00
+    - max|U|: 9.999510e-01
+    - mean(U): -2.960160e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 92: T = 0.230000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.118205e+00, LR: 1.000000e-02
+Final Adam Loss: 7.980174138611785e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.980174138611785e-05
+  ✓ Training Completed - Final Loss: 7.980174e-05
+
+----------------------------------------------------------------------
+Time Step 92 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.980174e-05
+    - Loss Reduction: 0.95x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 7.268686e-05
+    - Max Relative Residual: 4.523254e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.34e+13
+  Solution Statistics:
+    - ||U||_2: 7.637104e+00
+    - max|U|: 9.999513e-01
+    - mean(U): -2.966030e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 93: T = 0.232500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=93)
+
+----------------------------------------------------------------------
+Time Step 93 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 7.295208e-05
+    - Max Relative Residual: 4.536965e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.34e+13
+  Solution Statistics:
+    - ||U||_2: 7.657906e+00
+    - max|U|: 9.999515e-01
+    - mean(U): -2.971784e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 94: T = 0.235000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=94)
+
+----------------------------------------------------------------------
+Time Step 94 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 7.349236e-05
+    - Max Relative Residual: 4.567756e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.34e+13
+  Solution Statistics:
+    - ||U||_2: 7.678648e+00
+    - max|U|: 9.999518e-01
+    - mean(U): -2.977421e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.237500, 总帧数 = 19
+
+======================================================================
+Time Step 95: T = 0.237500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=95)
+
+----------------------------------------------------------------------
+Time Step 95 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0362s
+    - Max Residual (L2): 7.434863e-05
+    - Max Relative Residual: 4.618139e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.34e+13
+  Solution Statistics:
+    - ||U||_2: 7.699330e+00
+    - max|U|: 9.999521e-01
+    - mean(U): -2.982939e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 96: T = 0.240000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.398483e-01, LR: 1.000000e-02
+Final Adam Loss: 7.658340050744681e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.658340050744681e-05
+  ✓ Training Completed - Final Loss: 7.658340e-05
+
+----------------------------------------------------------------------
+Time Step 96 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.658340e-05
+    - Loss Reduction: 1.04x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 1.570449e-04
+    - Max Relative Residual: 9.748813e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.25e+13
+  Solution Statistics:
+    - ||U||_2: 7.719953e+00
+    - max|U|: 9.999522e-01
+    - mean(U): -2.988339e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 97: T = 0.242500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=97)
+
+----------------------------------------------------------------------
+Time Step 97 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0363s
+    - Max Residual (L2): 1.634993e-04
+    - Max Relative Residual: 1.014326e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.25e+13
+  Solution Statistics:
+    - ||U||_2: 7.740517e+00
+    - max|U|: 9.999524e-01
+    - mean(U): -2.993618e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 98: T = 0.245000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=98)
+
+----------------------------------------------------------------------
+Time Step 98 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 1.701242e-04
+    - Max Relative Residual: 1.054781e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.25e+13
+  Solution Statistics:
+    - ||U||_2: 7.761025e+00
+    - max|U|: 9.999526e-01
+    - mean(U): -2.998776e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 99: T = 0.247500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=99)
+
+----------------------------------------------------------------------
+Time Step 99 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 1.769094e-04
+    - Max Relative Residual: 1.096180e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.25e+13
+  Solution Statistics:
+    - ||U||_2: 7.781476e+00
+    - max|U|: 9.999528e-01
+    - mean(U): -3.003813e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.250000, 总帧数 = 20
+
+======================================================================
+Time Step 100: T = 0.250000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.423781e-01, LR: 1.000000e-02
+Final Adam Loss: 7.731901803799949e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.731901803799949e-05
+  ✓ Training Completed - Final Loss: 7.731902e-05
+
+----------------------------------------------------------------------
+Time Step 100 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.731902e-05
+    - Loss Reduction: 0.99x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 1.934139e-04
+    - Max Relative Residual: 1.197716e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 7.801872e+00
+    - max|U|: 9.999529e-01
+    - mean(U): -3.008726e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 101: T = 0.252500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=101)
+
+----------------------------------------------------------------------
+Time Step 101 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 2.029229e-04
+    - Max Relative Residual: 1.255836e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 7.822213e+00
+    - max|U|: 9.999531e-01
+    - mean(U): -3.013516e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 102: T = 0.255000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=102)
+
+----------------------------------------------------------------------
+Time Step 102 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 2.126581e-04
+    - Max Relative Residual: 1.315284e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 7.842501e+00
+    - max|U|: 9.999532e-01
+    - mean(U): -3.018181e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 103: T = 0.257500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=103)
+
+----------------------------------------------------------------------
+Time Step 103 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 2.225914e-04
+    - Max Relative Residual: 1.375885e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.28e+13
+  Solution Statistics:
+    - ||U||_2: 7.862735e+00
+    - max|U|: 9.999534e-01
+    - mean(U): -3.022720e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 104: T = 0.260000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.874031e-01, LR: 1.000000e-02
+Final Adam Loss: 7.77603765389833e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.77603765389833e-05
+  ✓ Training Completed - Final Loss: 7.776038e-05
+
+----------------------------------------------------------------------
+Time Step 104 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.776038e-05
+    - Loss Reduction: 0.99x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0362s
+    - Max Residual (L2): 1.249264e-04
+    - Max Relative Residual: 7.717289e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 7.882918e+00
+    - max|U|: 9.999536e-01
+    - mean(U): -3.027133e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.262500, 总帧数 = 21
+
+======================================================================
+Time Step 105: T = 0.262500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=105)
+
+----------------------------------------------------------------------
+Time Step 105 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0362s
+    - Max Residual (L2): 1.315925e-04
+    - Max Relative Residual: 8.124155e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 7.903051e+00
+    - max|U|: 9.999539e-01
+    - mean(U): -3.031418e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 106: T = 0.265000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=106)
+
+----------------------------------------------------------------------
+Time Step 106 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 1.386381e-04
+    - Max Relative Residual: 8.553953e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 7.923133e+00
+    - max|U|: 9.999542e-01
+    - mean(U): -3.035575e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 107: T = 0.267500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=107)
+
+----------------------------------------------------------------------
+Time Step 107 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 1.460588e-04
+    - Max Relative Residual: 9.006362e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.33e+13
+  Solution Statistics:
+    - ||U||_2: 7.943167e+00
+    - max|U|: 9.999545e-01
+    - mean(U): -3.039602e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 108: T = 0.270000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.234446e+00, LR: 1.000000e-02
+Final Adam Loss: 7.911204206425349e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.911204206425349e-05
+  ✓ Training Completed - Final Loss: 7.911204e-05
+
+----------------------------------------------------------------------
+Time Step 108 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.911204e-05
+    - Loss Reduction: 0.98x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 1.440313e-04
+    - Max Relative Residual: 8.876207e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.961073e+00
+    - max|U|: 9.999548e-01
+    - mean(U): -3.042516e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 109: T = 0.272500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=109)
+
+----------------------------------------------------------------------
+Time Step 109 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 1.461802e-04
+    - Max Relative Residual: 9.003772e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.978914e+00
+    - max|U|: 9.999551e-01
+    - mean(U): -3.045269e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.275000, 总帧数 = 22
+
+======================================================================
+Time Step 110: T = 0.275000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=110)
+
+----------------------------------------------------------------------
+Time Step 110 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 1.483305e-04
+    - Max Relative Residual: 9.131291e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 7.996693e+00
+    - max|U|: 9.999553e-01
+    - mean(U): -3.047859e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 111: T = 0.277500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=111)
+
+----------------------------------------------------------------------
+Time Step 111 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0360s
+    - Max Residual (L2): 1.504793e-04
+    - Max Relative Residual: 9.258594e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.36e+13
+  Solution Statistics:
+    - ||U||_2: 8.014411e+00
+    - max|U|: 9.999556e-01
+    - mean(U): -3.050284e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 112: T = 0.280000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.053215e+00, LR: 1.000000e-02
+Final Adam Loss: 7.901371222580597e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.901371222580597e-05
+  ✓ Training Completed - Final Loss: 7.901371e-05
+
+----------------------------------------------------------------------
+Time Step 112 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.901371e-05
+    - Loss Reduction: 1.00x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0359s
+    - Max Residual (L2): 1.513711e-04
+    - Max Relative Residual: 9.310532e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.21e+13
+  Solution Statistics:
+    - ||U||_2: 8.035296e+00
+    - max|U|: 9.999561e-01
+    - mean(U): -3.054177e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 113: T = 0.282500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=113)
+
+----------------------------------------------------------------------
+Time Step 113 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 1.417522e-04
+    - Max Relative Residual: 8.713371e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.21e+13
+  Solution Statistics:
+    - ||U||_2: 8.055989e+00
+    - max|U|: 9.999567e-01
+    - mean(U): -3.057856e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 114: T = 0.285000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=114)
+
+----------------------------------------------------------------------
+Time Step 114 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 1.344334e-04
+    - Max Relative Residual: 8.258298e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.21e+13
+  Solution Statistics:
+    - ||U||_2: 8.076505e+00
+    - max|U|: 9.999572e-01
+    - mean(U): -3.061331e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.287500, 总帧数 = 23
+
+======================================================================
+Time Step 115: T = 0.287500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=115)
+
+----------------------------------------------------------------------
+Time Step 115 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0358s
+    - Max Residual (L2): 1.290891e-04
+    - Max Relative Residual: 7.925045e-06
+    - Methods: gpu_svd
+    - Max Condition Number: 1.21e+13
+  Solution Statistics:
+    - ||U||_2: 8.096861e+00
+    - max|U|: 9.999578e-01
+    - mean(U): -3.064609e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 116: T = 0.290000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 7.899098e-01, LR: 1.000000e-02
+Final Adam Loss: 7.609753719369018e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.609753719369018e-05
+  ✓ Training Completed - Final Loss: 7.609754e-05
+
+----------------------------------------------------------------------
+Time Step 116 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.609754e-05
+    - Loss Reduction: 1.04x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 1.754220e-04
+    - Max Relative Residual: 1.049214e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.16e+13
+  Solution Statistics:
+    - ||U||_2: 1.418237e+01
+    - max|U|: 1.087210e+01
+    - mean(U): -3.723990e-01
+/home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/src/algebraic_solver/linear_solver_reporting_mixin.py:25: RuntimeWarning: invalid value encountered in scalar divide
+  "relative_residual": residual_norm / max(b_norm, 1e-16),
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+<string>:1: RuntimeWarning: overflow encountered in power
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 117: T = 0.292500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=117)
+
+----------------------------------------------------------------------
+Time Step 117 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0362s
+    - Max Residual (L2): 1.851998e-04
+    - Max Relative Residual: 1.010791e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.16e+13
+  Solution Statistics:
+    - ||U||_2: 1.389340e+01
+    - max|U|: 9.005106e+00
+    - mean(U): -3.737912e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 118: T = 0.295000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=118)
+
+----------------------------------------------------------------------
+Time Step 118 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0363s
+    - Max Residual (L2): 1.955023e-04
+    - Max Relative Residual: 1.079685e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.16e+13
+  Solution Statistics:
+    - ||U||_2: 1.508844e+01
+    - max|U|: 1.068313e+01
+    - mean(U): -3.802675e-01
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 119: T = 0.297500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=119)
+
+----------------------------------------------------------------------
+Time Step 119 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0361s
+    - Max Residual (L2): 2.063116e-04
+    - Max Relative Residual: 1.102448e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 1.16e+13
+  Solution Statistics:
+    - ||U||_2: 1.471164e+01
+    - max|U|: 9.940091e+00
+    - mean(U): -3.750876e-01
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.300000, 总帧数 = 24
+
+======================================================================
+Time Step 120: T = 0.300000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.018720e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 3.451589e-04, LR: 1.000000e-02
+Final Adam Loss: 7.998506334160221e-05
+Target accuracy 8.00e-05 (DNNtol=8.00e-05) achieved, stopping retries
+Using best model, loss value: 7.998506334160221e-05
+  ✓ Training Completed - Final Loss: 7.998506e-05
+
+----------------------------------------------------------------------
+Time Step 120 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: 7.998506e-05
+    - Loss Reduction: 0.95x from previous step
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0368s
+    - Max Residual (L2): 9.425841e-04
+    - Max Relative Residual: 4.568999e-05
+    - Methods: gpu_svd
+    - Max Condition Number: 8.94e+12
+  Solution Statistics:
+    - ||U||_2: 1.244274e+08
+    - max|U|: 1.244274e+08
+    - mean(U): 6.226938e+05
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 121: T = 0.302500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=121)
+
+----------------------------------------------------------------------
+Time Step 121 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0377s
+    - Max Residual (L2): 5.316847e+51
+    - Max Relative Residual: 1.746413e-12
+    - Methods: gpu_svd
+    - Max Condition Number: 8.94e+12
+  Solution Statistics:
+    - ||U||_2: 2.120970e+63
+    - max|U|: 2.120969e+63
+    - mean(U): 1.061433e+61
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 122: T = 0.305000, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=122)
+
+----------------------------------------------------------------------
+Time Step 122 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0368s
+    - Max Residual (L2): inf
+    - Max Relative Residual: nan
+    - Methods: gpu_svd
+    - Max Condition Number: 8.94e+12
+  Solution Statistics:
+    - ||U||_2: nan
+    - max|U|: nan
+    - mean(U): nan
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 123: T = 0.307500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=123)
+
+----------------------------------------------------------------------
+Time Step 123 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Skipped (spotter_skip=4)
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 0.0368s
+    - Max Residual (L2): nan
+    - Max Relative Residual: nan
+    - Methods: gpu_svd
+    - Max Condition Number: 8.94e+12
+  Solution Statistics:
+    - ||U||_2: nan
+    - max|U|: nan
+    - mean(U): nan
+----------------------------------------------------------------------
+
+======================================================================
+Time Step 124: T = 0.310000, dt = 0.002500
+======================================================================
+  Training Neural Network...
+ Adam Epoch 0, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: nan, LR: 1.000000e-02
+Final Adam Loss: nan
+Retry 1/2, changing random seed to 43
+ Adam Epoch 0, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: nan, LR: 1.000000e-02
+Final Adam Loss: nan
+Retry 2/2, changing random seed to 44
+ Adam Epoch 0, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: nan, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: nan, LR: 1.000000e-02
+Final Adam Loss: nan
+  ✓ Training Completed - Final Loss: nan
+
+----------------------------------------------------------------------
+Time Step 124 Summary:
+----------------------------------------------------------------------
+  Neural Network:
+    - Final Loss: nan
+  Linear Solver:
+    - Number of Solves: 2
+    - Total Time: 38.8914s
+    - Max Residual (L2): nan
+    - Max Relative Residual: nan
+    - Methods: gpu_svd
+    - Max Condition Number: inf
+  Solution Statistics:
+    - ||U||_2: nan
+    - max|U|: nan
+    - mean(U): nan
+----------------------------------------------------------------------
+  备用Plan：Using construct ConstructSolution
+  Real-time visualization disabled (setting: False)
+  animationData已Update: T = 0.312500, 总帧数 = 25
+
+======================================================================
+Time Step 125: T = 0.312500, dt = 0.002500
+======================================================================
+  Skipping neural network training (spotter_skip=4, it=125)

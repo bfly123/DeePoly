@@ -1,0 +1,22 @@
+# Case run artifacts
+**/results/*.pt
+**/results/*.npy
+**/results/*.npz
+**/results/*.dat
+**/results/*.png
+**/results/*.gif
+**/results/*.txt
+
+# Nested visualization outputs
+**/results/visualizations/*.png
+**/results/visualizations/*.txt
+
+# Allow checked-in explanatory docs where they already exist
+!**/results/README.md
+!**/results/error.md
+!**/results/error_table.md
+!**/results/convergence_analysis.md
+
+# Keep reference assets versioned
+!**/reference_data/*.m
+!**/reference_data/*.mat

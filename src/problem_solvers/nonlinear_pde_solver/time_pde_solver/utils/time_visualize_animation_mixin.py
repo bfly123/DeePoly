@@ -48,8 +48,7 @@ class TimePDEAnimationMixin:
         return it % animation_skip == 0 or T >= getattr(self.config, "T", float("inf"))
 
     def _resolve_plot_dataset(self, data_train: Dict, solver=None) -> Dict:
-        if solver is not None and getattr(solver, "data_test", None) is not None:
-            return solver.data_test
+        _ = solver
         return data_train
 
     def _extract_animation_coordinates(self, data_train: Dict):

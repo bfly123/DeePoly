@@ -1,0 +1,24 @@
+{
+  "mode": "single",
+  "selected_name": "paddle_default",
+  "selected_backend": "paddle",
+  "metric": "priority",
+  "candidates": [
+    {
+      "name": "paddle_default",
+      "backend": "paddle",
+      "runtime": "subprocess",
+      "score": 0.0,
+      "metric_used": "priority",
+      "metrics": {
+        "priority": 0.0,
+        "dirichlet_var_0_mae": 0.0002692983262227623,
+        "periodic_var_0_mae": 1.7151869421278e-10,
+        "boundary_residual": 0.0002448166757951197
+      },
+      "selected": true,
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

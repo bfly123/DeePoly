@@ -1,0 +1,30 @@
+{
+  "evaluation_grid": {
+    "reference_x": 2048,
+    "reference_t": 1001,
+    "numerical_x": 200,
+    "numerical_t": 200,
+    "numerical_x_min": -0.99,
+    "numerical_x_max": 0.99,
+    "numerical_t_min": 0.01,
+    "numerical_t_max": 0.99
+  },
+  "spotter": {
+    "l1_mean_abs": 0.31300318119496334,
+    "rmse": 0.585748120165417,
+    "linf_abs": 1.9545335014484262,
+    "rel_l2": 0.8256967311777972,
+    "mean_prediction": -0.5224157604248598,
+    "min_prediction": -1.0018396148993685,
+    "max_prediction": 0.0035850861761666233
+  },
+  "sniper": {
+    "l1_mean_abs": 0.31215941503231176,
+    "rmse": 0.44757112884775685,
+    "linf_abs": 1.5260223762506422,
+    "rel_l2": 0.6309162681645224,
+    "mean_prediction": -0.44143466499620126,
+    "min_prediction": -2.5259855723881017,
+    "max_prediction": 0.3317830596038088
+  }
+}

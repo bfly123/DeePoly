@@ -1,8 +1,6 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
-from torch import nn
-
 from .operator_factory import create_operator_factory
 
 
@@ -34,21 +32,23 @@ class BaseFitterCoreMixin:
                     merged.update(item)
         return merged
 
-    def fitter_init(self, model: nn.Module):
+    def fitter_init(self, feature_source):
         """Initialize and pre-compile operator matrices"""
-        self._current_model = model
-        self._precompile_all_operators(model)
-        return model
+        self._current_model = feature_source
+        if hasattr(self, "_update_feature_dimensions"):
+            self._update_feature_dimensions(feature_source)
+        self._precompile_all_operators(feature_source)
+        return feature_source
 
-    def _precompile_all_operators(self, model: nn.Module):
+    def _precompile_all_operators(self, feature_source):
         """Hierarchical pre-compilation of all operators"""
         n_cols = self.config.n_eqs * self.dgN * self.ns
         for segment_idx in range(self.ns):
-            features = self._get_features(segment_idx, model)
+            features = self._get_features(segment_idx, feature_source)
             self._features[segment_idx] = features
             self._linear_operators[segment_idx] = {
-                "L1": self.L1_func(features),
-                "L2": self.L2_func(features),
+                "L1": self._evaluate_operator(self.L1_func, features),
+                "L2": self._evaluate_operator(self.L2_func, features),
             }
             self._nonlinear_functions[segment_idx] = {
                 "N": self._create_nonlinear_function(features, self.N_func, "N"),
@@ -56,7 +56,7 @@ class BaseFitterCoreMixin:
             }
 
         if self.config.problem_type != "func_fitting":
-            self._add_constraints(model)
+            self._add_constraints(feature_source)
 
         if self.A and self.b:
             self.A_constraints = np.vstack(self.A)
@@ -65,6 +65,12 @@ class BaseFitterCoreMixin:
             self.A_constraints = np.zeros((0, n_cols))
             self.b_constraints = np.zeros((0, 1))
         self._precompiled = True
+
+    @staticmethod
+    def _evaluate_operator(operator_func, features):
+        if operator_func is None:
+            return None
+        return operator_func(features)
 
     def _create_nonlinear_function(self, features, operator_func, operator_name):
         """Pre-compile nonlinear operators as coefficient-only dependent functions"""
@@ -140,7 +146,7 @@ class BaseFitterCoreMixin:
         x: np.ndarray,
         x_min: np.ndarray,
         x_max: np.ndarray,
-        model: nn.Module,
+        feature_source,
         derivative: List[int] = None,
     ) -> np.ndarray:
         """Get segment features"""
@@ -159,13 +165,23 @@ class BaseFitterCoreMixin:
         X_poly *= scale_factor
 
         if getattr(self.config, "method", "hybrid") == "hybrid":
-            X_nn = self.feature_generator.spotter_features(x, x_min, x_max, model, derivative, self.config.device)
+            X_nn = self.feature_generator.spotter_features(
+                x,
+                x_min,
+                x_max,
+                feature_source,
+                derivative,
+                self.config.device,
+            )
             X_poly = np.hstack([X_poly, X_nn])
         return X_poly
 
-    def _get_features(self, segment_idx: int, model: nn.Module) -> List[np.ndarray]:
+    def _get_features(self, segment_idx: int, feature_source) -> List[np.ndarray]:
         """Get features and derivatives"""
         x = self.data["x_segments_norm"][segment_idx]
         x_min = self.config.x_min[segment_idx]
         x_max = self.config.x_max[segment_idx]
-        return [self._get_segment_features(x, x_min, x_max, model, derivative) for derivative in self.derivatives]
+        return [
+            self._get_segment_features(x, x_min, x_max, feature_source, derivative)
+            for derivative in self.derivatives
+        ]

@@ -130,7 +130,11 @@ class ReferenceSolutionHandler:
     ) -> ComparisonPayload:
         """Prepare 1D numerical to 2D reference comparison (with time slicing)"""
         x_ref = ref_solution['x_ref']
-        y_ref = ref_solution.get('y_ref') or ref_solution.get('t_ref')
+        y_ref = ref_solution.get('y_ref', None)
+        if y_ref is None:
+            y_ref = ref_solution.get('t_ref', None)
+        if y_ref is None:
+            raise ValueError("Reference solution must contain either 'y_ref' or 't_ref' for 1D-to-2D comparison")
         u_ref = ref_solution['u_ref']
 
         if target_time is None:
@@ -170,7 +174,11 @@ class ReferenceSolutionHandler:
     ) -> ComparisonPayload:
         """Prepare 2D to 2D comparison"""
         x_ref = ref_solution['x_ref']
-        y_ref = ref_solution.get('y_ref') or ref_solution.get('t_ref')
+        y_ref = ref_solution.get('y_ref', None)
+        if y_ref is None:
+            y_ref = ref_solution.get('t_ref', None)
+        if y_ref is None:
+            raise ValueError("Reference solution must contain either 'y_ref' or 't_ref' for 2D-to-2D comparison")
         u_ref = ref_solution['u_ref']
 
         X_ref_grid, Y_ref_grid = np.meshgrid(x_ref, y_ref, indexing='xy')

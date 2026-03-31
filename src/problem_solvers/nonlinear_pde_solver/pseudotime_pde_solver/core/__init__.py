@@ -1,8 +1,20 @@
-"""Pseudo-Time PDE core components"""
+"""Lazy exports for pseudo-time PDE core components."""
 
-from .fitter import PseudoTimePDEFitter
-from .net import PseudoTimePDENet
-# SpotterNet is imported dynamically when needed in solver.py
-# from .spotter_init import SpotterNet
+from importlib import import_module
 
-__all__ = ["PseudoTimePDEFitter", "PseudoTimePDENet"]
+_EXPORTS = {
+    "PseudoTimePDEFitter": ("src.problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver.core.fitter", "PseudoTimePDEFitter"),
+    "PseudoTimePDENet": ("src.problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver.core.net", "PseudoTimePDENet"),
+}
+
+__all__ = list(_EXPORTS.keys())
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attr_name = _EXPORTS[name]
+    module = import_module(module_name)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value

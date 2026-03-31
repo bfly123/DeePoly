@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import torch
+
+from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.core.net import TimePDENet
 from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.solver import TimePDESolver
 from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.utils.config import TimePDEConfig
 from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.utils.data import (
@@ -51,3 +54,23 @@ def test_time_pde_ac_case_solver_initializes_reference_solution():
     assert "t_ref" in solver.reference_solution
     assert "u_ref" in solver.reference_solution
     assert solver.reference_solution["u_ref"].shape[0] == len(solver.reference_solution["t_ref"])
+
+
+def test_time_pde_net_pads_empty_optional_operators():
+    class DummyConfig:
+        n_eqs = 1
+        n_dim = 1
+        hidden_dims = [4]
+
+    net = TimePDENet(config=DummyConfig())
+    template = torch.ones(5, dtype=torch.float64)
+    padded = net.pad_operator_outputs(
+        {"L1": [template], "L2": [], "F": [], "N": [template], "S": []}
+    )
+
+    assert len(padded["L1"]) == 1
+    assert len(padded["L2"]) == 1
+    assert len(padded["F"]) == 1
+    assert len(padded["N"]) == 1
+    assert len(padded["S"]) == 1
+    assert torch.allclose(padded["L2"][0], torch.zeros_like(template))

@@ -11,8 +11,7 @@
     "u"
   ],
   "spatial_vars": [
-    "x",
-    "y"
+    "x"
   ],
   "re_coding": false,
   "hidden_dims": [
@@ -34,10 +33,7 @@
   "poly_degree": [
     3
   ],
-  "x_domain": [
-    -1,
-    1
-  ],
+  "x_domain": [-1, 1],
   "device": "cuda",
   "linear_device": "cpu",
   "n_train": 1000,

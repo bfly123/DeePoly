@@ -1,23 +1,23 @@
-"""
-NonlinearPDE Solver Package
+"""Lazy exports for nonlinear PDE solvers."""
 
-提供统一的非线性PDE求解器基类和三种具体实现：
-- TimePDESolver: 物理时间演化
-- PseudoTimePDESolver: 伪时间步迭代至稳态
-- FixIterationPDESolver: 不动点迭代
+from importlib import import_module
 
-基于统一迭代框架，实现约80%的代码复用率。
-"""
+_EXPORTS = {
+    "NonlinearPDESolver": ("src.problem_solvers.nonlinear_pde_solver.solver", "NonlinearPDESolver"),
+    "IterationState": ("src.problem_solvers.nonlinear_pde_solver.solver", "IterationState"),
+    "TimePDESolver": ("src.problem_solvers.nonlinear_pde_solver.time_pde_solver", "TimePDESolver"),
+    "PseudoTimePDESolver": ("src.problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver", "PseudoTimePDESolver"),
+    "FixIterationPDESolver": ("src.problem_solvers.nonlinear_pde_solver.fixiteration_pde_solver", "FixIterationPDESolver"),
+}
 
-from .solver import NonlinearPDESolver, IterationState
-from .time_pde_solver import TimePDESolver
-from .pseudotime_pde_solver import PseudoTimePDESolver
-from .fixiteration_pde_solver import FixIterationPDESolver
+__all__ = list(_EXPORTS.keys())
 
-__all__ = [
-    'NonlinearPDESolver',
-    'IterationState',
-    'TimePDESolver',
-    'PseudoTimePDESolver',
-    'FixIterationPDESolver'
-]
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attr_name = _EXPORTS[name]
+    module = import_module(module_name)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value

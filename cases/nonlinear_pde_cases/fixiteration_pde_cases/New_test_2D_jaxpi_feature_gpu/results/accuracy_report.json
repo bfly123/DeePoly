@@ -1,0 +1,40 @@
+{
+  "spotter": {
+    "rel_l2": 0.012407346158109341,
+    "rmse": 0.008789580925991027,
+    "mae": 0.003445123961501867,
+    "max_abs": 0.1262327894859655
+  },
+  "snipper_direct": {
+    "rel_l2": 0.04827118552545744,
+    "rmse": 0.03419615171228431,
+    "mae": 0.018107688620364975,
+    "max_abs": 0.12592751115362166
+  },
+  "final_time_rel_l2": {
+    "spotter": 0.023364615563759464,
+    "snipper_direct": 0.05765516868041429
+  },
+  "fixed_point": {
+    "iterations": 1,
+    "final_residual": 0.04573308443006449
+  },
+  "snipper_system": {
+    "segments": [
+      2,
+      2
+    ],
+    "poly_degree": [
+      5,
+      4
+    ],
+    "poly_basis_dim": 30,
+    "nn_feature_dim": 128,
+    "domain_points": 600,
+    "boundary_points": 240,
+    "points_per_swap": 4,
+    "linear_method": "auto",
+    "feature_dtype": null,
+    "under_relaxation": 1.0
+  }
+}

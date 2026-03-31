@@ -34,14 +34,16 @@ class TimeSchemeFactory:
         Raises:
             ValueError: If the scheme name is not supported
         """
-        if scheme_name not in cls._schemes:
+        normalized_name = scheme_name.lower()
+
+        if normalized_name not in cls._schemes:
             available_schemes = list(cls._schemes.keys())
             raise ValueError(
                 f"Unsupported time scheme: {scheme_name}. "
                 f"Available schemes: {available_schemes}"
             )
-        
-        scheme_class = cls._schemes[scheme_name]
+
+        scheme_class = cls._schemes[normalized_name]
         return scheme_class(config)
     
     @classmethod

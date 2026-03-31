@@ -10,8 +10,7 @@ import sys
 
 # Use __init__.py to simplify imports
 from .core import FuncFittingNet, FuncFittingFitter
-from .utils import FuncFittingConfig, FuncFittingDataGenerator
-from src.abstract_class.config.base_visualize import BaseVisualizer
+from .utils import FuncFittingConfig, FuncFittingDataGenerator, FuncFittingVisualizer
 
 class FuncFittingSolver:
     """Function fitting solver"""
@@ -24,7 +23,7 @@ class FuncFittingSolver:
         self.datagen = FuncFittingDataGenerator(self.config)
         self.data_train = self.datagen.generate_data("train")
         self.data_test = self.datagen.generate_data("test")
-        self.visualizer = BaseVisualizer(self.config)
+        self.visualizer = FuncFittingVisualizer(self.config)
 
         # Initialize model
         self.model = FuncFittingNet(self.config).to(self.config.device)

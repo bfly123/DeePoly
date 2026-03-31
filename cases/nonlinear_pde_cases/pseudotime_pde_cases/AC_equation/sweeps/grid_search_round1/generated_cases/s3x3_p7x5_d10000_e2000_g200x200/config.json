@@ -1,0 +1,123 @@
+{
+    "problem_type": "general_pde",
+    "method": "hybrid",
+    "eq": {
+        "L1": [
+            "-0.0001*diff(u,x,2)+diff(u,y)"
+        ],
+        "L2": [
+            "0"
+        ],
+        "F": [
+            "0"
+        ],
+        "N": [
+            "-5*u+5*u**3"
+        ],
+        "S": [
+            "0"
+        ]
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x",
+        "y"
+    ],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "x**2*cos(pi*x)",
+            "points": 10000
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "dirichlet",
+            "region": "left",
+            "points": 500,
+            "weight": 10,
+            "value": -1
+        },
+        {
+            "type": "dirichlet",
+            "region": "right",
+            "points": 500,
+            "weight": 10,
+            "value": -1
+        },
+        {
+            "type": "dirichlet",
+            "region": "bottom",
+            "var": "u",
+            "formula": "x**2 * cos(pi * x)",
+            "points": 500
+        }
+    ],
+    "hidden_dims": [
+        12,
+        50,
+        50,
+        50
+    ],
+    "learning_rate": 0.01,
+    "n_segments": [
+        3,
+        3
+    ],
+    "points_domain": 10000,
+    "points_per_swap": 10,
+    "points_domain_test": [
+        200,
+        200
+    ],
+    "poly_degree": [
+        7,
+        5
+    ],
+    "x_domain": [
+        [
+            -1,
+            1
+        ],
+        [
+            0,
+            1
+        ]
+    ],
+    "pseudo_time": {
+        "max_iterations": 1,
+        "residual_tol": 1e-05,
+        "dt_init": 0.1,
+        "dt_min": 1e-05,
+        "dt_max": 0.11,
+        "adaptive_dt": true,
+        "print_interval": 1
+    },
+    "spotter": {
+        "train_every": 1,
+        "epochs_adam": 2000,
+        "epochs_lbfgs": 0,
+        "max_retries": 0,
+        "tol": 0.0001
+    },
+    "reference_solution": "reference_data/allen_cahn_highres.mat",
+    "visualization": {
+        "dataset_mode": "both",
+        "outputs": [
+            "spotter",
+            "sniper"
+        ],
+        "reference_policy": "auto",
+        "realtime_visualization": true,
+        "save_animation": true,
+        "animation_skip": 10,
+        "figure_dpi": 100,
+        "colormap": "RdBu_r"
+    },
+    "device": "cpu",
+    "linear_device": "cpu",
+    "seed": 42,
+    "auto_code": false
+}

@@ -6,42 +6,21 @@ class FuncFittingNet(BaseNet):
     """functionFittingProblem的Neural networkImplementation"""
     
     def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
-        """ComputePhysicalLoss
-        
-        Args:
-            data_GPU: GPUDataDictionary，IncludeTraining所需的GPUData
-            data_train: TrainingDataDictionary，IncludeTraining所需的CPUData
-            **kwargs: ExtraParameter
-            
-        Returns:
-            torch.Tensor: Lossvalue
-        """
-        # GetTrainingData
+        """Use all configured output variables in the fitting loss."""
         x_train = data_GPU["x_train"]
         u_train = data_GPU["u_train"]
-        
-        # GetModelPrediction
+
         _, output = self(x_train)
-        
-        # 提取Predictionvalue
-        u = output[..., 0]
 
-# auto code begin
-        # Extract physical quantities from output
-        u = output[..., 0]
-
-        # L1 operators
-        L1 = [u]
-
-# auto code end
-        
-        # ComputeFitting误差
-        fit_error = (u - u_train[..., 0]) ** 2
+        fit_error = (output - u_train) ** 2
         fit_loss = torch.mean(fit_error)
         loss = fit_loss
-        # 随机打印LossComponent（1%的Probability）
+
         if torch.rand(1).item() < 0.01:
-            print(f"\nLoss Components:")
+            print("\nLoss Components:")
+            for eq_idx in range(output.shape[-1]):
+                eq_loss = torch.mean(fit_error[..., eq_idx]).item()
+                print(f"Variable {eq_idx} Loss: {eq_loss:.8f}")
             print(f"Fitting Loss: {fit_loss.item():.8f}")
             print(f"Total Loss: {loss.item():.8f}")
         return loss
@@ -62,12 +41,8 @@ class FuncFittingNet(BaseNet):
         ),
     }
 
-    def model_init(self):
-        """InitializeModel
-        
-        Returns:
-            FuncFittingNet: InitializeBackward的Model
-        """
-        # SetupDefault的Hidden layerDimensions
-        model = FuncFittingNet(self.config).to(self.config.device)
-        return model 
+    @staticmethod
+    def model_init(config):
+        """Initialize model for first-run and retry paths."""
+        model = FuncFittingNet(config=config).to(config.device)
+        return model

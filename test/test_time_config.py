@@ -1,5 +1,10 @@
+from dataclasses import fields
+
 from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.utils.config import (
     TimePDEConfig,
+)
+from src.problem_solvers.nonlinear_pde_solver.time_pde_solver.utils.visualize import (
+    TimePDEVisualizer,
 )
 
 
@@ -47,3 +52,22 @@ def test_time_config_onestep_predictor_defaults():
     assert config.max_time_steps == 11
     assert config.time_output_interval == 1
     assert config.stability_check is False
+
+
+def test_time_pde_default_scheme_is_onestep_predictor():
+    defaults = {field.name: field.default for field in fields(TimePDEConfig)}
+    assert defaults["time_scheme"] == "onestep_predictor"
+
+
+def test_time_visualizer_keeps_full_history_for_onestep_predictor():
+    class DummyConfig:
+        spatial_vars = ["x"]
+        x_domain = [[-1.0, 1.0]]
+        n_segments = [1]
+        T = 1.0
+        dt = 0.005
+        time_scheme = "onestep_predictor"
+
+    visualizer = TimePDEVisualizer(DummyConfig())
+
+    assert visualizer._max_frames >= 201

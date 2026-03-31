@@ -1,10 +1,23 @@
 import numpy as np
 from typing import Dict, Optional
 from src.abstract_class.config.base_visualize import BaseVisualizer
-from src.abstract_class.config.visualize_mixins import SolutionPlotMixin, ConvergenceMixin
+from src.abstract_class.config.visualize_mixins import (
+    ConvergenceMixin,
+    ErrorAnalysisMixin,
+    LegacyAnalysisMixin,
+    ReferenceComparisonMixin,
+    SolutionPlotMixin,
+)
 
 
-class LinearPDEVisualizer(BaseVisualizer, SolutionPlotMixin, ConvergenceMixin):
+class LinearPDEVisualizer(
+    BaseVisualizer,
+    SolutionPlotMixin,
+    ReferenceComparisonMixin,
+    ErrorAnalysisMixin,
+    ConvergenceMixin,
+    LegacyAnalysisMixin,
+):
 
     def __init__(self, config=None):
         super().__init__(config)
@@ -21,5 +34,6 @@ class LinearPDEVisualizer(BaseVisualizer, SolutionPlotMixin, ConvergenceMixin):
             self.plot_solution_2d(x, u_true, u_pred, save_path, title)
 
     def plot_convergence(self, errors: list, save_path: Optional[str] = None, title: str = "Convergence History"):
+        _ = title
         iterations = list(range(1, len(errors) + 1))
         self.plot_residual_history(errors, iterations, save_path)

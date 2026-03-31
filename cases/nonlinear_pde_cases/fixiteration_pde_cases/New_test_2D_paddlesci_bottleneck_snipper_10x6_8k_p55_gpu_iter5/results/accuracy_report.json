@@ -1,0 +1,40 @@
+{
+  "spotter": {
+    "rel_l2": 1.775757255380122e-05,
+    "rmse": 1.254072655227847e-05,
+    "mae": 4.2912167262496515e-06,
+    "max_abs": 0.0002749691693323397
+  },
+  "snipper_direct": {
+    "rel_l2": 0.000206631482300119,
+    "rmse": 0.00014592697897005414,
+    "mae": 3.32889005428127e-05,
+    "max_abs": 0.003021997377812391
+  },
+  "final_time_rel_l2": {
+    "spotter": 3.380306417394121e-05,
+    "snipper_direct": 0.0005100179214929113
+  },
+  "fixed_point": {
+    "iterations": 5,
+    "final_residual": 0.00034901484099274347
+  },
+  "snipper_system": {
+    "segments": [
+      10,
+      6
+    ],
+    "poly_degree": [
+      5,
+      5
+    ],
+    "poly_basis_dim": 36,
+    "nn_feature_dim": 20,
+    "domain_points": 8000,
+    "boundary_points": 256,
+    "points_per_swap": 10,
+    "linear_method": "gpu_direct",
+    "feature_dtype": "float64",
+    "under_relaxation": 1.0
+  }
+}

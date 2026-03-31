@@ -12,7 +12,12 @@ class FuncFittingFitter(BaseDeepPolyFitter):
     def __init__(self, config, data: Dict = None):
         super().__init__(config, data)
         self.data = data
-        self.solver = LinearSolver(verbose=True, use_gpu=True, performance_tracking=True)
+        self.solver = LinearSolver(
+            verbose=True,
+            use_gpu=True,
+            performance_tracking=True,
+            config=config,
+        )
 
     def _build_segment_jacobian(
         self,
@@ -25,14 +30,14 @@ class FuncFittingFitter(BaseDeepPolyFitter):
         n_points = self.data["x_segments_norm"][segment_idx].shape[0]
         ne = self.n_eqs
 
-        b = np.zeros((ne, n_points))
+        b = np.zeros((ne, n_points), dtype=np.float64)
 
         # Build fitting equations using target function values
         for i in range(ne):
-            b[i,:] = u_target[:,i]
+            b[i, :] = u_target[:, i]
 
         # Reshape matrices
         L = np.vstack([L[i] for i in range(ne)])
-        b = np.vstack([b[i].reshape(-1, 1) for i in range(ne)])
+        b = np.concatenate([b[i] for i in range(ne)])
 
         return L, b

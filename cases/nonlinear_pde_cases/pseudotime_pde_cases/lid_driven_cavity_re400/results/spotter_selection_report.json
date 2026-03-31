@@ -1,0 +1,24 @@
+{
+  "mode": "single",
+  "selected_name": "torch_default",
+  "selected_backend": "torch",
+  "metric": "priority",
+  "candidates": [
+    {
+      "name": "torch_default",
+      "backend": "torch",
+      "runtime": "inprocess",
+      "score": 0.0,
+      "metric_used": "priority",
+      "metrics": {
+        "priority": 0.0,
+        "dirichlet_var_0_mae": 0.013880504730588836,
+        "dirichlet_var_1_mae": 0.002558046678437556,
+        "boundary_residual": 0.008219275704513196
+      },
+      "selected": true,
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

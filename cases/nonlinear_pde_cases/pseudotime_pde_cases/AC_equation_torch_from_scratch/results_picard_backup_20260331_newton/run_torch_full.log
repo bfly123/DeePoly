@@ -1,0 +1,669 @@
+Using case directory: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch
+✓ config与net.py代yard一致
+Problem type: general_pde
+Successfully loaded configuration from /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/config.json
+Extracted operator splitting from config (with forced existence):
+  L1 (Primary linear operators): ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2 (Semi-implicit linear operators): ['0']
+  F (Nonlinear functions): ['0']
+  N (Fully nonlinear terms): ['-5*u+5*u**3']
+Normalized operators to 1 variables:
+  L1: ['-0.0001*diff(u,x,2)+diff(u,y)']
+  L2: ['0']
+  F: ['0']
+  N: ['-5*u+5*u**3']
+✓ Pseudo-time stepping parameters (from nested 'pseudo_time'):
+  integrator: implicit_euler (fixed backend)
+  max_iterations: 30
+  residual_tol: 1.00e-06
+  dt_init: 0.005, dt_range: [0.001, 0.005]
+  adaptive_dt: True
+  convergence: var[0]<=1.00e-04 and rel<=1.00e-06
+  plateau control: steps=10, tol=1.00e-02, rollback=True
+  reference_stable_single_retrain: True
+  reference_stable_retrain_stop_tol: 0.00e+00
+  reference_stable_adaptive_tail: False
+  solver_mode: False (Snipper时间推进)
+  pseudo_time_formulation: default
+  pseudo_time_direction: -1.0 (u_tau = dir * R)
+  frozen_nonlinear_jacobian: none
+Initial condition method: given
+Spotter training parameters (from main config -> spotter):
+  train_every: 1
+  epochs_adam: 10000
+  epochs_lbfgs: 0
+  max_retries: 0
+  tol: 1.00e-04
+✓ Visualization config: mode=both, outputs=['spotter', 'sniper']
+Parsing operator splitting with forced existence...
+L1 operators: ['-0.0001*diff(u,x,2)+diff(u,y)']
+L2 operators: ['0']
+F functions: ['0']
+N operators: ['-5*u+5*u**3']
+Generated semi-implicit term 1: 0
+Successfully parsed equations for general PDE solver
+ComputeBackwardEnd: GPU (CuPy)
+GPUMemory usageRatioSetup为: 0.90
+AvailableGPUInner存: 10.31 GB
+Loading reference solution: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/../AC_equation/reference_data/allen_cahn_highres.mat
+Initializing solution using method: 'given'
+  Using given initial conditions from config...
+  Initialized u with: x**2 * cos(pi * x)
+    ||u|| = 3.763478e+01, max|u| = 9.999535e-01
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.300113e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 8.982426e-04, LR: 1.000000e-02
+ Adam Epoch 2000, Loss: 1.878780e-04, LR: 1.000000e-02
+ Adam Epoch 3000, Loss: 3.098572e-04, LR: 1.000000e-02
+Final Adam Loss: 9.967119792841225e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.967119792841225e-05
+  ✓ Training Completed - Final Loss: 9.967120e-05
+=== Linear Solve Step 1 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 7.38312112126419e+16
+Residual Analysis:
+  ||Ax-b||_2 = 9.805826e-01
+  ||Ax-b||_inf = 9.196906e-02
+  ||Ax-b||_1 = 2.133002e+01
+  ||b||_2 = 7.609878e+03
+  Relative residual = 1.288566e-04
+Solve time: 0.395040s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     1 | tau=  0.0050 | d_tau=5.00e-03↓ | Res=1.20e-02(x1.00) | dU_var_max=9.72e-03 | dU_max=9.72e-03 | 29.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.586429e+00, LR: 1.000000e-02
+Final Adam Loss: 9.990791571979442e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.990791571979442e-05
+  ✓ Training Completed - Final Loss: 9.990792e-05
+=== Linear Solve Step 2 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 7.287265052715606e+16
+Residual Analysis:
+  ||Ax-b||_2 = 1.166324e+00
+  ||Ax-b||_inf = 1.124177e-01
+  ||Ax-b||_1 = 2.178217e+01
+  ||b||_2 = 3.503764e+04
+  Relative residual = 3.328773e-05
+Solve time: 0.330994s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+  Improvement: dU_var_max 9.716e-03 -> 2.098e-03
+Iter     2 | tau=  0.0061 | d_tau=1.09e-03↓ | Res=2.60e-03(x0.22) | dU_var_max=2.10e-03 | dU_max=2.10e-03 | 33.7s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.840264e+00, LR: 1.000000e-02
+Final Adam Loss: 9.985515953445967e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.985515953445967e-05
+  ✓ Training Completed - Final Loss: 9.985516e-05
+=== Linear Solve Step 3 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.0835593273995642e+17
+Residual Analysis:
+  ||Ax-b||_2 = 1.360917e+00
+  ||Ax-b||_inf = 1.311773e-01
+  ||Ax-b||_1 = 2.456835e+01
+  ||b||_2 = 3.817305e+04
+  Relative residual = 3.565126e-05
+Solve time: 0.339311s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+  Improvement: dU_var_max 2.098e-03 -> 1.931e-03
+Iter     3 | tau=  0.0071 | d_tau=1.00e-03 | Res=2.39e-03(x0.92) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 37.4s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 9.051580e-01, LR: 1.000000e-02
+Final Adam Loss: 9.973075647865415e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.973075647865415e-05
+  ✓ Training Completed - Final Loss: 9.973076e-05
+=== Linear Solve Step 4 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.0009922353987424e+17
+Residual Analysis:
+  ||Ax-b||_2 = 1.556980e+00
+  ||Ax-b||_inf = 1.499047e-01
+  ||Ax-b||_1 = 2.786540e+01
+  ||b||_2 = 3.824851e+04
+  Relative residual = 4.070695e-05
+Solve time: 0.334348s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     4 | tau=  0.0081 | d_tau=1.00e-03 | Res=2.38e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 40.0s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 6.089631e-01, LR: 1.000000e-02
+Final Adam Loss: 9.970207719603856e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.970207719603856e-05
+  ✓ Training Completed - Final Loss: 9.970208e-05
+=== Linear Solve Step 5 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 9.445201203535886e+16
+Residual Analysis:
+  ||Ax-b||_2 = 1.753106e+00
+  ||Ax-b||_inf = 1.685519e-01
+  ||Ax-b||_1 = 3.177281e+01
+  ||b||_2 = 3.832394e+04
+  Relative residual = 4.574442e-05
+Solve time: 0.337213s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     5 | tau=  0.0091 | d_tau=1.00e-03 | Res=2.38e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 42.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.113368e+00, LR: 1.000000e-02
+Final Adam Loss: 9.958100468603228e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.958100468603228e-05
+  ✓ Training Completed - Final Loss: 9.958100e-05
+=== Linear Solve Step 6 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.556881851803693e+17
+Residual Analysis:
+  ||Ax-b||_2 = 1.946589e+00
+  ||Ax-b||_inf = 1.871722e-01
+  ||Ax-b||_1 = 3.422661e+01
+  ||b||_2 = 3.839932e+04
+  Relative residual = 5.069332e-05
+Solve time: 0.333354s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     6 | tau=  0.0101 | d_tau=1.00e-03 | Res=2.37e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 45.0s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 5.100941e-01, LR: 1.000000e-02
+Final Adam Loss: 9.955380310576405e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.955380310576405e-05
+  ✓ Training Completed - Final Loss: 9.955380e-05
+=== Linear Solve Step 7 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.0264417181078686e+17
+Residual Analysis:
+  ||Ax-b||_2 = 2.139977e+00
+  ||Ax-b||_inf = 2.057734e-01
+  ||Ax-b||_1 = 3.676631e+01
+  ||b||_2 = 3.847467e+04
+  Relative residual = 5.562043e-05
+Solve time: 0.327227s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     7 | tau=  0.0111 | d_tau=1.00e-03 | Res=2.37e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 47.1s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 3.727090e-01, LR: 1.000000e-02
+Final Adam Loss: 9.910004711706896e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.910004711706896e-05
+  ✓ Training Completed - Final Loss: 9.910005e-05
+=== Linear Solve Step 8 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.7468856255089008e+17
+Residual Analysis:
+  ||Ax-b||_2 = 2.332751e+00
+  ||Ax-b||_inf = 2.242660e-01
+  ||Ax-b||_1 = 3.976964e+01
+  ||b||_2 = 3.854997e+04
+  Relative residual = 6.051239e-05
+Solve time: 0.335467s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     8 | tau=  0.0121 | d_tau=1.00e-03 | Res=2.36e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 49.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 5.471242e-01, LR: 1.000000e-02
+Final Adam Loss: 9.827412312623783e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.827412312623783e-05
+  ✓ Training Completed - Final Loss: 9.827412e-05
+=== Linear Solve Step 9 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.2526575369779941e+17
+Residual Analysis:
+  ||Ax-b||_2 = 2.526756e+00
+  ||Ax-b||_inf = 2.427071e-01
+  ||Ax-b||_1 = 4.392863e+01
+  ||b||_2 = 3.862523e+04
+  Relative residual = 6.541722e-05
+Solve time: 0.332911s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter     9 | tau=  0.0131 | d_tau=1.00e-03 | Res=2.36e-03(x1.00) | dU_var_max=1.94e-03 | dU_max=1.94e-03 | 51.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.014029e-01, LR: 1.000000e-02
+Final Adam Loss: 9.8747145040132e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.8747145040132e-05
+  ✓ Training Completed - Final Loss: 9.874715e-05
+=== Linear Solve Step 10 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 2.2726859455199824e+17
+Residual Analysis:
+  ||Ax-b||_2 = 2.717996e+00
+  ||Ax-b||_inf = 2.611039e-01
+  ||Ax-b||_1 = 4.719774e+01
+  ||b||_2 = 3.870046e+04
+  Relative residual = 7.023162e-05
+Solve time: 0.337679s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+  Improvement: dU_var_max 1.931e-03 -> 1.928e-03
+Iter    10 | tau=  0.0141 | d_tau=1.00e-03 | Res=2.36e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 55.2s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.066932e+00, LR: 1.000000e-02
+Final Adam Loss: 9.997662438667655e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.997662438667655e-05
+  ✓ Training Completed - Final Loss: 9.997662e-05
+=== Linear Solve Step 11 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.760470227901845e+17
+Residual Analysis:
+  ||Ax-b||_2 = 2.907807e+00
+  ||Ax-b||_inf = 2.794009e-01
+  ||Ax-b||_1 = 4.964948e+01
+  ||b||_2 = 3.877564e+04
+  Relative residual = 7.499057e-05
+Solve time: 0.326202s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    11 | tau=  0.0151 | d_tau=1.00e-03 | Res=2.35e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 57.6s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.720978e-01, LR: 1.000000e-02
+Final Adam Loss: 9.982095640859208e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.982095640859208e-05
+  ✓ Training Completed - Final Loss: 9.982096e-05
+=== Linear Solve Step 12 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.4303469930067429e+17
+Residual Analysis:
+  ||Ax-b||_2 = 3.098825e+00
+  ||Ax-b||_inf = 2.976794e-01
+  ||Ax-b||_1 = 5.403373e+01
+  ||b||_2 = 3.885077e+04
+  Relative residual = 7.976227e-05
+Solve time: 0.328117s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    12 | tau=  0.0161 | d_tau=1.00e-03 | Res=2.35e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 60.2s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 4.596752e-01, LR: 1.000000e-02
+Final Adam Loss: 9.996023290566588e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.996023290566588e-05
+  ✓ Training Completed - Final Loss: 9.996023e-05
+=== Linear Solve Step 13 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.2346087081205942e+17
+Residual Analysis:
+  ||Ax-b||_2 = 3.286560e+00
+  ||Ax-b||_inf = 3.158720e-01
+  ||Ax-b||_1 = 5.599437e+01
+  ||b||_2 = 3.892586e+04
+  Relative residual = 8.443127e-05
+Solve time: 0.333238s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    13 | tau=  0.0171 | d_tau=1.00e-03 | Res=2.34e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 62.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.965749e-01, LR: 1.000000e-02
+Final Adam Loss: 9.991680246733267e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.991680246733267e-05
+  ✓ Training Completed - Final Loss: 9.991680e-05
+=== Linear Solve Step 14 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.2974712210333803e+17
+Residual Analysis:
+  ||Ax-b||_2 = 3.474082e+00
+  ||Ax-b||_inf = 3.340267e-01
+  ||Ax-b||_1 = 5.926328e+01
+  ||b||_2 = 3.900090e+04
+  Relative residual = 8.907697e-05
+Solve time: 0.334642s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    14 | tau=  0.0181 | d_tau=1.00e-03 | Res=2.34e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 64.8s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 7.429419e-01, LR: 1.000000e-02
+Final Adam Loss: 9.417388298819463e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.417388298819463e-05
+  ✓ Training Completed - Final Loss: 9.417388e-05
+=== Linear Solve Step 15 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.7620901177248384e+17
+Residual Analysis:
+  ||Ax-b||_2 = 3.661235e+00
+  ||Ax-b||_inf = 3.521009e-01
+  ||Ax-b||_1 = 6.270204e+01
+  ||b||_2 = 3.907590e+04
+  Relative residual = 9.369548e-05
+Solve time: 0.336275s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    15 | tau=  0.0191 | d_tau=1.00e-03 | Res=2.33e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 68.2s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.672479e+00, LR: 1.000000e-02
+Final Adam Loss: 9.9877775970048e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.9877775970048e-05
+  ✓ Training Completed - Final Loss: 9.987778e-05
+=== Linear Solve Step 16 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.986229580728615e+17
+Residual Analysis:
+  ||Ax-b||_2 = 3.847402e+00
+  ||Ax-b||_inf = 3.699140e-01
+  ||Ax-b||_1 = 6.614701e+01
+  ||b||_2 = 3.915085e+04
+  Relative residual = 9.827122e-05
+Solve time: 0.318074s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    16 | tau=  0.0201 | d_tau=1.00e-03 | Res=2.33e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 71.6s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.908248e-01, LR: 1.000000e-02
+Final Adam Loss: 9.996648387990534e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.996648387990534e-05
+  ✓ Training Completed - Final Loss: 9.996648e-05
+=== Linear Solve Step 17 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.9134650419906662e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.031808e+00
+  ||Ax-b||_inf = 3.878184e-01
+  ||Ax-b||_1 = 6.894884e+01
+  ||b||_2 = 3.922575e+04
+  Relative residual = 1.027847e-04
+Solve time: 0.326671s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    17 | tau=  0.0211 | d_tau=1.00e-03 | Res=2.32e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 74.9s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.996074e-01, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 3.573298e-04, LR: 1.000000e-02
+Final Adam Loss: 9.81943884680633e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.81943884680633e-05
+  ✓ Training Completed - Final Loss: 9.819439e-05
+=== Linear Solve Step 18 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 1.8662018672786432e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.216824e+00
+  ||Ax-b||_inf = 4.056381e-01
+  ||Ax-b||_1 = 7.373313e+01
+  ||b||_2 = 3.930061e+04
+  Relative residual = 1.072967e-04
+Solve time: 0.330097s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    18 | tau=  0.0221 | d_tau=1.00e-03 | Res=2.32e-03(x1.00) | dU_var_max=1.94e-03 | dU_max=1.94e-03 | 88.6s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.278986e+00, LR: 1.000000e-02
+Final Adam Loss: 9.995144690958258e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.995144690958258e-05
+  ✓ Training Completed - Final Loss: 9.995145e-05
+=== Linear Solve Step 19 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 2.055459021892991e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.399038e+00
+  ||Ax-b||_inf = 4.232927e-01
+  ||Ax-b||_1 = 7.648203e+01
+  ||b||_2 = 3.937541e+04
+  Relative residual = 1.117204e-04
+Solve time: 0.328356s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    19 | tau=  0.0231 | d_tau=1.00e-03 | Res=2.32e-03(x1.00) | dU_var_max=1.94e-03 | dU_max=1.94e-03 | 95.6s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.299302e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 1.874150e-04, LR: 1.000000e-02
+Final Adam Loss: 9.978026973780234e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.978026973780234e-05
+  ✓ Training Completed - Final Loss: 9.978027e-05
+=== Linear Solve Step 20 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 2.1599367259025165e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.579244e+00
+  ||Ax-b||_inf = 4.408469e-01
+  ||Ax-b||_1 = 7.926151e+01
+  ||b||_2 = 3.945016e+04
+  Relative residual = 1.160767e-04
+Solve time: 0.323853s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    20 | tau=  0.0241 | d_tau=1.00e-03 | Res=2.31e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 106.2s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.506837e+00, LR: 1.000000e-02
+Final Adam Loss: 9.993904389576198e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.993904389576198e-05
+  ✓ Training Completed - Final Loss: 9.993904e-05
+=== Linear Solve Step 21 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 2.4045466885877293e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.758629e+00
+  ||Ax-b||_inf = 4.583571e-01
+  ||Ax-b||_1 = 8.212278e+01
+  ||b||_2 = 3.952486e+04
+  Relative residual = 1.203959e-04
+Solve time: 0.328749s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    21 | tau=  0.0251 | d_tau=1.00e-03 | Res=2.31e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 113.2s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.064425e+00, LR: 1.000000e-02
+Final Adam Loss: 9.986075500298118e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.986075500298118e-05
+  ✓ Training Completed - Final Loss: 9.986076e-05
+=== Linear Solve Step 22 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.004323127574639e+17
+Residual Analysis:
+  ||Ax-b||_2 = 4.936284e+00
+  ||Ax-b||_inf = 4.757428e-01
+  ||Ax-b||_1 = 8.429824e+01
+  ||b||_2 = 3.959950e+04
+  Relative residual = 1.246552e-04
+Solve time: 0.323203s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    22 | tau=  0.0261 | d_tau=1.00e-03 | Res=2.30e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 118.4s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.703982e+00, LR: 1.000000e-02
+Final Adam Loss: 9.994858776803159e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.994858776803159e-05
+  ✓ Training Completed - Final Loss: 9.994859e-05
+=== Linear Solve Step 23 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.0468309356871795e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.112919e+00
+  ||Ax-b||_inf = 4.930355e-01
+  ||Ax-b||_1 = 8.796759e+01
+  ||b||_2 = 3.967410e+04
+  Relative residual = 1.288730e-04
+Solve time: 0.327017s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    23 | tau=  0.0271 | d_tau=1.00e-03 | Res=2.30e-03(x1.00) | dU_var_max=1.94e-03 | dU_max=1.94e-03 | 123.9s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 9.834080e-01, LR: 1.000000e-02
+Final Adam Loss: 9.801973526058973e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.801973526058973e-05
+  ✓ Training Completed - Final Loss: 9.801974e-05
+=== Linear Solve Step 24 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.80404014322265e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.288717e+00
+  ||Ax-b||_inf = 5.102192e-01
+  ||Ax-b||_1 = 9.060246e+01
+  ||b||_2 = 3.974863e+04
+  Relative residual = 1.330541e-04
+Solve time: 0.325332s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    24 | tau=  0.0281 | d_tau=1.00e-03 | Res=2.29e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 131.7s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.365985e+00, LR: 1.000000e-02
+Final Adam Loss: 9.999614800727268e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.999614800727268e-05
+  ✓ Training Completed - Final Loss: 9.999615e-05
+=== Linear Solve Step 25 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.5739797458429005e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.462891e+00
+  ||Ax-b||_inf = 5.272245e-01
+  ||Ax-b||_1 = 9.496200e+01
+  ||b||_2 = 3.982311e+04
+  Relative residual = 1.371789e-04
+Solve time: 0.322483s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    25 | tau=  0.0291 | d_tau=1.00e-03 | Res=2.29e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 137.3s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 2.371441e+00, LR: 1.000000e-02
+ Adam Epoch 1000, Loss: 1.118317e-04, LR: 1.000000e-02
+Final Adam Loss: 9.989371912489523e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.989371912489523e-05
+  ✓ Training Completed - Final Loss: 9.989372e-05
+=== Linear Solve Step 26 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 5.319219114412731e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.636905e+00
+  ||Ax-b||_inf = 5.440915e-01
+  ||Ax-b||_1 = 9.829355e+01
+  ||b||_2 = 3.989753e+04
+  Relative residual = 1.412846e-04
+Solve time: 0.317579s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    26 | tau=  0.0301 | d_tau=1.00e-03 | Res=2.29e-03(x1.00) | dU_var_max=1.94e-03 | dU_max=1.94e-03 | 146.5s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.133165e+00, LR: 1.000000e-02
+Final Adam Loss: 9.997723001611124e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.997723001611124e-05
+  ✓ Training Completed - Final Loss: 9.997723e-05
+=== Linear Solve Step 27 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.84476061919775e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.805078e+00
+  ||Ax-b||_inf = 5.608938e-01
+  ||Ax-b||_1 = 9.933386e+01
+  ||b||_2 = 3.997190e+04
+  Relative residual = 1.452290e-04
+Solve time: 0.328213s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    27 | tau=  0.0311 | d_tau=1.00e-03 | Res=2.28e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 151.0s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 1.032006e+00, LR: 1.000000e-02
+Final Adam Loss: 9.996908275448315e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.996908275448315e-05
+  ✓ Training Completed - Final Loss: 9.996908e-05
+=== Linear Solve Step 28 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 7.16927797007989e+17
+Residual Analysis:
+  ||Ax-b||_2 = 5.971850e+00
+  ||Ax-b||_inf = 5.775780e-01
+  ||Ax-b||_1 = 1.014041e+02
+  ||b||_2 = 4.004620e+04
+  Relative residual = 1.491240e-04
+Solve time: 0.321201s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    28 | tau=  0.0321 | d_tau=1.00e-03 | Res=2.28e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 155.5s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 8.158302e-01, LR: 1.000000e-02
+Final Adam Loss: 9.981717123692924e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.981717123692924e-05
+  ✓ Training Completed - Final Loss: 9.981717e-05
+=== Linear Solve Step 29 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 3.1078920513217567e+18
+Residual Analysis:
+  ||Ax-b||_2 = 6.138727e+00
+  ||Ax-b||_inf = 5.941188e-01
+  ||Ax-b||_1 = 1.046915e+02
+  ||b||_2 = 4.012044e+04
+  Relative residual = 1.530074e-04
+Solve time: 0.325771s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    29 | tau=  0.0331 | d_tau=1.00e-03 | Res=2.27e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 159.8s
+  Training Neural Network...
+ Adam Epoch 0, Loss: 7.429286e-01, LR: 1.000000e-02
+Final Adam Loss: 9.992461437828519e-05
+Target accuracy 1.00e-04 (DNNtol=1.00e-04) achieved, stopping retries
+Using best model, loss value: 9.992461437828519e-05
+  ✓ Training Completed - Final Loss: 9.992461e-05
+=== Linear Solve Step 30 ===
+Method: gpu_direct
+Matrix size: 11740 x 1080
+Condition number: 4.254627694212092e+29
+Residual Analysis:
+  ||Ax-b||_2 = 6.306225e+00
+  ||Ax-b||_inf = 6.104548e-01
+  ||Ax-b||_1 = 1.094769e+02
+  ||b||_2 = 4.019462e+04
+  Relative residual = 1.568923e-04
+Solve time: 0.327014s
+---------------------------------------------
+  Interpolated from 10000 training points to 40000 test points
+Iter    30 | tau=  0.0341 | d_tau=1.00e-03 | Res=2.27e-03(x1.00) | dU_var_max=1.93e-03 | dU_max=1.93e-03 | 163.5s
+  Interpolated from 10000 training points to 40000 test points
+  Interpolated from 10000 training points to 40000 test points
+  Data saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/results/solution_data.npz
+  Convergence info saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/results/convergence_info.json
+
+✓ All visualizations saved to: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/results
+  Spotter model saved: /home/bfly/workspace/computeforcfd/混合网络/DeePoly_git/cases/nonlinear_pde_cases/pseudotime_pde_cases/AC_equation_torch_from_scratch/results/spotter_model.pth
+Solving completed successfully!

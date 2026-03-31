@@ -31,7 +31,7 @@ class TimePDENet(BoundaryConditionMixin, BaseNet):
         _, U = self(x_train)
 
         # Compute all PDE operators using unified method from BaseNet
-        ops = self.compute_pde_operators(U, x_train)
+        ops = self.pad_operator_outputs(self.compute_pde_operators(U, x_train))
         L1, L2, F, N, S = ops['L1'], ops['L2'], ops['F'], ops['N'], ops['S']
 
         # Time-stepping residual: (U^{n+1} - U^n) + dt * [L1 + L2*F + N - S] = 0

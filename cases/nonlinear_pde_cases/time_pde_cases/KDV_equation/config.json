@@ -1,0 +1,88 @@
+{
+    "problem_type": "time_pde",
+    "method": "hybrid",
+    "eq": {
+        "L1": [
+            "1.0*diff(u,x,3)"
+        ],
+        "L2": [
+            "diff(u,x)"
+        ],
+        "F": [
+            "u"
+        ],
+        "N": [
+            "0"
+        ]
+    },
+    "vars_list": [
+        "u"
+    ],
+    "spatial_vars": [
+        "x"
+    ],
+    "Initial_conditions": [
+        {
+            "var": "u",
+            "value": "cos(pi*x/20)"
+        }
+    ],
+    "boundary_conditions": [
+        {
+            "type": "periodic",
+            "var": "u",
+            "pairs": [
+                "left",
+                "right"
+            ],
+            "points": 1
+        }
+    ],
+    "hidden_dims": [
+        12,
+        32,
+        32,
+        10
+    ],
+    "learning_rate": 0.01,
+    "n_segments": [
+        10
+    ],
+    "poly_degree": [
+        10
+    ],
+    "x_domain": [
+        [
+            -20,
+            20
+        ]
+    ],
+    "points_domain": 1000,
+    "points_domain_test": [
+        100
+    ],
+    "points_per_swap": 1,
+    "periodic_constraint_weight": 10,
+    "T": 40.0,
+    "dt": 0.1,
+    "time_scheme": "onestep_predictor",
+    "time_scheme_params": {
+        "time_output_interval": 1,
+        "adaptive_dt": false,
+        "stability_check": false
+    },
+    "spotter_skip": 1,
+    "epochs_adam": 1000,
+    "epochs_lbfgs": 0,
+    "max_retries": 1,
+    "DNNtol": 0.01,
+    "reference_solution": "reference_data/KdV_cos.mat",
+    "note": "Imported legacy GitHub onestep KdV benchmark; periodic constraint simplified to one pair entry",
+    "realtime_visualization": false,
+    "animation_skip": 1,
+    "plot_nn_predictions": false,
+    "device": "cpu",
+    "linear_device": "cpu",
+    "seed": 42,
+    "auto_code": false
+}

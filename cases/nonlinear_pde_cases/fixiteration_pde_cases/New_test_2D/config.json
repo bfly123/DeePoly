@@ -27,20 +27,14 @@
     ],
     "boundary_conditions": [
         {
-            "type": "dirichlet",
-            "region": 
+            "type": "periodic",
+            "pairs": [
                 "left",
+                "right"
+            ],
             "points": 500,
-            "weight": 10,
-            "value":-1
-        },
-                {
-            "type": "dirichlet",
-            "region": 
-                "right",
-            "points": 500,
-            "weight": 10,
-            "value":-1
+            "weight": 1,
+            "var": "u"
         },
         {
             "type": "dirichlet",
@@ -55,12 +49,14 @@
         128,
         128,
         128,
-        50
+        128,
+        128,
+        128
     ],
     "epochs_adam": 100000,
     "epochs_lbfgs": 0,
     "max_retries": 0,
-    "DNNtol": 0.00001,
+    "DNNtol": 1e-05,
     "learning_rate": 0.001,
     "n_segments": [
         5,
@@ -69,8 +65,8 @@
     "points_domain": 10000,
     "points_per_swap": 10,
     "points_domain_test": [
-        100,
-        100
+        512,
+        201
     ],
     "poly_degree": [
         9,
@@ -86,14 +82,41 @@
             1
         ]
     ],
-      "fixiteration": {
-          "max_iterations": 1,
-          "residual_tol": 1e-06,
-          "check_interval": 10,
-          "print_interval": 1,
-          "save_interval": 100
-      },
+    "fixiteration": {
+        "max_iterations": 1,
+        "residual_tol": 1e-06,
+        "check_interval": 10,
+        "print_interval": 1,
+        "save_interval": 100
+    },
+    "initial_condition": {
+        "method": "bc_pinn",
+        "bc_pinn_config": {
+            "block_axis": "y",
+            "n_time_blocks": 4,
+            "epochs_per_block": 1000,
+            "warmup_learning_rate": 0.01,
+            "learning_rate": 0.001,
+            "collocation_points": 12000,
+            "x_line_points": 128,
+            "total_time_points": 201,
+            "block_time_points": 51,
+            "boundary_time_points": 25,
+            "interface_weight": 64.0,
+            "history_weight": 64.0,
+            "guidance_weight": 1.0,
+            "warmup_ratio": 0.1,
+            "freeze_hidden_layers": 2,
+            "interface_points": 128,
+            "history_points": 0,
+            "guidance_points": 0,
+            "lbfgs_steps": 200,
+            "history_mode": "previous_only",
+            "print_interval": 1000
+        }
+    },
     "spotter_skip": 1,
+    "run_snipper": false,
     "reference_solution": "reference_data/allen_cahn_highres.mat",
     "realtime_visualization": false,
     "animation_skip": 10,

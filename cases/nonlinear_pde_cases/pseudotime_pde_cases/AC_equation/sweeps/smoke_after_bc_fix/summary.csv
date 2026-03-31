@@ -1,0 +1,2 @@
+label,success,n_segments,poly_degree,points_domain,epochs_adam,points_domain_test,elapsed_seconds,spotter_rel_l2,sniper_rel_l2,spotter_rmse,sniper_rmse,spotter_linf_abs,sniper_linf_abs
+s3x3_p9x6_d10000_e10000_g200x200,True,3x3,9x6,10000,10000,200x200,78.745,0.827451243173235,0.6309035059207135,0.5869927685506313,0.4475620753296324,1.945999250137059,1.526007702775303

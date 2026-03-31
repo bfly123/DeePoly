@@ -10,7 +10,6 @@ class FuncFittingDataGenerator(BaseDataGenerator):
         super().__init__(config)
         # Config is already saved in parent class
         self.boundary_conditions = self.read_boundary_conditions()
-        self.custom_data_generator = self._load_custom_data_generator()
 
     def generate_global_field(self, x_global: np.ndarray) -> np.ndarray:
         """Generate global field, using sine function to create smooth distribution

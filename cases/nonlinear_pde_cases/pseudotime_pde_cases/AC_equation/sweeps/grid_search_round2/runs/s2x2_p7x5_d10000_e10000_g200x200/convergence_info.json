@@ -1,0 +1,39 @@
+{
+  "converged": false,
+  "iterations": 1,
+  "final_residual": 0.6276750537174806,
+  "elapsed_time": 71.03933787345886,
+  "best_primary_update": 1.909062312321149,
+  "best_iteration": 1,
+  "restart_count": 0,
+  "final_primary_update": 1.909062312321149,
+  "final_primary_relative_update": 0.6276750537174806,
+  "final_max_abs_update": 1.909062312321149,
+  "reason": "max_iterations",
+  "residual_history": [
+    0.6276750537174806
+  ],
+  "dt_history": [
+    0.1
+  ],
+  "solution_norm_history": [
+    84.1101730479874
+  ],
+  "primary_update_history": [
+    1.909062312321149
+  ],
+  "primary_relative_update_history": [
+    0.6276750537174806
+  ],
+  "max_abs_update_history": [
+    1.909062312321149
+  ],
+  "restart_history": [],
+  "tau_history": [
+    0.0
+  ],
+  "final_tau": 0.1,
+  "returned_tau": 0.1,
+  "returned_best_state": false,
+  "no_improvement_count": 0
+}

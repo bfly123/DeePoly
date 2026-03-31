@@ -6,7 +6,7 @@ Supports train/test data sources, mesh/scatter plotting, and output control.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 from enum import Enum
 
 
@@ -49,7 +49,7 @@ class VisualizationConfig:
     reference_policy: ReferencePolicy = ReferencePolicy.AUTO
 
     # Animation settings
-    realtime_visualization: bool = False
+    realtime_visualization: bool = True
     save_animation: bool = True
     animation_skip: int = 10
 
@@ -61,6 +61,10 @@ class VisualizationConfig:
     show_training_points: bool = False  # Overlay training points on test mesh
     error_log_scale: bool = True        # Use log scale for error plots
     colormap: str = "viridis"          # Default colormap for solution plots
+    plot_mode_test: Literal['auto', 'grid', 'scatter'] = "auto"
+    plot_mode_train: Literal['auto', 'grid', 'scatter'] = "scatter"
+    scatter_kwargs: Dict = field(default_factory=dict)
+    grid_kwargs: Dict = field(default_factory=dict)
 
     def should_plot_train(self) -> bool:
         """Check if training data visualization is requested"""

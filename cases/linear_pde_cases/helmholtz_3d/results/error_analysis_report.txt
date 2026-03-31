@@ -2,42 +2,17 @@
 COMPREHENSIVE ERROR ANALYSIS REPORT
 ================================================================================
 
-CONFIGURATION PARAMETERS:
-----------------------------------------
-Problem Type: linear_pde
-Method: hybrid
-Dimensionality: 3D
-Segments: [3, 3, 3]
-Polynomial Degree: [3 3 3]
-Hidden Dimensions: [12, 32, 32, 25]
-Domain: [[0 1]
- [0 1]
- [0 1]]
-Test Grid: [20, 20, 20]
-
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 34.9262 seconds
-Neural Network Training Time (Scoper): 28.8049 seconds
-Equation Fitting Time (Sniper): 6.1214 seconds
-Scoper Time Percentage: 82.5%
-Sniper Time Percentage: 17.5%
+Total Solution Time: 47.9602 seconds
+Neural Network Training Time (Scoper): 0.9897 seconds
+Equation Fitting Time (Sniper): 46.9705 seconds
 
 ERROR METRICS:
 ----------------------------------------
-Method          Dataset  MSE          MAE          Max Error    Rel Error   
---------------------------------------------------------------------------------
-PINNs           Train    8.39e-03     6.30e-02     2.76e-01     6.42e+00    
-DeePoly         Train    4.55e+19     1.66e+09     9.71e+10     1.76e+12    
-PINNs           Test     7.94e-03     6.05e-02     2.76e-01     7.26e+00    
-DeePoly         Test     3.61e+19     1.45e+09     1.32e+11     8.57e+11    
-
-================================================================================
-PERFORMANCE COMPARISON:
-----------------------------------------
-Training MSE Improvement: -542594519410528690896896.00%
-Test MSE Improvement: -454755151569235356942336.00%
-Training Performance: PINNs performs better
-Test Performance: PINNs performs better
-
-================================================================================
+Method            MSE           MAE           Max Error     Rel Error     
+--------------------------------------------------------------------------
+PINNs Train       6.518007e-04  2.066780e-02  5.177205e-02  1.027442e+00  
+PINNs Test        6.361230e-04  1.996267e-02  5.174420e-02  1.027236e+00  
+DeePoly Train     6.174479e-04  1.999207e-02  5.061459e-02  1.000000e+00  
+DeePoly Test      6.028376e-04  1.928888e-02  5.032877e-02  1.000000e+00  

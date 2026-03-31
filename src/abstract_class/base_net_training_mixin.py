@@ -97,7 +97,11 @@ class BaseNetTrainingMixin:
         return optimizer_adam, optimizer_lbfgs
 
     def _build_lr_adjuster(self, optimizer):
-        if not getattr(self.config, "adaptive_learning_rate", False):
+        adaptive_enabled = getattr(self.config, "adaptive_learning_rate", False)
+        milestone_epochs = self._get_adam_lr_milestones()
+        milestone_gamma = float(getattr(self.config, "adam_lr_milestone_gamma", 0.5))
+
+        if not adaptive_enabled and not milestone_epochs:
             def identity_adjuster(current_loss, epoch):
                 _ = (current_loss, epoch)
                 return False, optimizer.param_groups[0]["lr"]
@@ -106,16 +110,25 @@ class BaseNetTrainingMixin:
 
         lr_thresholds = [1.0, 0.5, 1e-2, 1e-3, 1e-4]
         lr_values = [self.config.learning_rate, 0.005, 0.003, 0.001, 0.0005, 0.0001]
-        lr_history = []
+        milestone_index = 0
 
         def adjust_learning_rate(current_loss, epoch):
-            _ = epoch
-            lr_history.append(current_loss)
             current_lr = optimizer.param_groups[0]["lr"]
             target_lr = lr_values[0]
-            for index, threshold in enumerate(lr_thresholds):
-                if current_loss < threshold:
-                    target_lr = lr_values[index + 1]
+
+            if adaptive_enabled:
+                for index, threshold in enumerate(lr_thresholds):
+                    if current_loss < threshold:
+                        target_lr = lr_values[index + 1]
+
+            nonlocal milestone_index
+            while milestone_index < len(milestone_epochs) and epoch >= milestone_epochs[milestone_index]:
+                target_lr = min(
+                    target_lr,
+                    self.config.learning_rate * (milestone_gamma ** (milestone_index + 1)),
+                )
+                milestone_index += 1
+
             target_lr = min(target_lr, current_lr)
             if abs(current_lr - target_lr) > 1e-8:
                 for param_group in optimizer.param_groups:
@@ -124,6 +137,15 @@ class BaseNetTrainingMixin:
             return False, current_lr
 
         return adjust_learning_rate
+
+    def _get_adam_lr_milestones(self):
+        milestones = getattr(self.config, "adam_lr_milestones", None)
+        if not milestones:
+            return []
+        if not isinstance(milestones, (list, tuple)):
+            milestones = [milestones]
+        cleaned = sorted({int(epoch) for epoch in milestones if int(epoch) >= 0})
+        return cleaned
 
     def _run_optimizer_sequence(
         self,

@@ -1,0 +1,76 @@
+{
+  "problem_type": "func_fitting",
+  "method": "hybrid",
+  "eq": {
+    "L1": [
+      "u",
+      "v"
+    ],
+    "L2": [
+      "0",
+      "0"
+    ],
+    "F": [
+      "0",
+      "0"
+    ],
+    "N": [
+      "0",
+      "0"
+    ],
+    "S": [
+      "0",
+      "0"
+    ]
+  },
+  "eq_nonlinear": [],
+  "vars_list": [
+    "u",
+    "v"
+  ],
+  "spatial_vars": [
+    "x",
+    "y"
+  ],
+  "hidden_dims": [
+    16,
+    32,
+    16
+  ],
+  "epochs_adam": 150,
+  "epochs_lbfgs": 0,
+  "max_retries": 1,
+  "DNNtol": 1e-06,
+  "n_segments": [
+    2,
+    2
+  ],
+  "points_domain": [
+    25,
+    25
+  ],
+  "points_domain_test": [
+    41,
+    41
+  ],
+  "points_per_swap": 0,
+  "poly_degree": [
+    3,
+    3
+  ],
+  "x_domain": [
+    [
+      -1.0,
+      1.0
+    ],
+    [
+      -1.0,
+      1.0
+    ]
+  ],
+  "device": "cpu",
+  "linear_device": "cpu",
+  "output_module_path": "output.py",
+  "reference_solution": "data_generate.py",
+  "seed": 42
+}

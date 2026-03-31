@@ -1,0 +1,7 @@
+#-----begin auto code-----
+        U = variables["U"][segment_idx]
+        u = U @ x_slice
+
+        L[0] = u
+        dL[0] = np.diag((1).flatten()) @ U
+#-----end auto code-----

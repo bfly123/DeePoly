@@ -12,7 +12,7 @@ class TimePDEFitter(BaseDeepPolyFitter):
     This class only adds time-PDE-specific initialization and utilities.
     """
 
-    def __init__(self, config, data: Dict = None, time_scheme: str = "imex_rk_222"):
+    def __init__(self, config, data: Dict = None, time_scheme: str = "onestep_predictor"):
         # Initialize base class with time_scheme support
         super().__init__(config, dt=None, data=data, time_scheme=time_scheme)
 
@@ -20,7 +20,10 @@ class TimePDEFitter(BaseDeepPolyFitter):
         # 默认关闭verbose以减少重复输出，保留performance_tracking用于统计
         verbose_linear = getattr(config, 'verbose_linear_solver', False)
         self.solver = LinearSolver(
-            verbose=verbose_linear, use_gpu=True, performance_tracking=True
+            verbose=verbose_linear,
+            use_gpu=True,
+            performance_tracking=True,
+            config=config,
         )
 
     def solve_time_step(self, U_n: np.ndarray, U_seg: List[np.ndarray], dt: float,
