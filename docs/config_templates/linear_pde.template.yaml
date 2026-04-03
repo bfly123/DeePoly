@@ -1,0 +1,89 @@
+# ==========================================
+# DeePoly Linear PDE YAML Template
+# 适用于 Poisson / Helmholtz / 对流扩散等线性 PDE
+# ==========================================
+
+# ---------- 主控区 ----------
+problem_type: linear_pde      # func_fitting | linear_pde | time_pde | general_pde | fixiteration_pde
+method: deepoly               # deepoly = spotter + snipper; pinns = only spotter
+nn_backend: torch             # torch | jax | paddle
+
+# method 说明:
+# 1. deepoly: 先训练 spotter，再用分区多项式最小二乘做 Snipper 修正
+# 2. pinns:   只保留 spotter，线性方程组/分区参数全部忽略
+
+# ---------- 方程定义 ----------
+vars_list: [u]
+spatial_vars: [x, y]
+
+eq:
+  L1:
+    - "diff(u,x,2) + diff(u,y,2)"  # 线性主算子
+  L2: []
+  F: []
+  N: []
+  S:
+    - "-sin(pi*x)*sin(pi*y)"       # 源项，可写成表达式或数据生成脚本
+
+# ---------- 区域与边界 ----------
+x_domain:
+  - [0.0, 1.0]
+  - [0.0, 1.0]
+
+boundary_conditions:
+  - type: dirichlet
+    region: left
+    var: u
+    value: "0"
+    points: 100
+    weight: 10
+  - type: dirichlet
+    region: right
+    var: u
+    value: "0"
+    points: 100
+    weight: 10
+  - type: dirichlet
+    region: bottom
+    var: u
+    value: "0"
+    points: 100
+    weight: 10
+  - type: dirichlet
+    region: top
+    var: u
+    value: "0"
+    points: 100
+    weight: 10
+
+# ---------- 采样 ----------
+points_domain: 5000           # 全局内部训练点数
+points_domain_test: [100, 100]
+points_per_swap: 30           # 仅 deepoly 生效，控制交换点/约束点
+
+# ---------- Spotter ----------
+hidden_dims: [12, 32, 32, 20]
+learning_rate: 0.001
+epochs_adam: 5000
+epochs_lbfgs: 0               # 若做迁移/多 backend 对比，建议先关掉
+max_retries: 1
+DNNtol: 1.0e-4
+
+# ---------- Snipper ----------
+n_segments: [4, 4]
+poly_degree: [6, 6]
+linear_method: gpu_svd        # cpu_svd | gpu_svd | gpu_direct | ridge
+linear_rcond: 1.0e-10
+linear_alpha: null            # ridge 生效时使用
+
+# ---------- 输出 ----------
+reference_solution: null      # 可填脚本、mat 文件或留空
+device: cuda
+linear_device: cuda
+seed: 42
+auto_code: false
+
+# 可选:
+# periodic_constraint_weight: 10.0
+# swap_constraint_weight: 10.0
+# realtime_visualization: false

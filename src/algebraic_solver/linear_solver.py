@@ -68,6 +68,12 @@ class LinearSolver(LinearSolverSupportMixin, LinearSolverGPUMixin, LinearSolverC
 
         b = self._normalize_rhs(b)
         original_method = method
+        explicit_gpu_request = original_method.startswith("gpu_") and original_method != "gpu_auto"
+        if explicit_gpu_request and not self.use_gpu:
+            raise RuntimeError(
+                f"显式请求线性求解后端 {original_method}，但当前GPU/CuPy后端不可用。"
+                "请检查 linear_device、CuPy 运行时库和 CUDA 环境。"
+            )
         method = self._resolve_requested_method(method, A)
 
         if original_method in {"auto", "gpu_auto"} and self.verbose:
@@ -79,6 +85,10 @@ class LinearSolver(LinearSolverSupportMixin, LinearSolverGPUMixin, LinearSolverC
         try:
             x, info = self.methods[method](A, b, **kwargs)
         except Exception as exc:
+            if explicit_gpu_request:
+                raise RuntimeError(
+                    f"显式请求线性求解后端 {original_method} 失败: {exc}"
+                ) from exc
             fallback_method = self._get_fallback_method(method, A)
             if fallback and fallback_method is not None:
                 import warnings

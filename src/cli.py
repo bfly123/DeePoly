@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import json
 import os
 from pathlib import Path
 from typing import Any, Dict
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, supported_config_filenames
 from src.meta_coding.auto_code_manager import AutoCodeManager
 
 
@@ -56,7 +56,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "case_path",
         nargs="?",
         default=".",
-        help="Case directory or config.json path. Default: current directory.",
+        help="Case directory or config.yaml/config.yml/config.json path. Default: current directory.",
     )
     parser.add_argument(
         "--device",
@@ -87,20 +87,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def resolve_case_dir(case_path: str) -> str:
     path = Path(case_path).expanduser().resolve()
     if path.is_file():
-        if path.name != "config.json":
-            raise FileNotFoundError(f"Expected a case directory or config.json, got: {path}")
+        if path.name not in supported_config_filenames():
+            raise FileNotFoundError(
+                f"Expected a case directory or one of {tuple(supported_config_filenames())}, got: {path}"
+            )
         path = path.parent
 
-    config_path = path / "config.json"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    resolve_case_config_path(str(path))
     return str(path)
 
 
 def load_problem_type(case_dir: str) -> str:
-    config_path = Path(case_dir) / "config.json"
-    with open(config_path, "r", encoding="utf-8") as handle:
-        config_dict = json.load(handle)
+    config_path = Path(resolve_case_config_path(case_dir))
+    config_dict = load_config_file(config_path)
     problem_type = config_dict.get("problem_type")
     if not problem_type:
         raise ValueError(f"Missing 'problem_type' field in {config_path}")

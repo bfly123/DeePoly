@@ -1,18 +1,20 @@
-import json
 import os
 from datetime import datetime
 from typing import Any, Optional
 
 import numpy as np
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path
+
 
 def resolve_config_path(case_dir: Optional[str], filename: str = "config.json") -> str:
-    return os.path.join(case_dir or os.getcwd(), filename)
+    if filename != "config.json":
+        return os.path.join(case_dir or os.getcwd(), filename)
+    return resolve_case_config_path(case_dir)
 
 
 def load_json_file(path: str) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_config_file(path)
 
 
 def build_export_metadata(device: str) -> dict[str, str]:

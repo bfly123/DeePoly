@@ -12,6 +12,8 @@ class TimePDEBasicEvolutionMixin:
         x: np.ndarray,
         save_path: Optional[str] = None,
     ) -> None:
+        if not self._ensure_realtime_figure():
+            return
         self.ax.clear()
         sort_idx = np.argsort(x[:, 0])
         x_sorted = x[sort_idx, 0]
@@ -40,6 +42,8 @@ class TimePDEBasicEvolutionMixin:
         x: np.ndarray,
         save_path: Optional[str] = None,
     ) -> None:
+        if not self._ensure_realtime_figure():
+            return
         x2d = x if x.ndim == 2 else x.reshape(-1, 2)
         u_vals = u[:, 0] if u.ndim > 1 else u
 
@@ -80,6 +84,6 @@ class TimePDEBasicEvolutionMixin:
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        self.fig.canvas.draw()
+        self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
         plt.pause(0.01)

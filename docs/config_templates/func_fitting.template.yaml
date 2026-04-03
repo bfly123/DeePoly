@@ -1,0 +1,60 @@
+# ==========================================
+# DeePoly Function Fitting YAML Template
+# 适用于函数逼近、多变量拟合、多方程显式数据拟合
+# ==========================================
+
+# ---------- 主控区 ----------
+problem_type: func_fitting
+method: deepoly               # deepoly = spotter + snipper; pinns = only spotter
+nn_backend: torch             # torch | jax | paddle
+
+# ---------- 拟合对象 ----------
+vars_list: [u]
+spatial_vars: [x, y]
+
+# 对 func_fitting 来说，eq 通常只需给出变量占位
+eq:
+  L1: [u]
+  L2: [0]
+  F: [0]
+  N: [0]
+  S: data_generate.py         # 可用脚本生成参考数据/目标函数
+
+# ---------- 区域与采样 ----------
+x_domain:
+  - [-1.0, 1.0]
+  - [-1.0, 1.0]
+
+points_domain: 4000
+points_domain_test: [100, 100]
+points_per_swap: 0            # 函数拟合常设为 0；若开启 Snipper 也可调大
+
+# ---------- Spotter ----------
+hidden_dims: [16, 32, 32, 16]
+learning_rate: 0.001
+epochs_adam: 3000
+epochs_lbfgs: 0
+max_retries: 1
+DNNtol: 1.0e-6
+
+# ---------- Snipper ----------
+n_segments: [4, 4]
+poly_degree: [5, 5]
+linear_method: gpu_svd
+linear_rcond: 1.0e-10
+
+# ---------- 目标函数/输出 ----------
+target_function_path: target_function.py  # 一维/简单显式拟合可直接提供
+reference_solution: data_generate.py      # 若有参考脚本可填
+output_module_path: output.py             # 推荐保留，便于 case 自定义画图
+plot_module_path: plot.py                 # 可选
+
+device: cuda
+linear_device: cuda
+seed: 42
+auto_code: false
+
+# 可选:
+# n_train: 1000
+# deriv_orders: [[0]]
+# all_derivatives: [[[0]]]

@@ -8,6 +8,9 @@ class LegacyAnalysisMixin:
     """Compatibility helpers for legacy case output modules."""
 
     def get_model_predictions(self, model, data: Dict) -> np.ndarray:
+        if hasattr(model, "predict_output"):
+            return np.asarray(model.predict_output(np.asarray(data["x"], dtype=np.float64)), dtype=np.float64)
+
         torch = None
         try:
             import torch as _torch
@@ -38,6 +41,8 @@ class LegacyAnalysisMixin:
                 model.train()
 
     def get_deepoly_predictions(self, fitter, data: Dict, model, coeffs: np.ndarray) -> np.ndarray:
+        if fitter is None or coeffs is None:
+            return self.get_model_predictions(model, data)
         prediction, _ = fitter.construct(data, model, coeffs)
         return np.asarray(prediction, dtype=np.float64)
 
@@ -121,11 +126,13 @@ class LegacyAnalysisMixin:
 
     def _save_basic_artifacts(self, result_dir: str, coeffs: np.ndarray, model) -> None:
         os.makedirs(result_dir, exist_ok=True)
-        np.save(os.path.join(result_dir, "coefficients.npy"), coeffs)
+        if coeffs is not None:
+            np.save(os.path.join(result_dir, "coefficients.npy"), coeffs)
         try:
             import torch
-
-            torch.save(model.state_dict(), os.path.join(result_dir, "model.pt"))
+            state_dict = getattr(model, "state_dict", None)
+            if callable(state_dict):
+                torch.save(state_dict(), os.path.join(result_dir, "model.pt"))
         except Exception:
             pass
 

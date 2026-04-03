@@ -1,0 +1,93 @@
+# ==========================================
+# DeePoly Time PDE YAML Template
+# 人工维护推荐使用 YAML
+# 运行时支持 config.yaml / config.yml / config.json
+# ==========================================
+
+# ---------- 主控区 ----------
+problem_type: time_pde         # func_fitting | linear_pde | time_pde | general_pde | fixiteration_pde
+method: deepoly               # deepoly = spotter + snipper; pinns = only spotter
+nn_backend: torch             # torch | jax | paddle
+
+# 说明:
+# 1. method=deepoly 时，Snipper 分区与最小二乘参数生效
+# 2. method=pinns 时，不进入 Snipper，n_segments/poly_degree/points_per_swap/linear_method 会被忽略
+
+# ---------- 方程定义 ----------
+vars_list: [u]
+spatial_vars: [x]
+
+eq:
+  L1:
+    - "-0.0001*diff(u,x,2)"   # 线性隐式项
+  L2: []                      # 可与 F 组合表示乘性项
+  F: []
+  N:
+    - "-5*u+5*u**3"           # 非线性项
+  S: []                       # 源项, 可留空
+
+# ---------- 区域与采样 ----------
+x_domain:
+  - [-1, 1]
+
+points_domain: 100            # 全局训练点数
+points_domain_test: [100]     # 测试/输出网格点数
+points_per_swap: 1            # 仅 deepoly 生效
+
+Initial_conditions:
+  - var: u
+    value: "x**2*cos(pi*x)"
+    points: 100
+
+boundary_conditions:
+  - type: dirichlet
+    region: left
+    var: u
+    value: -1
+    points: 1
+    weight: 10
+  - type: dirichlet
+    region: right
+    var: u
+    value: -1
+    points: 1
+    weight: 10
+
+# ---------- Spotter ----------
+hidden_dims: [12, 32, 32, 10]
+learning_rate: 0.01
+epochs_adam: 20000
+epochs_lbfgs: 0               # 迁移训练场景通常建议保持 0
+max_retries: 1
+DNNtol: 1.0e-2
+spotter_skip: 1               # 每隔多少步重训一次 spotter, 1 表示每步都训
+
+# ---------- Snipper ----------
+# 仅 method=deepoly 时生效
+n_segments: [3]
+poly_degree: [10]
+linear_method: gpu_svd        # 例: cpu_svd | gpu_svd | gpu_direct | ridge
+linear_rcond: 1.0e-10         # 仅 SVD 类方法生效
+linear_alpha: null            # 仅 ridge 类方法生效
+
+# ---------- 时间推进 ----------
+T: 1.0
+dt: 0.1
+time_scheme: onestep_predictor
+
+time_scheme_params:
+  adaptive_dt: false
+  stability_check: false
+  time_output_interval: 1
+
+# ---------- 输出 ----------
+reference_solution: ../reference_data/allen_cahn_highres.mat
+device: cuda
+linear_device: gpu
+seed: 42
+auto_code: false
+
+# 可选:
+# note: "这里可以写算例说明"
+# realtime_visualization: false
+# animation_skip: 1

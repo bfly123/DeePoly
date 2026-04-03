@@ -22,6 +22,18 @@ echo "Validating current environment with: $("$PYTHON_BIN" -c 'import sys; print
 echo "Installing DeePoly CLI into the current environment"
 "$PYTHON_BIN" -m pip install -e "$ROOT_DIR"
 
+ENV_PREFIX="$("$PYTHON_BIN" -c 'import sys; print(sys.prefix)')"
+if [[ -d "$ENV_PREFIX/conda-meta" || -n "${CONDA_PREFIX:-}" ]]; then
+  ACTIVATE_DIR="$ENV_PREFIX/etc/conda/activate.d"
+  DEACTIVATE_DIR="$ENV_PREFIX/etc/conda/deactivate.d"
+  mkdir -p "$ACTIVATE_DIR" "$DEACTIVATE_DIR"
+  install -m 0644 "$ROOT_DIR/src/shell_hooks/deepoly_cuda_libs_activate.sh" \
+    "$ACTIVATE_DIR/deepoly_cuda_libs.sh"
+  install -m 0644 "$ROOT_DIR/src/shell_hooks/deepoly_cuda_libs_deactivate.sh" \
+    "$DEACTIVATE_DIR/deepoly_cuda_libs.sh"
+  echo "Installed CUDA runtime hook for conda environment: $ENV_PREFIX"
+fi
+
 SCRIPT_PATH="$("$PYTHON_BIN" -m src.install_env script-path)"
 if [[ ! -f "$SCRIPT_PATH" ]]; then
   echo "ERROR: installation completed but CLI entry script was not created: $SCRIPT_PATH" >&2

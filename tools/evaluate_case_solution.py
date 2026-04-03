@@ -12,18 +12,19 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.io import loadmat
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
 def load_json(path: Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_config_file(path)
 
 
 def resolve_reference(case_dir: Path) -> tuple[np.ndarray, np.ndarray]:
-    cfg = load_json(case_dir / "config.json")
+    cfg = load_json(Path(resolve_case_config_path(case_dir)))
     ref_path = cfg.get("reference_solution")
     if not ref_path:
         raise FileNotFoundError("config.reference_solution is missing")
@@ -57,7 +58,7 @@ def compute_rel_l2(coords: np.ndarray, values: np.ndarray, ref_points: np.ndarra
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("case_dir", help="Case directory containing config.json and results/solution_data.npz")
+    parser.add_argument("case_dir", help="Case directory containing config.yaml/config.yml/config.json and results/solution_data.npz")
     parser.add_argument(
         "--keys",
         default="spotter_test,sniper_test,U_test",

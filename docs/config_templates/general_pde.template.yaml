@@ -1,0 +1,76 @@
+# ==========================================
+# DeePoly General PDE / Pseudo-time YAML Template
+# 适用于稳态问题或伪时间推进问题
+# ==========================================
+
+# ---------- 主控区 ----------
+problem_type: general_pde
+method: deepoly               # deepoly = spotter + snipper; pinns = only spotter
+nn_backend: torch             # torch | jax | paddle
+
+# ---------- 方程定义 ----------
+vars_list: [u, v, p]
+spatial_vars: [x, y]
+
+eq:
+  L1: []
+  L2: []
+  F: []
+  N: []
+  S: []
+
+# ---------- 几何与采样 ----------
+x_domain:
+  - [0.0, 1.0]
+  - [0.0, 1.0]
+
+points_domain: 4000
+points_domain_test: [200, 200]
+boundary_conditions: []
+
+# ---------- Spotter ----------
+hidden_dims: [32, 64, 64, 20]
+learning_rate: 0.001
+epochs_adam: 5000
+epochs_lbfgs: 0
+max_retries: 1
+DNNtol: 1.0e-4
+spotter_skip: 1
+
+# ---------- Snipper ----------
+# 仅 method=deepoly 生效
+n_segments: [4, 4]
+poly_degree: [6, 6]
+points_per_swap: 20
+linear_method: gpu_svd
+linear_rcond: 1.0e-10
+
+# ---------- 伪时间推进 ----------
+pseudo_time:
+  max_iterations: 1000
+  residual_tol: 1.0e-6
+  dt_init: 0.1
+  dt_min: 1.0e-5
+  dt_max: 0.5
+  adaptive_dt: true
+  dt_increase_factor: 1.2
+  dt_decrease_factor: 0.5
+  check_interval: 10
+  print_interval: 50
+
+  # 内部后端固定 implicit_euler, 不需要额外切换
+  steady_state_mode: true
+  pseudo_time_formulation: default      # default | reference_stable
+  pseudo_time_direction: -1.0
+  nonlinear_linearization: picard       # picard | newton
+  frozen_nonlinear_jacobian: none       # none | transport
+
+# ---------- 初始条件 ----------
+initial_condition:
+  method: given                         # given | zero | transfer | external_spotter
+
+# ---------- 输出 ----------
+device: cuda
+linear_device: gpu
+seed: 42
+auto_code: false

@@ -42,8 +42,16 @@ class TimePDEEvolutionMixin(
         plt.ioff()
         if hasattr(self, "fig"):
             plt.close(self.fig)
+            self.fig = None
+            self.ax = None
 
     def finalize_realtime_animation(self) -> None:
         """CompleteReal-timeanimationdisplay"""
         plt.ioff()
+        if getattr(self, "fig", None) is not None:
+            try:
+                self.fig.canvas.draw_idle()
+                self.fig.canvas.flush_events()
+            except Exception:
+                pass
         print("Time evolution completed. Close the plot window to continue...")

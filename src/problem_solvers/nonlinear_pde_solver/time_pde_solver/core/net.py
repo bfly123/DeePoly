@@ -7,6 +7,15 @@ from src.abstract_class.boundary_conditions import BoundaryConditionMixin
 
 class TimePDENet(BoundaryConditionMixin, BaseNet):
     """Neural network implementation for time-dependent problems"""
+
+    def _get_adam_early_stop_tolerance(self, dt: float) -> float:
+        """Match the legacy time-PDE Adam early-stop rule from the original solver.
+
+        The time-PDE spotter is trained on a per-step residual whose scale shrinks with ``dt``.
+        The original implementation only used ``DNNtol * dt`` inside the Adam epoch loop,
+        while the outer retry logic still used the raw ``DNNtol``.
+        """
+        return float(self.config.DNNtol) * float(dt)
     
     def physics_loss(self, data_GPU: Dict, **kwargs) -> torch.Tensor:
         """Compute physics loss for time-dependent PDE

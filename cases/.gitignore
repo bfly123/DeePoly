@@ -10,6 +10,7 @@
 # Nested visualization outputs
 **/results/visualizations/*.png
 **/results/visualizations/*.txt
+**/results/effective_config.json
 
 # Allow checked-in explanatory docs where they already exist
 !**/results/README.md

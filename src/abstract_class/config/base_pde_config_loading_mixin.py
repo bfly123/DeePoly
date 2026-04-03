@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 from src.abstract_class.config.config_json_helpers import (
@@ -7,6 +8,7 @@ from src.abstract_class.config.config_json_helpers import (
     load_json_file,
     resolve_config_path,
 )
+from src.abstract_class.config.config_io import detect_config_format
 
 
 class BasePDEConfigLoadingMixin:
@@ -16,6 +18,8 @@ class BasePDEConfigLoadingMixin:
             return False
         try:
             config_dict = load_json_file(config_path)
+            self._loaded_config_path = str(Path(config_path).expanduser().resolve())
+            self._loaded_config_format = detect_config_format(config_path)
             print(f"Successfully loaded configuration from {config_path}")
             self._assign_relaxed_config_values(config_dict)
             return True

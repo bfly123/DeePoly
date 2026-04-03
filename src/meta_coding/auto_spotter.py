@@ -1,4 +1,5 @@
 from .spotter_equation_processor import EquationProcessor
+from src.abstract_class.config.config_io import resolve_case_config_path
 from .spotter_generator import (
     AutoCodeGenerator,
     update_hybrid_fitter_code,
@@ -16,7 +17,7 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    config_path = "cases/linear_pde_cases/poisson_2d_sinpixsinpiy/config.json"
+    config_path = resolve_case_config_path("cases/linear_pde_cases/poisson_2d_sinpixsinpiy")
     try:
         update_physics_loss_from_config(config_path)
         print("代yardGenerateSuccess!")

@@ -17,6 +17,8 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.io import loadmat
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -57,14 +59,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_json(path: Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_config_file(path)
 
 
 def dump_json(path: Path, payload: dict[str, Any]) -> None:
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    save_config_file(path, payload)
 
 
 def write_text(path: Path, content: str) -> None:
@@ -154,7 +153,7 @@ def run_case(case_dir: Path, python_exe: str, skip_autocode: bool) -> subprocess
 
 
 def _load_reference(case_dir: Path) -> tuple[np.ndarray, np.ndarray] | None:
-    cfg = load_json(case_dir / "config.json")
+    cfg = load_json(Path(resolve_case_config_path(case_dir)))
     ref_path = cfg.get("reference_solution")
     if not ref_path:
         return None
@@ -275,7 +274,7 @@ def main() -> int:
     base_case_dir = (root / args.base_case).resolve()
     checkpoint_dir = (root / args.checkpoint_dir).resolve()
     variant_root = (root / args.variant_root).resolve()
-    base_cfg = load_json(base_case_dir / "config.json")
+    base_cfg = load_json(Path(resolve_case_config_path(base_case_dir)))
     checkpoint_names = [normalize_checkpoint_name(item) for item in args.checkpoints.split(",") if item.strip()]
 
     rows: list[dict[str, Any]] = []

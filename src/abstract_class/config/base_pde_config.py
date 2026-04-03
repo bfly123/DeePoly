@@ -31,7 +31,7 @@ class BasePDEConfig(
     poly_degree: List[int] = field(default_factory=lambda: [3])
     x_domain: List = field(default_factory=list)
 
-    method: str = "hybrid"
+    method: str = "deepoly"
     linear_method: str = "auto"
     linear_rcond: Optional[float] = None
     linear_alpha: Optional[float] = None
@@ -39,6 +39,8 @@ class BasePDEConfig(
     device: str = "cuda"
     linear_device: str = "cpu"
     learning_rate: float = 0.001
+    nn_backend: str = "torch"
+    spotter_backend: Optional[str] = None
     spotter_feature_backend: str = "torch"
     spotter_feature: Dict = field(default_factory=dict)
     spotter: Dict = field(default_factory=dict)
@@ -62,6 +64,9 @@ class BasePDEConfig(
     def __post_init__(self):
         BaseConfig.__init__(self, self.case_dir)
         self.load_config_from_json_relaxed(self.case_dir)
+        self._normalize_method_mode()
+        self._normalize_spotter_backend_config()
+        self._normalize_snipper_defaults()
         self._normalize_eq_format()
         self._validate_pde_config()
         self.constants = self._merge_constants()
@@ -89,6 +94,46 @@ class BasePDEConfig(
     def _solver_specific_init(self):
         return None
 
+    def _normalize_spotter_backend_config(self) -> None:
+        nn_backend = getattr(self, "nn_backend", None)
+        legacy_backend = getattr(self, "spotter_backend", None)
+        feature_backend = getattr(self, "spotter_feature_backend", None)
+
+        backend = nn_backend
+        if legacy_backend and str(nn_backend or "torch").strip().lower() == "torch":
+            backend = legacy_backend
+        if feature_backend and str(backend or "torch").strip().lower() == "torch":
+            backend = feature_backend
+        if not backend:
+            backend = "torch"
+        backend_name = str(backend).strip().lower()
+        self.nn_backend = backend_name
+        self.spotter_feature_backend = backend_name
+        self.spotter_backend = backend_name
+        from src.spotter_runtime.config_support import normalize_spotter_backend_config
+
+        normalize_spotter_backend_config(self)
+
+    def _normalize_method_mode(self) -> None:
+        raw_method = str(getattr(self, "method", "deepoly") or "deepoly").strip().lower()
+        if raw_method == "hybrid":
+            raw_method = "deepoly"
+        if raw_method not in {"deepoly", "pinns"}:
+            raise ValueError(
+                f"Unsupported method '{self.method}'. Expected one of: deepoly, pinns"
+            )
+        self.method = raw_method
+
+    def _normalize_snipper_defaults(self) -> None:
+        if self.uses_snipper():
+            return
+        n_dim = len(getattr(self, "spatial_vars", []) or [])
+        if n_dim <= 0:
+            return
+        self.n_segments = [1] * n_dim
+        self.poly_degree = [0] * n_dim
+        self.points_per_swap = 0
+
     def _merge_constants(self) -> Dict[str, float]:
         merged: Dict[str, float] = {}
         if isinstance(self.const_list, dict):
@@ -109,3 +154,9 @@ class BasePDEConfig(
             print("Auto-code generation enabled")
         else:
             print("Auto-code generation disabled")
+
+    def uses_snipper(self) -> bool:
+        return str(getattr(self, "method", "deepoly") or "deepoly").lower() == "deepoly"
+
+    def uses_pinns_only(self) -> bool:
+        return str(getattr(self, "method", "deepoly") or "deepoly").lower() == "pinns"

@@ -1,14 +1,13 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Union, Dict
 import numpy as np
-import os
-import json
 from src.abstract_class.config.base_pde_config import BasePDEConfig
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
 from src.meta_coding.auto_spotter import update_physics_loss_from_config
 
 def update_physics_loss_code(linear_equations, vars_list, spatial_vars, const_list, case_dir):
     """Compatibility wrapper function"""
-    config_path = os.path.join(case_dir, "config.json")
+    config_path = resolve_case_config_path(case_dir)
     update_physics_loss_from_config(config_path)
 
 @dataclass
@@ -58,7 +57,7 @@ class LinearPDEConfig(BasePDEConfig):
             )
 
             # Auto set auto_code to false
-            config_path = os.path.join(self.case_dir, "config.json")
+            config_path = resolve_case_config_path(self.case_dir)
             self._disable_auto_code(config_path)
             print("Auto code completed, please check the net.py file, restart the program")
 
@@ -69,14 +68,11 @@ class LinearPDEConfig(BasePDEConfig):
     def _disable_auto_code(self, config_path: str):
         """Set auto_code to false in configuration file"""
         try:
-            import json
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
+            config = load_config_file(config_path)
 
             config['auto_code'] = False
 
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
+            save_config_file(config_path, config)
 
             print(f"Auto set auto_code to false in file: {config_path}")
 

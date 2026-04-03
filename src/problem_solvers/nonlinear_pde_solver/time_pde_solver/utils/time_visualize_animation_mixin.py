@@ -94,20 +94,13 @@ class TimePDEAnimationMixin:
         solver=None,
     ) -> None:
         if not getattr(self.config, "realtime_visualization", False):
-            print(
-                "  Real-time visualization disabled "
-                f"(setting: {getattr(self.config, 'realtime_visualization', 'Not found')})"
-            )
             return
-        print(f"  Real-time visualization enabled, plotting at T = {T:.4f}")
+        if not self._ensure_realtime_figure():
+            return
         u_ref = None
         if solver and hasattr(solver, "get_reference_solution_at_time"):
             u_ref = solver.get_reference_solution_at_time(T)
-            print(f"    Reference solution at T={T:.4f}: {'Yes' if u_ref is not None else 'No'}")
-            if u_ref is not None:
-                print(f"    Reference solution range: [{np.min(u_ref):.4f}, {np.max(u_ref):.4f}]")
         self.plot_evolution_step_with_reference(T, U_train, x_plot, u_ref, solver)
-        print(f"    Real-time plot updated for T = {T:.4f}")
 
     def get_animation_data(self):
         """GetanimationData - convert deque to list for compatibility"""

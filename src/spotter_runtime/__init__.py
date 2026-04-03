@@ -7,6 +7,11 @@ __all__ = [
     "SpotterOrchestrator",
     "SpotterRuntimeConfig",
     "SpotterSelectionReport",
+    "BaseSpotterSession",
+    "LiveTorchSpotterSession",
+    "ProviderSpotterSession",
+    "OrchestratedSpotterSession",
+    "create_spotter_session",
 ]
 
 _MODULE_MAP = {
@@ -16,6 +21,11 @@ _MODULE_MAP = {
     "SpotterSelectionReport": "src.spotter_runtime.selector",
     "SpotterCandidateConfig": "src.spotter_runtime.types",
     "SpotterRuntimeConfig": "src.spotter_runtime.types",
+    "BaseSpotterSession": "src.spotter_runtime.session",
+    "LiveTorchSpotterSession": "src.spotter_runtime.session",
+    "ProviderSpotterSession": "src.spotter_runtime.session",
+    "OrchestratedSpotterSession": "src.spotter_runtime.session",
+    "create_spotter_session": "src.spotter_runtime.session",
 }
 
 

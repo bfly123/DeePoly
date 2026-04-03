@@ -51,7 +51,7 @@ class BaseNet(BaseNetTrainingMixin, BaseNetDataMixin, nn.Module):
         """Compute PDE operators - unified auto code generation area"""
 
 # auto code begin
-# Config signature: {"F": [], "L1": ["-0.0001*diff(u,x,2)"], "L2": [], "N": ["5*u**3-5*u"], "S": [], "const_list": []}
+# Config signature: {"F": [], "L1": ["-0.0001*diff(u,x,2)"], "L2": [], "N": ["-5*u+5*u**3"], "S": [], "const_list": []}
         # Extract physical quantities from output
         u = U[..., 0]
 
@@ -71,7 +71,7 @@ class BaseNet(BaseNetTrainingMixin, BaseNetDataMixin, nn.Module):
         F = []
 
         # N operators
-        N = [5*u**3-5*u]
+        N = [-5*u+5*u**3]
 
         # S operators (source term)
         S = [0]

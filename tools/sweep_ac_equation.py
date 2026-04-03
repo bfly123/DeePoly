@@ -20,6 +20,8 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from scipy.io import loadmat
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
+
 
 def parse_pair_list(raw: str) -> list[tuple[int, int]]:
     pairs: list[tuple[int, int]] = []
@@ -134,8 +136,7 @@ def prepare_case_dir(base_case: Path, case_root: Path, spec: RunSpec, base_confi
     if not ref_link.exists():
         ref_link.symlink_to(base_case / "reference_data", target_is_directory=True)
     cfg = make_variant_config(base_config, spec)
-    with open(case_dir / "config.json", "w", encoding="utf-8") as handle:
-        json.dump(cfg, handle, indent=4, ensure_ascii=False)
+    save_config_file(case_dir / "config.json", cfg)
     return case_dir
 
 
@@ -288,8 +289,7 @@ def main() -> int:
 
     root = repo_root()
     case_dir = (root / args.case).resolve()
-    if not (case_dir / "config.json").exists():
-        raise FileNotFoundError(f"case config not found: {case_dir / 'config.json'}")
+    config_path = Path(resolve_case_config_path(case_dir))
 
     results_root = Path(args.results_root).resolve() if args.results_root else (case_dir / "sweeps")
     if args.clean and results_root.exists():
@@ -299,8 +299,7 @@ def main() -> int:
     generated_case_root.mkdir(parents=True, exist_ok=True)
     run_root.mkdir(parents=True, exist_ok=True)
 
-    with open(case_dir / "config.json", "r", encoding="utf-8") as handle:
-        base_config = json.load(handle)
+    base_config = load_config_file(config_path)
     x_ref, t_ref, u_ref = load_reference(case_dir / base_config["reference_solution"])
 
     run_specs = build_run_specs(args)

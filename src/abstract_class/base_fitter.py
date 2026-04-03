@@ -61,7 +61,7 @@ class BaseDeepPolyFitter(
 
         poly_degree = np.asarray(self.config.poly_degree)
         self.dg = np.int32(np.prod(poly_degree + 1))
-        self.nn_feature_dim = int(getattr(self.config, "DNN_degree", 0)) if self.config.method == "hybrid" else 0
+        self.nn_feature_dim = int(getattr(self.config, "DNN_degree", 0)) if self.config.uses_snipper() else 0
         self.dgN = int(self.dg) + int(self.nn_feature_dim)
         self.device = self.config.linear_device
         self.n_eqs = self.config.n_eqs
@@ -72,7 +72,7 @@ class BaseDeepPolyFitter(
         self._generate_operator_functions()
 
     def _update_feature_dimensions(self, feature_source) -> None:
-        if getattr(self.config, "method", "hybrid") != "hybrid":
+        if not self.config.uses_snipper():
             self.nn_feature_dim = 0
             self.dgN = int(self.dg)
             return

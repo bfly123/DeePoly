@@ -17,7 +17,10 @@ class BasePDEConfigValidationMixin:
         self._validate_dimension_lengths()
 
     def _validate_required_fields(self) -> None:
-        required_fields = ["vars_list", "spatial_vars", "x_domain", "n_segments", "poly_degree"]
+        required_fields = ["vars_list", "spatial_vars", "x_domain"]
+        method = str(getattr(self, "method", "deepoly") or "deepoly").lower()
+        if method == "deepoly":
+            required_fields.extend(["n_segments", "poly_degree"])
         for field_name in required_fields:
             if not hasattr(self, field_name) or not getattr(self, field_name):
                 raise ValueError(f"Required field '{field_name}' is missing or empty")
@@ -25,9 +28,11 @@ class BasePDEConfigValidationMixin:
     def _validate_dimension_lengths(self) -> None:
         field_pairs = {
             "x_domain": len(self.x_domain),
-            "n_segments": len(self.n_segments),
-            "poly_degree": len(self.poly_degree),
         }
+        method = str(getattr(self, "method", "deepoly") or "deepoly").lower()
+        if method == "deepoly":
+            field_pairs["n_segments"] = len(self.n_segments)
+            field_pairs["poly_degree"] = len(self.poly_degree)
         expected = len(self.spatial_vars)
         for field_name, actual in field_pairs.items():
             if actual != expected:

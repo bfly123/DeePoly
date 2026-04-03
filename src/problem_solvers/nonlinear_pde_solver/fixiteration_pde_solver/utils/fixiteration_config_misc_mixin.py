@@ -1,6 +1,4 @@
-import json
-import os
-
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
 from src.meta_coding.auto_spotter import update_physics_loss_from_config
 
 
@@ -8,7 +6,7 @@ class FixIterationConfigMiscMixin:
     def _auto_code(self):
         if hasattr(self, "auto_code") and self.auto_code:
             try:
-                config_path = os.path.join(self.case_dir, "config.json")
+                config_path = resolve_case_config_path(self.case_dir)
                 update_physics_loss_from_config(config_path)
                 self._disable_auto_code(config_path)
                 print("Auto code completed, please check the generated files and restart the program")
@@ -19,11 +17,9 @@ class FixIterationConfigMiscMixin:
 
     def _disable_auto_code(self, config_path: str):
         try:
-            with open(config_path, "r", encoding="utf-8") as handle:
-                config = json.load(handle)
+            config = load_config_file(config_path)
             config["auto_code"] = False
-            with open(config_path, "w", encoding="utf-8") as handle:
-                json.dump(config, handle, indent=4, ensure_ascii=False)
+            save_config_file(config_path, config)
             print(f"Auto set auto_code to false in file: {config_path}")
         except Exception as exc:
             print(f"Cannot update configuration file: {exc}")

@@ -52,7 +52,16 @@ def main() -> int:
                     data_test=payload.get("data_test"),
                     device=payload["candidate"].get("device") or getattr(config_ns, "device", "cpu"),
                 )
-                send_message(stdout, {"ok": True, "backend_name": getattr(provider, "backend_name", "custom")})
+                supports = getattr(provider, "supports_external_training", None)
+                supports_external_training = bool(supports() if callable(supports) else supports)
+                send_message(
+                    stdout,
+                    {
+                        "ok": True,
+                        "backend_name": getattr(provider, "backend_name", "custom"),
+                        "supports_external_training": supports_external_training,
+                    },
+                )
                 continue
 
             if op == "shutdown":
@@ -77,10 +86,21 @@ def main() -> int:
                 )
             elif op == "predict_output":
                 result = provider.predict_output(np.asarray(payload["points"], dtype=np.float64))
+            elif op == "train_external_step":
+                result = provider.train_external_step(
+                    problem_type=str(payload["problem_type"]),
+                    dt=float(payload["dt"]),
+                    U_current=np.asarray(payload["U_current"], dtype=np.float64),
+                    iteration=payload.get("iteration"),
+                )
+            elif op == "train_external":
+                result = provider.train_external(dict(payload.get("request", {}) or {}))
             else:
                 raise ValueError(f"Unsupported worker operation: {op}")
 
-            send_message(stdout, {"ok": True, "result": np.asarray(result, dtype=np.float64)})
+            if isinstance(result, np.ndarray):
+                result = np.asarray(result, dtype=np.float64)
+            send_message(stdout, {"ok": True, "result": result})
         except Exception as exc:
             send_message(stdout, {"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 

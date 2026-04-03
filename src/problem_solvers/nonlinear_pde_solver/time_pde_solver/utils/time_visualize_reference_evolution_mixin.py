@@ -1,4 +1,3 @@
-import time
 from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -16,6 +15,8 @@ class TimePDEReferenceEvolutionMixin:
         solver=None,
         save_path: Optional[str] = None,
     ) -> None:
+        if not self._ensure_realtime_figure():
+            return
         x_flat = x[:, 0] if x.ndim > 1 else x
         u_flat = u[:, 0] if u.ndim > 1 else u
         reference_state = self._build_reference_state(u_ref, solver)
@@ -31,9 +32,9 @@ class TimePDEReferenceEvolutionMixin:
         if error_metrics is not None and step_index <= 5:
             self._print_reference_error_diagnostics(step_index, T, u_flat, error_metrics)
 
-        self.fig.canvas.draw()
+        self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
-        time.sleep(0.05)
+        plt.pause(0.001)
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
 

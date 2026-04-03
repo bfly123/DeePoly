@@ -218,6 +218,9 @@ class FixIterationSolverOutputMixin:
         feature_cfg = getattr(self.config, "spotter_feature", {}) or {}
         if not isinstance(feature_cfg, dict):
             return None
+        options = feature_cfg.get("options")
+        if isinstance(options, dict) and options.get("dtype") is not None:
+            return options.get("dtype")
         factory_kwargs = feature_cfg.get("factory_kwargs", {}) or {}
         if not isinstance(factory_kwargs, dict):
             return None

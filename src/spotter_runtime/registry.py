@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from src.abstract_class.spotter_feature_provider import create_spotter_feature_provider_from_settings
+from src.spotter_runtime.config_support import resolve_spotter_runtime
 from src.spotter_runtime.runtime import SubprocessSpotterFeatureProvider
 from src.spotter_runtime.types import SpotterCandidateConfig
 
@@ -18,7 +19,11 @@ def create_candidate_provider(
     data_train: Optional[Dict[str, Any]] = None,
     data_test: Optional[Dict[str, Any]] = None,
 ):
-    runtime = str(candidate.runtime or "inprocess").lower()
+    runtime = resolve_spotter_runtime(
+        candidate.runtime,
+        backend=candidate.backend,
+        provider_cfg=candidate.provider_cfg,
+    )
     if runtime == "subprocess":
         repo_root = str(Path(__file__).resolve().parents[2])
         python_executable = candidate.python_executable or sys.executable

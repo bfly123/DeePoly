@@ -23,6 +23,11 @@ python -m pip install -e .
 
 `install.sh` 只会安装到你当前指定的 Python 环境，不会主动切换环境。
 
+如果当前环境是 conda 环境，`install.sh` 还会额外写入一个 `activate.d` hook，
+自动把 `site-packages/nvidia/*/lib` 加入 `LD_LIBRARY_PATH`。
+这一步对 `cupy` 的 `gpu_svd/gpu_lstsq` 很重要，尤其是通过 pip 安装
+`nvidia-*` CUDA wheel 时。
+
 安装前会检查：
 
 - Python 版本是否满足 `>= 3.10`
@@ -38,10 +43,17 @@ python -m pip install -e .
 PYTHON_BIN=/home/bfly/anaconda3/envs/ML/bin/python bash install.sh
 ```
 
-安装完成后，可以在任意包含 `config.json` 的 case 目录中执行：
+安装完成后，可以在任意包含 `config.yaml` / `config.yml` / `config.json` 的 case 目录中执行：
 
 ```bash
 deepoly .
+```
+
+如果你是第一次安装 hook，建议重新执行一次：
+
+```bash
+conda deactivate
+conda activate ML
 ```
 
 也可以显式指定 case 目录：

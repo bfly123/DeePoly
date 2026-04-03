@@ -18,7 +18,8 @@ class BaseNetTrainingMixin:
         best_loss = float("inf")
         best_model = None
         dt = kwargs.get("dt", 1.0)
-        tolerance = self._get_training_tolerance(dt)
+        adam_tolerance = self._get_adam_early_stop_tolerance(dt)
+        retry_tolerance = self._get_retry_stop_tolerance()
 
         while retry_count <= max_retries:
             if retry_count > 0:
@@ -35,16 +36,17 @@ class BaseNetTrainingMixin:
                 optimizer_adam,
                 optimizer_lbfgs,
                 adjust_learning_rate,
-                tolerance,
+                adam_tolerance,
+                retry_tolerance,
             )
 
             if run_best_loss < best_loss and run_best_model is not None:
                 best_loss = run_best_loss
                 best_model = run_best_model
 
-            if run_best_loss < tolerance:
+            if run_best_loss < retry_tolerance:
                 print(
-                    f"Target accuracy {tolerance:.2e} "
+                    f"Target accuracy {retry_tolerance:.2e} "
                     f"(DNNtol={self.config.DNNtol:.2e}) achieved, stopping retries"
                 )
                 break
@@ -55,8 +57,11 @@ class BaseNetTrainingMixin:
             print(f"Using best model, loss value: {best_loss}")
         return model
 
-    def _get_training_tolerance(self, dt: float) -> float:
+    def _get_adam_early_stop_tolerance(self, dt: float) -> float:
         _ = dt
+        return float(self.config.DNNtol)
+
+    def _get_retry_stop_tolerance(self) -> float:
         return float(self.config.DNNtol)
 
     def _reset_random_seed_for_retry(self, retry_count: int) -> None:
@@ -97,7 +102,7 @@ class BaseNetTrainingMixin:
         return optimizer_adam, optimizer_lbfgs
 
     def _build_lr_adjuster(self, optimizer):
-        adaptive_enabled = getattr(self.config, "adaptive_learning_rate", False)
+        adaptive_enabled = getattr(self.config, "adaptive_learning_rate", True)
         milestone_epochs = self._get_adam_lr_milestones()
         milestone_gamma = float(getattr(self.config, "adam_lr_milestone_gamma", 0.5))
 
@@ -108,8 +113,18 @@ class BaseNetTrainingMixin:
 
             return identity_adjuster
 
-        lr_thresholds = [1.0, 0.5, 1e-2, 1e-3, 1e-4]
-        lr_values = [self.config.learning_rate, 0.005, 0.003, 0.001, 0.0005, 0.0001]
+        lr_thresholds = list(getattr(self.config, "adam_lr_thresholds", [1e-2, 1e-3]))
+        lr_values = list(
+            getattr(
+                self.config,
+                "adam_lr_values",
+                [self.config.learning_rate, 0.005, 0.001],
+            )
+        )
+        if len(lr_values) != len(lr_thresholds) + 1:
+            raise ValueError(
+                "adam_lr_values must contain exactly one more entry than adam_lr_thresholds"
+            )
         milestone_index = 0
 
         def adjust_learning_rate(current_loss, epoch):
@@ -155,7 +170,8 @@ class BaseNetTrainingMixin:
         optimizer_adam,
         optimizer_lbfgs,
         adjust_learning_rate,
-        tolerance: float,
+        adam_tolerance: float,
+        retry_tolerance: float,
     ):
         def closure():
             optimizer_adam.zero_grad()
@@ -169,7 +185,7 @@ class BaseNetTrainingMixin:
             kwargs,
             optimizer_adam,
             adjust_learning_rate,
-            tolerance,
+            adam_tolerance,
         )
         print(f"Final Adam Loss: {final_loss}")
 
@@ -180,7 +196,7 @@ class BaseNetTrainingMixin:
                 kwargs,
                 optimizer_lbfgs,
                 closure,
-                tolerance,
+                retry_tolerance,
                 final_loss,
                 best_loss,
                 best_model,

@@ -9,13 +9,12 @@ and consistency checking in the DeePoly framework. It manages the workflow of:
 - Handling process restart after code generation
 """
 
-import json
 import os
 import sys
-import subprocess
 import time
 from typing import Dict, Tuple, Optional
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
 from .auto_spotter import AutoCodeGenerator
 
 
@@ -34,10 +33,10 @@ class AutoCodeManager:
         Initialize the AutoCodeManager
 
         Args:
-            case_dir: Path to the case directory containing config.json
+            case_dir: Path to the case directory containing config.yaml/config.yml/config.json
         """
         self.case_dir = case_dir
-        self.config_path = os.path.join(case_dir, "config.json")
+        self.config_path = resolve_case_config_path(case_dir)
         self.config_dict = self._load_config()
         self.problem_type = self.config_dict.get("problem_type", None)
         self._src_dir = self._get_src_dir()
@@ -50,22 +49,15 @@ class AutoCodeManager:
 
     def _load_config(self) -> Dict:
         """
-        Load configuration from JSON file
+        Load configuration from case config file
 
         Returns:
             Dictionary containing the configuration data
 
         Raises:
-            FileNotFoundError: If config.json doesn't exist
-            json.JSONDecodeError: If config.json is malformed
+            FileNotFoundError: If config file doesn't exist
         """
-        try:
-            with open(self.config_path, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(f"Malformed configuration file: {self.config_path}", e.doc, e.pos)
+        return load_config_file(self.config_path)
 
     def _get_net_path(self) -> Optional[str]:
         """
@@ -83,8 +75,7 @@ class AutoCodeManager:
 
     def _save_config(self) -> None:
         """Save the current configuration back to file"""
-        with open(self.config_path, "w") as f:
-            json.dump(self.config_dict, f, indent=4, ensure_ascii=False)
+        save_config_file(self.config_path, self.config_dict)
 
     def check_consistency(self) -> Tuple[bool, str]:
         """

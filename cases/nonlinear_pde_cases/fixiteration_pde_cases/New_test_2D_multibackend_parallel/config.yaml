@@ -1,0 +1,143 @@
+problem_type: fixiteration_pde
+method: deepoly
+eq:
+  L1:
+  - -0.0001*diff(u,x,2)+diff(u,y)
+  L2:
+  - '0'
+  F:
+  - '0'
+  N:
+  - -5*u+5*u**3
+  S:
+  - '0'
+vars_list:
+- u
+spatial_vars:
+- x
+- y
+boundary_conditions:
+- type: periodic
+  pairs:
+  - left
+  - right
+  points: 120
+  weight: 1
+  var: u
+- type: dirichlet
+  region: bottom
+  var: u
+  formula: x**2 * cos(pi * x)
+  points: 120
+  weight: 10
+hidden_dims:
+- 128
+epochs_adam: 2000
+epochs_lbfgs: 0
+max_retries: 0
+DNNtol: 1.0e-05
+learning_rate: 0.001
+n_segments:
+- 2
+- 2
+points_domain: 600
+points_per_swap: 4
+points_domain_test:
+- 128
+- 128
+poly_degree:
+- 5
+- 4
+x_domain:
+- - -1
+  - 1
+- - 0
+  - 1
+fixiteration:
+  max_iterations: 1
+  residual_tol: 1.0e-06
+  check_interval: 1
+  print_interval: 1
+  save_interval: 10
+initial_condition:
+  method: zero
+spotter:
+  mode: parallel_select
+  selector:
+    metric: composite
+    max_points: 2048
+    weights:
+      relative_l2: 1.0
+      boundary_residual: 2.0
+      priority: 0.05
+  candidates:
+  - name: torch_local
+    backend: torch
+    runtime: inprocess
+    priority: 0
+    allow_torch_training: true
+    device: cpu
+  - name: jaxpi_worker
+    backend: jax
+    runtime: subprocess
+    priority: 1
+    python: /home/bfly/anaconda3/bin/python
+    device: cpu
+    feature:
+      factory_file: ../../../../tools/jaxpi_feature_factory.py
+      factory_function: build_provider
+      allow_torch_training: false
+      factory_kwargs:
+        jaxpi_root: ../../../../tmp/jaxpi_pirate
+        workdir: ../../../../tmp/jaxpi_runs/allen_cahn
+        config_path: ../../../../tmp/jaxpi_pirate/examples/allen_cahn/configs/pirate_deepoly_gpu.py
+        coordinate_order:
+        - 1
+        - 0
+        jax_platform: cpu
+  - name: paddlesci_worker
+    backend: paddle
+    runtime: subprocess
+    priority: 2
+    python: /home/bfly/anaconda3/envs/paddle_ac/bin/python
+    device: cpu
+    feature:
+      factory_file: ../../../../tools/paddlesci_feature_factory.py
+      factory_function: build_provider
+      allow_torch_training: false
+      factory_kwargs:
+        paddlesci_root: ../../../../tmp/PaddleScience_20260329
+        pretrained_model_path: ../../../../tmp/PaddleScience_20260329/examples/allen_cahn/allen_cahn_piratenet_soap_pretrained.pdparams
+        input_keys:
+        - t
+        - x
+        output_keys:
+        - u
+        output_key: u
+        num_blocks: 3
+        hidden_size: 256
+        activation: tanh
+        periods:
+          x:
+          - 2.0
+          - false
+        fourier:
+          dim: 256
+          scale: 2.0
+        random_weight:
+          mean: 1.0
+          std: 0.1
+        coordinate_order:
+        - 1
+        - 0
+        device: cpu
+spotter_skip: 1
+run_snipper: false
+reference_solution: ../New_test_2D/reference_data/allen_cahn_highres.mat
+realtime_visualization: false
+animation_skip: 10
+device: cpu
+linear_device: cpu
+seed: 42
+auto_code: false
+nn_backend: torch

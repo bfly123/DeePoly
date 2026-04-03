@@ -1,0 +1,19 @@
+# Local Python cache
+__pycache__/
+*.pyc
+
+# Local experiment workspace
+tmp/
+
+# Local analysis/runtime state
+.architec/
+.ccb/
+.hippocampus/
+src/.hippocampus/
+
+# Local build artifacts
+deepoly.egg-info/
+main.aux
+main.fdb_latexmk
+main.fls
+main.log

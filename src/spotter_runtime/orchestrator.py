@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from src.spotter_runtime.config_support import resolve_python_executable, resolve_spotter_runtime
 from src.spotter_runtime.registry import create_candidate_provider
 from src.spotter_runtime.selector import (
     SpotterCandidateReport,
@@ -118,6 +119,15 @@ class SpotterOrchestrator:
             encoding="utf-8",
         )
 
+    def sync_model_state(self, *, model=None):
+        if model is not None:
+            self.model = model
+        for provider in self.providers.values():
+            refresh_fn = getattr(provider, "refresh_from_model", None)
+            if callable(refresh_fn):
+                refresh_fn(self.model)
+        return self.reselect()
+
     def close(self) -> None:
         for provider in self.providers.values():
             close_fn = getattr(provider, "close", None)
@@ -177,8 +187,10 @@ class SpotterOrchestrator:
         if not raw or not candidate_dicts:
             backend = str(getattr(self.config, "spotter_feature_backend", "torch") or "torch")
             provider_cfg = dict(getattr(self.config, "spotter_feature", {}) or {})
-            runtime = str(provider_cfg.pop("runtime", "inprocess") or "inprocess")
-            python_executable = provider_cfg.pop("python", None) or provider_cfg.pop("python_executable", None)
+            runtime_raw = provider_cfg.pop("runtime", "auto")
+            runtime = resolve_spotter_runtime(runtime_raw, backend=backend, provider_cfg=provider_cfg)
+            python_raw = provider_cfg.pop("python", None) or provider_cfg.pop("python_executable", None)
+            python_executable = resolve_python_executable(python_raw, backend=backend)
             allow_torch_training = bool(provider_cfg.get("allow_torch_training", backend == "torch"))
             return SpotterRuntimeConfig(
                 mode="single",
@@ -209,11 +221,18 @@ class SpotterOrchestrator:
                 SpotterCandidateConfig(
                     name=str(item.get("name") or f"candidate_{index}"),
                     backend=str(item.get("backend", "torch") or "torch"),
-                    runtime=str(item.get("runtime", "inprocess") or "inprocess"),
+                    runtime=resolve_spotter_runtime(
+                        item.get("runtime", "auto"),
+                        backend=str(item.get("backend", "torch") or "torch"),
+                        provider_cfg=provider_cfg,
+                    ),
                     enabled=bool(item.get("enabled", True)),
                     priority=int(item.get("priority", index)),
                     device=item.get("device", getattr(self.config, "device", "cpu")),
-                    python_executable=item.get("python") or item.get("python_executable"),
+                    python_executable=resolve_python_executable(
+                        item.get("python") or item.get("python_executable"),
+                        backend=str(item.get("backend", "torch") or "torch"),
+                    ),
                     provider_cfg=provider_cfg,
                     allow_torch_training=bool(item.get("allow_torch_training", False)),
                     metadata={

@@ -17,8 +17,8 @@ import numpy as np
 import scipy.io
 import os
 
-from src.abstract_class.spotter_feature_provider import create_spotter_feature_provider
-from src.spotter_runtime import NullSpotterModel, SpotterOrchestrator
+from src.abstract_class.config.config_io import resolve_case_config_path
+from src.spotter_runtime import NullSpotterModel, create_spotter_session
 
 
 def _import_torch():
@@ -223,16 +223,35 @@ class NonlinearPDESolver(ABC):
         # 检查是否需要跳过神经网络训练
         if not force and not self._should_train_network(iter):
             # 仍然需要重新初始化 fitter，但使用现有模型参数
-            self._maybe_reselect_spotter_provider()
+            self._sync_spotter_session(model_updated=False)
             self.fitter.fitter_init(self._get_spotter_feature_source())
             return
 
         if self._uses_external_spotter_feature_backend() and not self._allow_torch_training_with_external_features():
+            if self._can_train_external_spotter_backend():
+                backend_name = self._get_active_spotter_backend_name()
+                print(f"  Training External Spotter backend ({backend_name})...")
+                result = self._train_external_spotter_step(iter=iter, dt=dt, U_current=U_current)
+                final_loss_value = result.get("final_loss") if isinstance(result, dict) else None
+                if final_loss_value is not None:
+                    final_loss_value = float(final_loss_value)
+                    print(f"  ✓ External Training Completed - Final Loss: {final_loss_value:.6e}")
+                self._last_training_loss = final_loss_value
+                self._sync_spotter_session(model_updated=False)
+                self.fitter.fitter_init(self._get_spotter_feature_source())
+                self._on_network_trained(
+                    iter,
+                    dt,
+                    U_current,
+                    float(final_loss_value) if final_loss_value is not None else float("nan"),
+                    accepted=True,
+                )
+                return
             print(
                 "  Skipping Torch Spotter training "
                 f"(spotter_feature_backend={self._get_active_spotter_backend_name()})"
             )
-            self._maybe_reselect_spotter_provider()
+            self._sync_spotter_session(model_updated=False)
             self.fitter.fitter_init(self._get_spotter_feature_source())
             return
 
@@ -262,7 +281,7 @@ class NonlinearPDESolver(ABC):
         # 记录最后一次训练损失，供子类使用
         self._last_training_loss = final_loss
 
-        self._maybe_reselect_spotter_provider()
+        self._sync_spotter_session(model_updated=accepted)
         # 重新初始化 fitter 以使用更新后的模型
         self.fitter.fitter_init(self._get_spotter_feature_source())
 
@@ -348,11 +367,18 @@ class NonlinearPDESolver(ABC):
         # 加载参考解（如果指定）
         self.reference_solution = self._load_reference_solution()
 
-        self.spotter_orchestrator = self._create_spotter_orchestrator()
-        self.spotter_feature_provider = self._create_spotter_feature_provider()
+        self.spotter_session = self._create_spotter_session()
+        self.spotter_orchestrator = getattr(self.spotter_session, "orchestrator", None)
+        self.spotter_feature_provider = getattr(self.spotter_session, "provider", None)
 
         # 创建结果目录
         os.makedirs(self.config.results_dir, exist_ok=True)
+        export_effective = getattr(self.config, "export_effective_config", None)
+        if callable(export_effective):
+            export_effective(
+                self.config.results_dir,
+                extra_metadata={"solver_family": "nonlinear_pde"},
+            )
         self._save_spotter_selection_report()
 
     def _build_snipper_dataset(self):
@@ -1148,8 +1174,12 @@ class NonlinearPDESolver(ABC):
             )
 
         resolved = raw_path if os.path.isabs(raw_path) else os.path.abspath(os.path.join(base_dir, raw_path))
-        if os.path.isdir(resolved) and os.path.isfile(os.path.join(resolved, "config.json")):
-            resolved = os.path.join(resolved, "results")
+        if os.path.isdir(resolved):
+            try:
+                resolve_case_config_path(resolved)
+                resolved = os.path.join(resolved, "results")
+            except (FileNotFoundError, FileExistsError):
+                pass
         if not os.path.isdir(resolved):
             raise FileNotFoundError(f"Transfer results directory not found: {resolved}")
         return resolved
@@ -1450,23 +1480,8 @@ class NonlinearPDESolver(ABC):
         """
         return self._predict_field_on_points(self.data_train["x"])
 
-    def _create_spotter_feature_provider(self):
-        if getattr(self, "spotter_orchestrator", None) is not None:
-            return self.spotter_orchestrator.initialize()
-        return create_spotter_feature_provider(
-            self.config,
-            self.model,
-            data_train=getattr(self, "data_train", None),
-            data_test=getattr(self, "data_test", None),
-        )
-
-    def _create_spotter_orchestrator(self):
-        raw_spotter = getattr(self.config, "spotter", {}) or {}
-        legacy_cfg = getattr(self.config, "spotter_feature", {}) or {}
-        legacy_runtime = str(legacy_cfg.get("runtime", "inprocess") or "inprocess").lower()
-        if not raw_spotter and legacy_runtime == "inprocess":
-            return None
-        return SpotterOrchestrator(
+    def _create_spotter_session(self):
+        return create_spotter_session(
             config=self.config,
             model=self.model,
             data_train=getattr(self, "data_train", None),
@@ -1474,24 +1489,44 @@ class NonlinearPDESolver(ABC):
             reference_solution=getattr(self, "reference_solution", None),
         )
 
-    def _maybe_reselect_spotter_provider(self) -> None:
-        orchestrator = getattr(self, "spotter_orchestrator", None)
-        if orchestrator is None:
+    def _create_spotter_feature_provider(self):
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return None
+        return getattr(session, "provider", None)
+
+    def _create_spotter_orchestrator(self):
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return None
+        return getattr(session, "orchestrator", None)
+
+    def _sync_spotter_session(self, *, model_updated: bool = False) -> None:
+        session = getattr(self, "spotter_session", None)
+        if session is None:
             return
-        self.spotter_feature_provider = orchestrator.reselect()
+        session.sync(model_updated=model_updated)
+        self.spotter_feature_provider = getattr(session, "provider", None)
+        self.spotter_orchestrator = getattr(session, "orchestrator", None)
         self._save_spotter_selection_report()
 
+    def _maybe_reselect_spotter_provider(self) -> None:
+        self._sync_spotter_session(model_updated=False)
+
     def _save_spotter_selection_report(self) -> None:
-        orchestrator = getattr(self, "spotter_orchestrator", None)
-        if orchestrator is None:
+        session = getattr(self, "spotter_session", None)
+        if session is None:
             return
         results_dir = getattr(self.config, "results_dir", None)
         if results_dir:
             os.makedirs(results_dir, exist_ok=True)
-            orchestrator.save_report(results_dir)
+            session.save_report(results_dir)
 
     def _get_spotter_feature_source(self):
-        return getattr(self, "spotter_feature_provider", None) or self.model
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return self.model
+        return session.feature_source()
 
     def _needs_live_torch_model(self) -> bool:
         if getattr(self.config, "spotter_feature_backend", "torch") == "torch":
@@ -1523,18 +1558,55 @@ class NonlinearPDESolver(ABC):
         return NullSpotterModel()
 
     def _uses_external_spotter_feature_backend(self) -> bool:
-        backend = self._get_active_spotter_backend_name()
-        return backend != "torch"
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return False
+        return session.uses_external_backend()
 
     def _allow_torch_training_with_external_features(self) -> bool:
-        feature_source = getattr(self, "spotter_feature_provider", None)
-        if feature_source is not None and hasattr(feature_source, "allow_torch_training"):
-            return bool(feature_source.allow_torch_training)
+        session = getattr(self, "spotter_session", None)
+        if session is not None:
+            return session.allow_local_torch_training()
         cfg = getattr(self.config, "spotter_feature", {}) or {}
         return bool(cfg.get("allow_torch_training", False))
 
+    def _can_train_external_spotter_backend(self) -> bool:
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return False
+        supports = getattr(session, "can_train_externally", None)
+        if callable(supports):
+            return bool(supports())
+        return bool(supports)
+
+    def _train_external_spotter_step(
+        self,
+        *,
+        iter: int,
+        dt: float,
+        U_current: np.ndarray,
+    ):
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            raise RuntimeError("No active spotter session is available for external training.")
+        return session.train_external_step(
+            problem_type=str(getattr(self.config, "problem_type", "")),
+            dt=float(dt),
+            U_current=np.asarray(U_current, dtype=np.float64),
+            iteration=int(iter),
+        )
+
     def _get_active_spotter_backend_name(self) -> str:
-        feature_source = getattr(self, "spotter_feature_provider", None)
-        if feature_source is not None and hasattr(feature_source, "backend_name"):
-            return str(feature_source.backend_name).lower()
+        session = getattr(self, "spotter_session", None)
+        if session is not None:
+            return session.active_backend_name()
         return str(getattr(self.config, "spotter_feature_backend", "torch") or "torch").lower()
+
+    def __del__(self):  # pragma: no cover - defensive cleanup
+        session = getattr(self, "spotter_session", None)
+        if session is None:
+            return
+        try:
+            session.close()
+        except Exception:
+            pass

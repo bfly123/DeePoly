@@ -1,0 +1,64 @@
+problem_type: time_pde
+method: deepoly
+eq:
+  L1:
+  - -0.0001*diff(u,x,2)
+  L2: []
+  F: []
+  N:
+  - 5*u**3-5*u
+vars_list:
+- u
+spatial_vars:
+- x
+Initial_conditions:
+- var: u
+  value: x**2*cos(pi*x)
+  points: 500
+boundary_conditions:
+- type: periodic
+  var: u
+  pairs:
+  - left
+  - right
+  points: 1
+hidden_dims:
+- 12
+- 32
+- 32
+- 10
+learning_rate: 0.01
+n_segments:
+- 10
+poly_degree:
+- 10
+x_domain:
+- - -1
+  - 1
+points_domain: 500
+points_domain_test:
+- 100
+points_per_swap: 1
+periodic_constraint_weight: 10
+T: 1.0
+dt: 0.05
+time_scheme: onestep_predictor
+time_scheme_params:
+  time_output_interval: 1
+  adaptive_dt: false
+  stability_check: false
+spotter_skip: 1
+epochs_adam: 20000
+epochs_lbfgs: 0
+max_retries: 1
+DNNtol: 0.01
+reference_solution: ../reference_data/allen_cahn_highres.mat
+note: Legacy GitHub onestep Allen-Cahn benchmark
+realtime_visualization: false
+animation_skip: 1
+plot_nn_predictions: false
+device: cuda
+linear_device: cpu
+seed: 42
+auto_code: false
+nn_backend: torch

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import copy
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 import numpy as np
+
+from src.spotter_runtime.builtin_provider_factory import create_builtin_external_provider
+from src.spotter_runtime.config_support import normalize_spotter_feature_config, resolve_spotter_resource_path
 
 if TYPE_CHECKING:  # pragma: no cover
     import torch
@@ -15,6 +17,38 @@ if TYPE_CHECKING:  # pragma: no cover
 class BaseSpotterFeatureProvider:
     backend_name = "custom"
     feature_dim: Optional[int] = None
+
+    def refresh_from_model(self, model: Any) -> None:
+        _ = model
+
+    def supports_external_training(self) -> bool:
+        return False
+
+    def train_external(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        problem_type = str(request.get("problem_type", ""))
+        if "dt" in request and "U_current" in request:
+            return self.train_external_step(
+                problem_type=problem_type,
+                dt=float(request.get("dt", 0.0)),
+                U_current=np.asarray(request.get("U_current"), dtype=np.float64),
+                iteration=request.get("iteration"),
+            )
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement generic external backend training."
+        )
+
+    def train_external_step(
+        self,
+        *,
+        problem_type: str,
+        dt: float,
+        U_current: np.ndarray,
+        iteration: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        _ = (problem_type, dt, U_current, iteration)
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement external backend training."
+        )
 
     def hidden_features(
         self,
@@ -124,12 +158,16 @@ class TorchSpotterFeatureProvider(BaseSpotterFeatureProvider):
     backend_name = "torch"
 
     def __init__(self, model: Any, device: Any = "cuda"):
-        torch = _import_torch()
         self.device = device
-        self.model = copy.deepcopy(model).to(device)
+        self.model = None
+        self.refresh_from_model(model)
+
+    def refresh_from_model(self, model: Any) -> None:
+        torch = _import_torch()
+        self.model = model.to(self.device)
         self.model = self.model.to(dtype=torch.float64)
         self.model.eval()
-        out_layer = getattr(model, "out", None)
+        out_layer = getattr(self.model, "out", None)
         in_features = getattr(out_layer, "in_features", None)
         if in_features is not None:
             self.feature_dim = int(in_features)
@@ -385,8 +423,8 @@ def _load_factory_from_file(
     factory_file: str,
     factory_function: str,
 ) -> Callable[..., Any]:
-    path = Path(factory_file).expanduser().resolve()
-    if not path.exists():
+    path = resolve_spotter_resource_path(factory_file, None)
+    if path is None or not path.exists():
         raise FileNotFoundError(f"Spotter feature factory file not found: {path}")
 
     spec = importlib.util.spec_from_file_location("deepoly_spotter_feature_factory", path)
@@ -449,8 +487,8 @@ def create_spotter_feature_provider_from_settings(
     device: str = "cuda",
 ) -> BaseSpotterFeatureProvider:
     backend = str(backend or "torch").lower()
-    provider_cfg = dict(provider_cfg or {})
     runtime_config = config or SimpleNamespace(case_dir=case_dir, device=device, n_dim=None)
+    provider_cfg = normalize_spotter_feature_config(provider_cfg or {}, backend=backend)
 
     if backend == "torch":
         if model is None:
@@ -465,19 +503,29 @@ def create_spotter_feature_provider_from_settings(
     if provider_class is None:
         raise ValueError(f"Unsupported spotter_feature_backend: {backend}")
 
+    builtin_provider = create_builtin_external_provider(
+        backend=backend,
+        provider_cfg=provider_cfg,
+        config=runtime_config,
+        data_train=data_train,
+    )
+    if builtin_provider is not None:
+        return _validate_provider(builtin_provider)
+
     factory_file = provider_cfg.get("factory_file")
     factory_function = provider_cfg.get("factory_function", "build_provider")
-    factory_kwargs = dict(provider_cfg.get("factory_kwargs", {}))
+    factory_kwargs = dict(provider_cfg.get("options", {}))
 
     if not factory_file:
         raise ValueError(
-            f"{backend.upper()} feature backend requires 'spotter_feature.factory_file' "
-            "to build the external provider."
+            f"No builtin external spotter provider matched backend={backend}. "
+            "Provide spotter_feature.factory_file for a custom provider."
         )
 
-    if not Path(factory_file).is_absolute():
-        case_root = Path(case_dir or ".").expanduser().resolve()
-        factory_file = str((case_root / factory_file).resolve())
+    resolved_factory = resolve_spotter_resource_path(factory_file, case_dir)
+    if resolved_factory is None:
+        raise ValueError(f"Invalid factory_file for backend {backend}: {factory_file}")
+    factory_file = str(resolved_factory)
 
     factory = _load_factory_from_file(factory_file, factory_function)
     provider = factory(

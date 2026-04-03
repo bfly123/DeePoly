@@ -1,0 +1,49 @@
+problem_type: func_fitting
+method: deepoly
+eq:
+  L1:
+  - u
+  L2:
+  - '0'
+  F:
+  - '0'
+  N:
+  - '0'
+  S: data_generate.py
+eq_nonlinear: []
+vars_list:
+- u
+spatial_vars:
+- x
+- y
+re_coding: false
+hidden_dims:
+- 32
+- 64
+- 32
+epochs_adam: 1000
+epochs_lbfgs: 0
+max_retries: 1
+DNNtol: 2.0e-05
+n_segments:
+- 5
+- 5
+points_domain: 5000
+points_domain_test:
+- 30
+- 30
+points_per_swap: 0
+poly_degree:
+- 5
+- 5
+x_domain:
+- - -3
+  - 3
+- - -3
+  - 3
+device: cuda
+linear_device: cpu
+output_module_path: output.py
+reference_solution: data_generate.py
+seed: 42
+nn_backend: torch

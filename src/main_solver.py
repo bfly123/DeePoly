@@ -10,7 +10,6 @@ It handles:
 """
 
 import argparse
-import json
 import os
 import sys
 
@@ -31,6 +30,7 @@ from problem_solvers.linear_pde_solver.utils import LinearPDEConfig
 from problem_solvers.nonlinear_pde_solver.pseudotime_pde_solver.utils import PseudoTimePDEConfig
 from problem_solvers.nonlinear_pde_solver.fixiteration_pde_solver.utils import FixIterationPDEConfig
 from meta_coding.auto_code_manager import AutoCodeManager
+from abstract_class.config.config_io import load_config_file, resolve_case_config_path
 
 
 def handle_autocode(case_dir: str) -> bool:
@@ -114,7 +114,7 @@ Examples:
         type=str,
         required=False,
         #default='cases/Time_pde_cases/Allen_Cahn/AC_equation_100_0.1_2d',
-#        help='Path to case directory containing config.json (default: #cases/general_pde_cases/AC_equation)'
+#        help='Path to case directory containing config.yaml/config.yml/config.json'
 default='cases/nonlinear_pde_cases/fixiteration_pde_cases/New_test_2D'
     )
 
@@ -131,17 +131,14 @@ def main():
     print(f"Using case directory: {case_dir}")
 
     # Validate configuration file exists
-    config_path = os.path.join(case_dir, "config.json")
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    config_path = resolve_case_config_path(case_dir)
 
     # Handle automatic code generation and restart if needed
     if handle_autocode(case_dir):
         return  # Process was restarted
 
     # Load configuration to determine problem type
-    with open(config_path, "r") as f:
-        config_dict = json.load(f)
+    config_dict = load_config_file(config_path)
 
     problem_type = config_dict.get("problem_type", None)
     if problem_type is None:

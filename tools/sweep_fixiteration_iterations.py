@@ -17,6 +17,8 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.io import loadmat
 
+from src.abstract_class.config.config_io import load_config_file, resolve_case_config_path, save_config_file
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -100,14 +102,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_json(path: Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return load_config_file(path)
 
 
 def dump_json(path: Path, payload: dict[str, Any]) -> None:
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    save_config_file(path, payload)
 
 
 def absolutize_case_paths(cfg: dict[str, Any], base_case_dir: Path) -> None:
@@ -240,7 +239,7 @@ def summarize_row(
 
 
 def _load_reference_for_case(case_dir: Path) -> tuple[np.ndarray, np.ndarray] | None:
-    cfg = load_json(case_dir / "config.json")
+    cfg = load_json(Path(resolve_case_config_path(case_dir)))
     ref_path = cfg.get("reference_solution")
     if not ref_path:
         return None
@@ -319,13 +318,12 @@ def main() -> int:
     args = parse_args()
     root = repo_root()
     base_case_dir = (root / args.base_case).resolve()
-    if not (base_case_dir / "config.json").exists():
-        raise FileNotFoundError(f"case config not found: {base_case_dir / 'config.json'}")
+    base_config_path = Path(resolve_case_config_path(base_case_dir))
 
     variant_root = (root / args.variant_root).resolve()
     iterations = parse_iterations(args.iterations)
     under_relaxations = parse_float_list(args.under_relaxations)
-    base_cfg = load_json(base_case_dir / "config.json")
+    base_cfg = load_json(base_config_path)
 
     rows: list[dict[str, Any]] = []
     failures = 0

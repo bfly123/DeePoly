@@ -2,6 +2,8 @@ import json
 import os
 from typing import Dict, List, Optional, Tuple
 
+from src.abstract_class.config.config_io import load_config_file
+
 from .spotter_codegen import (
     abstract_consistency_check,
     build_config_signature,
@@ -36,8 +38,7 @@ class AutoCodeGenerator:
     def _load_config(self) -> Dict:
         """LoadingConfigurationFile"""
         try:
-            with open(self.config_path, "r") as config_file:
-                return json.load(config_file)
+            return load_config_file(self.config_path)
         except Exception as exc:
             raise ValueError(f"LoadingConfigurationFileFail: {exc}") from exc
 

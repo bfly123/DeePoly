@@ -1,7 +1,8 @@
 import numpy as np
-import cupy as cp
 from typing import List, Dict, Tuple, Optional
 from scipy.sparse import linalg as splinalg
+
+from .linear_solver_backend import CUPY_AVAILABLE, cp
 
 
 class GaussNewtonSolver:
@@ -13,7 +14,7 @@ class GaussNewtonSolver:
             use_gpu: YesNoUsingGPU加速
             use_linesearch: YesNoUsingLineSearch
         """
-        self.use_gpu = use_gpu and cp.is_available()
+        self.use_gpu = bool(use_gpu and CUPY_AVAILABLE and cp.cuda.is_available())
         self.use_linesearch = use_linesearch
         self._last_solution = None
 

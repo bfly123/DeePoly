@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from src.abstract_class.config.config_io import discover_case_dirs, load_config_file, resolve_case_config_path
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -21,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--case-root",
         default="cases",
-        help="Root directory containing case config.json files.",
+        help="Root directory containing case config.yaml/config.yml/config.json files.",
     )
     parser.add_argument(
         "--output-root",
@@ -76,11 +78,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_json(path: Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
-
-
 def dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
@@ -89,7 +86,7 @@ def dump_json(path: Path, payload: Any) -> None:
 
 
 def discover_cases(case_root: Path, case_filter: str) -> list[Path]:
-    cases = sorted(path.parent for path in case_root.rglob("config.json"))
+    cases = discover_case_dirs(case_root)
     if case_filter:
         cases = [case for case in cases if case_filter in str(case.relative_to(repo_root()))]
     return cases
@@ -116,13 +113,13 @@ def load_optional_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     try:
-        return load_json(path)
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
 
 
 def summarize_case(case_dir: Path, rel_case: str, result: subprocess.CompletedProcess[str], elapsed: float) -> dict[str, Any]:
-    cfg = load_json(case_dir / "config.json")
+    cfg = load_config_file(resolve_case_config_path(case_dir))
     summary: dict[str, Any] = {
         "case": rel_case,
         "problem_type": cfg.get("problem_type"),
@@ -215,7 +212,7 @@ def main() -> int:
             )
             row = {
                 "case": rel_case,
-                "problem_type": load_json(case_dir / "config.json").get("problem_type"),
+                "problem_type": load_config_file(resolve_case_config_path(case_dir)).get("problem_type"),
                 "return_code": -999,
                 "elapsed_seconds": elapsed,
                 "status": "timeout",

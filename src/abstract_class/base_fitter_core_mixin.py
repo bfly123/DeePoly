@@ -164,7 +164,7 @@ class BaseFitterCoreMixin:
                 break
         X_poly *= scale_factor
 
-        if getattr(self.config, "method", "hybrid") == "hybrid":
+        if self.config.uses_snipper():
             X_nn = self.feature_generator.spotter_features(
                 x,
                 x_min,
