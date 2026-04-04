@@ -4,15 +4,15 @@ COMPREHENSIVE ERROR ANALYSIS REPORT
 
 TIMING INFORMATION:
 ----------------------------------------
-Total Solution Time: 16.8954 seconds
-Neural Network Training Time (Scoper): 16.6933 seconds
-Equation Fitting Time (Sniper): 0.2021 seconds
+Total Solution Time: 18.8340 seconds
+Neural Network Training Time (Scoper): 15.8172 seconds
+Equation Fitting Time (Sniper): 3.0168 seconds
 
 ERROR METRICS:
 ----------------------------------------
 Method            MSE           MAE           Max Error     Rel Error     
 --------------------------------------------------------------------------
-PINNs Train       1.345568e-06  9.948975e-04  4.885211e-03  4.541094e-02  
-PINNs Test        1.379030e-06  1.005748e-03  4.956778e-03  4.636034e-02  
-DeePoly Train     3.866817e-22  9.828010e-12  1.241579e-10  7.698115e-10  
-DeePoly Test      4.126598e-22  1.009271e-11  1.223410e-10  8.019657e-10  
+PINNs Train       1.358386e-06  1.009643e-03  4.610952e-03  4.625641e-02  
+PINNs Test        1.370157e-06  1.014927e-03  4.887638e-03  4.621095e-02  
+DeePoly Train     5.226794e-23  4.719587e-12  7.720700e-11  2.869313e-10  
+DeePoly Test      5.401175e-23  4.747721e-12  7.837890e-11  2.901375e-10  

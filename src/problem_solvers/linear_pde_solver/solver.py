@@ -108,7 +108,11 @@ class LinearPDESolver:
         print("Starting to solve the linear partial differential equation problem...")
 
         if result_dir is None:
-            result_dir = os.path.join(self.case_dir, "results")
+            get_results_dir = getattr(self.config, "get_results_dir", None)
+            if callable(get_results_dir):
+                result_dir = get_results_dir()
+            else:
+                result_dir = os.path.join(self.case_dir, "results")
         os.makedirs(result_dir, exist_ok=True)
         export_effective = getattr(self.config, "export_effective_config", None)
         if callable(export_effective):
