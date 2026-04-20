@@ -8,6 +8,7 @@ tmp/
 # Local analysis/runtime state
 .architec/
 .ccb/
+.ccb-workspace.json
 .hippocampus/
 src/.hippocampus/
 
